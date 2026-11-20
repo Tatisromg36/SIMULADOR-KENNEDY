@@ -1,0 +1,1400 @@
+<title>Kennedy Cohabitable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Fira+Sans+Extra+Condensed:wght@600;800&display=swap">
+<style>
+/* Layout: mapa isométrico a pantalla completa, panel lateral (hoja inferior en celular), línea de tiempo flotante */
+:root{
+  --bg:#15123d; --bg2:#1d1952; --ink:#f4f1ff; --ink2:#b7b2df; --mint:#58c79b; --mint-d:#2f8f74;
+  --pink:#ff3d96; --pink-g:rgba(255,61,150,.80); --cream:#f1dfae; --amber:#eaa43c; --water:#62c6e8;
+  --violet:#8a4fd6; --panel:rgba(24,20,68,.90); --line:rgba(255,255,255,.14); --good:#58c79b; --bad:#ff7a59;
+  --disp:'Fira Sans Extra Condensed','Fira Sans',system-ui,sans-serif; --ui:'Fira Sans',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.4 var(--ui);overflow:hidden;
+  padding-left:0;padding-right:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+#stage{position:fixed;inset:0;background:radial-gradient(120% 90% at 50% 30%,#2a2570 0%,var(--bg) 62%)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.drag{cursor:grabbing}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:auto;border:0;border-radius:999px;
+  padding:2px 8px 2px 6px;min-height:22px;font:700 12px/1 var(--ui);display:flex;gap:4px;align-items:center;
+  box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35);white-space:nowrap}
+.pin i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.55;display:block}
+.pin.sel{outline:2px solid #fff;z-index:5}
+.pin.cand{background:rgba(21,18,61,.92);color:#fff;border:2px dashed var(--pink);padding:1px 9px;font-size:14px}
+.pin.cand.on{background:var(--pink);border-color:#fff}
+.pin.g-met{background:var(--amber);color:#2b1c00}.pin.g-eco{background:var(--mint);color:#06281c}
+.pin.g-com{background:var(--violet);color:#fff}.pin.g-viv{background:var(--cream);color:#33260a}
+.pin.g-crit{background:var(--pink);color:#fff}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;font:italic 400 12px/1 var(--ui);
+  color:rgba(255,255,255,.72);text-shadow:0 1px 3px rgba(10,8,40,.9);white-space:nowrap;letter-spacing:.02em}
+#callout{position:absolute;left:0;top:0;pointer-events:none;max-width:min(300px,70vw);transform:translate(-14px,-100%);
+  background:var(--pink-g);backdrop-filter:blur(3px);padding:10px 14px 12px;border-radius:2px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);display:none}
+#callout b{display:block;font:800 clamp(22px,3vw,34px)/.95 var(--disp);text-transform:none}
+#callout span{display:block;margin-top:6px;font:italic 400 12px/1.3 var(--ui);opacity:.92}
+#callout.c-mint{background:rgba(88,199,155,.82);color:#05261b}
+/* barra superior */
+#top{position:absolute;left:0;right:0;top:0;padding:max(10px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;pointer-events:none}
+#top>*{pointer-events:auto}
+.brand{font:800 24px/1 var(--disp);letter-spacing:.01em;padding:7px 12px;background:var(--panel);border-radius:3px;border:1px solid var(--line)}
+.brand small{display:block;font:400 11px/1.2 var(--ui);color:var(--ink2);margin-top:2px;letter-spacing:.02em}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;padding:8px 14px;border-radius:2px;font-weight:700;color:var(--ink2);min-height:36px}
+.seg button[aria-pressed=true]{background:var(--pink);color:#fff}
+.seg button.act[aria-pressed=true]{background:var(--amber);color:#2b1c00}
+.tools{margin-left:auto;display:flex;gap:6px}
+.tools button{width:38px;height:38px;border-radius:3px;border:1px solid var(--line);background:var(--panel);font-size:17px;line-height:1}
+.tools button:hover,.seg button:hover{filter:brightness(1.2)}
+/* panel */
+#panel{position:absolute;top:70px;bottom:92px;left:max(12px,env(safe-area-inset-left,0px));width:372px;background:var(--panel);
+  border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;backdrop-filter:blur(6px);min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;padding:11px 6px;font-weight:700;color:var(--ink2);border-bottom:3px solid transparent;min-height:44px}
+.tabs button[aria-selected=true]{color:#fff;border-bottom-color:var(--pink)}
+.tabbody{overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
+h3{margin:2px 0 0;font:700 11px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.card{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;
+  background:rgba(255,255,255,.04);text-align:left;width:100%}
+.card[aria-pressed=true]{border-color:var(--pink);background:rgba(255,61,150,.12)}
+.card .nm{font-weight:700;font-size:13px}
+.card .nm small{display:block;font-weight:400;color:var(--ink2);font-size:11px}
+.card .val{font:800 30px/1 var(--disp);text-align:right;font-variant-numeric:tabular-nums}
+.card .val u{text-decoration:none;font-size:15px;color:var(--ink2);margin-left:2px}
+.card svg{grid-column:1/3;width:100%;height:30px;margin-top:4px}
+.delta{grid-column:1/3;font-size:11px;color:var(--ink2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.1);font-weight:700;font-variant-numeric:tabular-nums}
+.chip.up{background:rgba(88,199,155,.22);color:var(--mint)}.chip.dn{background:rgba(255,122,89,.22);color:var(--bad)}
+.sp{display:grid;grid-template-columns:90px 1fr 56px;gap:8px;align-items:center;font-size:12px}
+.sp .bar{height:8px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.sp .bar b{display:block;height:100%;background:var(--mint)}
+.sp output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.note{font-size:11px;color:var(--ink2);line-height:1.45}
+.li{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:rgba(255,255,255,.03);
+  width:100%;text-align:left;min-height:44px}
+.li:hover{background:rgba(255,255,255,.08)}
+.li .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.li .t{flex:1;min-width:0;font-weight:500;font-size:13px}
+.li .t small{display:block;color:var(--ink2);font-size:11px;font-weight:400}
+.li .pc{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink2)}
+.vr{display:grid;gap:3px;font-size:12px}.vr label{display:flex;justify-content:space-between;gap:8px;font-weight:600}.vr output{font-weight:800;color:var(--pink);white-space:nowrap}
+.vr input[type=range]{width:100%;accent-color:#ff3d96;min-height:28px}.vr small{color:var(--ink2);font-size:10.5px;line-height:1.35}
+.presets{display:flex;flex-wrap:wrap;gap:6px}.presets button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:3px;padding:7px 9px;font-weight:700;font-size:12px;min-height:34px}
+.cmp{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;font-size:12px;align-items:baseline}.cmp b{font-variant-numeric:tabular-nums}
+.relsvg{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:rgba(0,0,0,.18)}.relsvg svg{display:block;min-width:780px;width:100%;height:auto}
+.rn{cursor:pointer}.rn text{fill:#fff;font:700 15px var(--ui,inherit);pointer-events:none}.rn .v{fill:rgba(255,255,255,.22)}.rn .vf{fill:#7ee7b0}.rn:focus{outline:none}.rn.dim{opacity:.35}.re{fill:none;stroke-width:2.2;opacity:.8}.re.dim{opacity:.12}.re.on{stroke-width:3.6;opacity:1}
+.rl{font:800 17px var(--ui,inherit)}.rleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11px;margin:8px 0}.rleg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.rinfo{border:1px solid var(--line);border-radius:4px;padding:10px;margin-top:8px;font-size:12.5px;line-height:1.45}.rinfo h4{margin:0 0 4px;font-size:15px}.rinfo .sp{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.rinfo .sp button{border:1px solid var(--pink);background:transparent;color:inherit;border-radius:3px;padding:6px 9px;font-weight:700;font-size:12px;min-height:32px}
+.rloops{font-size:12px;line-height:1.5;margin:10px 0 0;padding-left:0;list-style:none}.rloops li{margin:4px 0}.rloops b{color:var(--pink)}
+#relModal{position:fixed;inset:0;z-index:30;background:rgba(10,8,40,.92);display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#relModal .rmBox{position:relative;width:min(1500px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+#relModal .relsvg svg{min-width:0;max-height:calc(100vh - 250px);margin:0 auto}#relModal .rinfo,#relModal .rloops{font-size:13px}#rmClose{position:absolute;right:10px;top:8px;z-index:2;border:0;background:rgba(255,255,255,.12);color:#fff;width:36px;height:36px;border-radius:4px;font-size:16px}
+#openRel{border:1px solid var(--pink);background:transparent;color:inherit;border-radius:3px;padding:8px 12px;font-weight:700;margin:0 0 8px;min-height:36px}
+.switch{display:flex;gap:8px;align-items:center;font-size:13px}
+.switch input{width:18px;height:18px;accent-color:var(--pink)}
+#ficha h2{margin:0;font:800 30px/.95 var(--disp)}
+#ficha .st{display:flex;gap:6px;flex-wrap:wrap}
+#ficha p{margin:0}
+.fx{display:flex;gap:6px;flex-wrap:wrap}
+.fx span{padding:3px 8px;border-radius:99px;background:rgba(88,199,155,.2);color:var(--mint);font-size:12px;font-weight:700}
+.empty{color:var(--ink2);font-size:13px;padding:8px 2px}
+/* línea de tiempo */
+#time{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));
+  display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px 14px;backdrop-filter:blur(6px)}
+#play{width:46px;height:46px;border-radius:50%;border:0;background:var(--pink);color:#fff;font-size:18px;flex:none}
+.yr{min-width:112px;font:800 26px/1 var(--disp);font-variant-numeric:tabular-nums}
+.yr small{display:block;font:400 11px/1.2 var(--ui);color:var(--ink2)}
+.rng{flex:1;min-width:0}
+input[type=range]{width:100%;accent-color:var(--pink);height:28px;margin:0}
+.ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--ink2);margin-top:-2px}
+#phase{font:700 12px/1 var(--ui);padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.1);white-space:nowrap}
+#spd{border:1px solid var(--line);background:transparent;border-radius:3px;padding:8px 10px;font-weight:700;min-width:48px}
+#legend{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:92px;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:8px 12px;font-size:11px;width:240px;max-height:calc(100vh - 190px);overflow:auto}
+#lgBtn{display:none}
+#evt{position:absolute;left:50%;top:78px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--pink);border-radius:3px;padding:8px 12px;font-size:13px;z-index:6;max-width:min(520px,92vw);display:flex;gap:10px;align-items:center}
+#evt button{border:0;background:var(--pink);color:#fff;font-weight:700;border-radius:3px;padding:6px 10px;min-height:32px}
+#follow{display:flex;gap:6px;align-items:center;font-size:12px;white-space:nowrap}
+#legend .ag{display:flex;gap:8px;align-items:center;padding:2px 0}#legend .ag svg{flex:none;background:rgba(0,0,0,.35);border-radius:3px;padding:2px}#legend .ag small{display:block;color:var(--ink2);font-size:10.5px}#legend .bar{height:8px;border-radius:2px;margin:6px 0 3px}
+#legend .row{display:flex;justify-content:space-between;color:var(--ink2)}
+/* entrada */
+body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro #pins{visibility:hidden}
+#intro{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,rgba(21,18,61,.55),rgba(21,18,61,.9) 70%);
+  padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+#intro[hidden]{display:none}
+.hero{max-width:880px;width:100%;display:flex;flex-direction:column;gap:20px}
+.hero h1{margin:0;font:800 clamp(42px,8vw,88px)/.9 var(--disp);letter-spacing:.005em}
+.hero h1 em{font-style:normal;color:var(--mint)}
+.hero p{margin:0;max-width:60ch;color:var(--ink2);font-size:15px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.choice{border:0;text-align:left;padding:18px 18px 20px;border-radius:3px;display:flex;flex-direction:column;gap:8px;min-height:150px}
+.choice b{font:800 clamp(26px,4vw,38px)/.95 var(--disp)}
+.choice span{font-size:13px;line-height:1.4}
+.choice small{font:700 11px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+.choice.a{background:var(--amber);color:#2b1c00}
+.choice.p{background:var(--pink);color:#fff}
+.choice:hover{transform:translateY(-2px)}
+.facts{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
+.facts b{color:var(--ink);font:800 22px/1 var(--disp);display:block;font-variant-numeric:tabular-nums}
+#load{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--bg);font:800 28px var(--disp)}
+#load[hidden]{display:none}
+#sheetBtn{display:none;border:0;background:transparent;color:var(--ink2);font-size:16px;padding:0 12px;flex:none}
+@media (max-width:900px){
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;height:42vh;border-radius:10px 10px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);
+    padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+  #time{bottom:calc(42vh + 8px);padding:8px 10px;gap:8px}
+  #panel.min{height:44px}#panel.min~#time{bottom:56px}
+  #legend{display:none;bottom:calc(42vh + 72px)}#legend.open{display:block}#lgBtn{display:inline-block}
+  .yr{min-width:86px;font-size:22px}
+  #phase{display:none}
+  .choices{grid-template-columns:1fr}
+  .brand small{display:none}
+  .brand{font-size:19px;padding:6px 10px}
+  .tools button{width:36px;height:36px}
+  #top{gap:6px}
+}
+@media (max-width:900px){
+  #top{align-items:flex-start}
+  .brand{font-size:17px;padding:5px 9px}.seg button{padding:6px 10px;min-height:34px;font-size:13px}
+  .tools{position:fixed;right:max(8px,env(safe-area-inset-right,0px));top:calc(max(10px,env(safe-area-inset-top,0px)) + 50px);flex-direction:column;margin:0;z-index:4}
+  .tabs{overflow-x:auto}.tabs button{font-size:12.5px;padding:9px 10px;white-space:nowrap;flex:0 0 auto}
+  #evt{top:calc(max(10px,env(safe-area-inset-top,0px)) + 50px);left:8px;right:56px;transform:none;max-width:none}
+  #follow span{display:none}#follow{font-size:11px}
+  .tabbody{padding:10px}
+  #sheetBtn{display:block}
+  .tools button{width:34px;height:34px;font-size:15px}#qual{display:none}
+}
+@media (max-width:420px){.brand small{display:none}.seg button{padding:6px 8px;font-size:12.5px}.yr{min-width:70px;font-size:19px}#spd{min-width:40px;padding:6px}#follow{display:none}}
+@media (max-height:520px) and (orientation:landscape){
+  #panel{top:56px;bottom:62px;left:max(8px,env(safe-area-inset-left,0px));right:auto;width:min(46vw,340px);height:auto;border-radius:4px}
+  #time{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:max(6px,env(safe-area-inset-bottom,0px));padding:5px 10px}
+  #play{width:38px;height:38px}.yr small,#phase,.ticks{display:none}.brand small{display:none}.brand{font-size:16px;padding:4px 8px}
+  .tools{position:static;flex-direction:row}.tools button{width:32px;height:32px}
+  #legend{display:none}#legend.open{display:block;bottom:62px}#lgBtn{display:inline-block}
+  .seg button{min-height:30px;padding:4px 10px}
+  #sheetBtn{display:block}#qual{display:inline-block}
+}
+@media (min-width:1800px){
+  #panel{width:460px;font-size:16px;top:84px}.card .val{font-size:34px}.brand{font-size:30px}.seg button{font-size:16px;min-height:42px}
+  .tools button{width:46px;height:46px;font-size:20px}#legend{width:300px;font-size:13px}#time{padding:14px 18px}#play{width:56px;height:56px}.yr{font-size:32px}
+  #evt{font-size:16px}.pin{font-size:15px}
+}
+@media (min-width:2600px){html{zoom:1.35}}
+@media (prefers-reduced-motion:reduce){.choice:hover{transform:none}}
+.er{display:grid;grid-template-columns:34px 1fr;gap:2px 8px;align-items:center;font-size:12px;margin:4px 0;position:relative}.er i{grid-column:1/3;height:4px;border-radius:2px;background:#ff9f1c}.fl{display:block;margin:8px 0;font-size:12px;cursor:pointer}#go{position:fixed;inset:0;z-index:31;background:radial-gradient(90% 80% at 50% 40%,rgba(70,8,40,.86),rgba(12,6,34,.95));display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px;overflow:auto}
+#go .gbox{width:min(760px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid rgba(255,61,150,.55);border-radius:8px;padding:20px 22px;box-shadow:0 0 60px rgba(255,61,150,.25)}
+#go h2{font:800 clamp(40px,9vw,76px)/.95 var(--disp);letter-spacing:.04em;margin:0;color:var(--pink);text-transform:uppercase}
+#go .gs{font:600 clamp(15px,2.6vw,19px)/1.3 var(--ui);margin:6px 0 14px;color:var(--ink)}
+#go .gc{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:10px 0;border-top:1px solid var(--line)}
+#go .gc b{grid-row:1/3;font:800 22px/1 var(--disp);color:var(--bad);min-width:62px}#go .gc strong{font-size:14px}#go .gc span{font-size:13px;color:var(--ink2)}
+#go .gchain{font-size:13px;color:var(--ink2);margin:12px 0;padding:10px 12px;background:rgba(255,255,255,.06);border-radius:6px}
+#go .gb{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}#go .gb button{padding:11px 16px;border-radius:5px;border:1px solid var(--line);background:rgba(255,255,255,.08);font-weight:600}#go .gb .pri{background:var(--mint-d);border-color:var(--mint)}
+#vig{position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,40,90,.38));opacity:0;transition:opacity .8s}body.collapse #vig{opacity:1}
+#thr{position:fixed;top:max(76px,calc(env(safe-area-inset-top,0px) + 70px));left:50%;transform:translateX(-50%);z-index:25;background:rgba(80,10,40,.94);border:1px solid var(--pink);border-radius:6px;padding:9px 14px;font-size:13px;max-width:min(520px,92vw);text-align:center}
+.rng{position:relative}#goMarks{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
+#goMarks i{position:absolute;top:2px;width:3px;height:14px;margin-left:-1px;background:#ff7a59;border-radius:2px;opacity:.85}#goMarks i.big{background:var(--pink);width:5px;height:20px;top:-1px}
+.vhd{font:700 15px/1.2 var(--disp);padding:8px 10px;border-radius:5px;margin-bottom:6px;letter-spacing:.02em}.vhd.vp{background:rgba(255,61,150,.18);border-left:4px solid var(--pink)}.vhd.va{background:rgba(234,164,60,.18);border-left:4px solid var(--amber)}#go .gmh{font:700 14px/1.2 var(--ui);text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);margin:16px 0 8px}
+#go .gmm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+#go .gm{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+#go .gmt{display:flex;justify-content:space-between;gap:8px;align-items:baseline}#go .gmt b{font:700 16px/1.2 var(--disp);color:var(--ink)}#go .gmt em{font-style:normal;font-size:12px;color:var(--bad);white-space:nowrap}
+#go .gm p{margin:3px 0 6px;font-size:12px;color:var(--ink2)}#go .gmr{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line);color:var(--ink2)}
+#go .gmr.bad{color:#ffb4a0}#go .gmr span:last-child{text-align:right;white-space:nowrap}#go .gbox{width:min(980px,100%)}
+.tag.gate.ped{background:#fff3e0;font-weight:600;font-size:8px}.tag.gate{background:#ff9f1c;color:#1a1033;font-weight:700;padding:1px 4px;border-radius:3px;text-shadow:none;font-size:9px;line-height:1.2}.tag.acc{font-size:9px}.yr .clk{display:block;font-size:11px;opacity:.85;white-space:nowrap}.yr .clk b{font-variant-numeric:tabular-nums}#go.ok{background:radial-gradient(90% 80% at 50% 40%,rgba(8,70,50,.86),rgba(12,6,34,.95))}#go.ok .gbox{border-color:rgba(88,199,155,.6);box-shadow:0 0 60px rgba(88,199,155,.25)}details.fx{margin:-4px 0 8px;padding:0 12px 2px;font-size:12px;color:var(--ink2)}details.fx summary{cursor:pointer;color:var(--mint);font-weight:600;padding:4px 0;list-style:none}details.fx summary::before{content:'ƒ  ';font-style:italic}details.fx[open] summary{margin-bottom:4px}
+.fxf{font:600 12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;overflow-x:auto}.fxv{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:4px 0;color:var(--ink);overflow-wrap:anywhere}details.fx p{margin:4px 0;line-height:1.45}details.fx .fxs{opacity:.7;font-size:11px}</style>
+
+<div id="stage"><canvas id="gl" aria-label="Maqueta isométrica de Kennedy"></canvas><div id="pins"></div><div id="callout"></div></div>
+
+<div id="top">
+  <div class="brand">Kennedy cohabitable<small>Corabastos · Humedal La Vaca · 20 años</small></div>
+  <div class="seg" role="group" aria-label="Escenario">
+    <button id="bAct" class="act" aria-pressed="false">Situación actual</button>
+    <button id="bPro" aria-pressed="true">Propuesta</button>
+  </div>
+  <div class="tools">
+    <button id="rotL" aria-label="Rotar a la izquierda" title="Rotar (Q)">⟲</button>
+    <button id="rotR" aria-label="Rotar a la derecha" title="Rotar (E)">⟳</button>
+    <button id="home" aria-label="Vista general" title="Vista general">⌂</button>
+    <button id="lgBtn" aria-label="Leyenda" title="Leyenda">?</button>
+    <button id="zIn" aria-label="Acercar" title="Acercar">+</button>
+    <button id="zOut" aria-label="Alejar" title="Alejar">−</button>
+    <button id="qual" aria-label="Cambiar nivel de detalle" title="Detalle de edificios">▦</button>
+  </div>
+</div>
+
+<aside id="panel">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t1" aria-selected="true" data-tab="ind">Indicadores</button>
+    <button role="tab" id="t2" aria-selected="false" data-tab="mp">Masterplan</button>
+    <button role="tab" id="t3" aria-selected="false" data-tab="fi">Ficha</button>
+    <button role="tab" id="t4" aria-selected="false" data-tab="var">Variables</button>
+    <button role="tab" id="t5" aria-selected="false" data-tab="rel">Relaciones</button>
+    <button id="sheetBtn" aria-label="Mostrar u ocultar panel" title="Mostrar u ocultar panel">⌄</button>
+  </div>
+  <div class="tabbody" id="b-ind"></div>
+  <div class="tabbody" id="b-mp" hidden></div>
+  <div class="tabbody" id="b-var" hidden></div>
+  <div class="tabbody" id="b-rel" hidden></div>
+  <div class="tabbody" id="b-fi" hidden><div id="ficha"><p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p></div></div>
+</aside>
+
+<div id="legend"><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
+
+<div id="evt" hidden></div>
+<div id="vig"></div><div id="thr" hidden></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
+<div id="relModal" hidden><div class="rmBox"><button id="rmClose" aria-label="Cerrar">✕</button><div id="rmBody"></div></div></div>
+<div id="time">
+  <button id="play" aria-label="Reproducir">▶</button>
+  <div class="yr"><span id="yv">Año 0</span><small id="yc">2026</small><small class="clk">🕒 <b id="clk">22:00</b></small></div>
+  <div class="rng"><div id="goMarks"></div><input id="yr" type="range" min="0" max="20" step="0.05" value="0" aria-label="Año de la simulación">
+    <div class="ticks"><span>Hoy</span><span>5</span><span>10</span><span>15</span><span>20 años</span></div></div>
+  <label id="follow" hidden title="La cámara se acerca a lo que va ocurriendo"><input type="checkbox" id="swF" checked> Seguir eventos</label>
+  <span id="phase">—</span>
+  <button id="spd" aria-label="Velocidad">1×</button>
+</div>
+
+<div id="intro" hidden>
+  <div class="hero">
+    <h1>Kennedy,<br><em>cohabitable</em></h1>
+    <p>Un territorio de 648 ha entre Corabastos y el Humedal La Vaca, simulado a 20 años. Elige qué quieres ver y recorre el mapa: gira, acerca y mueve la línea de tiempo.</p>
+    <div class="choices">
+      <button class="choice a" id="goAct"><small>Línea base</small><b>Situación actual</b><span>Metabolismo lineal: Corabastos emite 95 a 120 t/día de residuo orgánico que llega al humedal sin intercepción.</span></button>
+      <button class="choice p" id="goPro"><small>Maestro Plan</small><b>Propuesta</b><span>Bio-factorías, ecotonos, corredores y puentes de fauna. Mira qué indicadores mejoran y dónde faltan espacios.</span></button>
+    </div>
+    <div class="facts" id="facts"></div>
+    <p class="note">Edificios y pisos: capa SIG entregada. Intervenciones: plano del masterplan, ubicadas de forma aproximada. Valores de los indicadores: modelo ilustrativo con las reglas del documento de agentes, por calibrar con datos medidos.</p>
+  </div>
+</div>
+<div id="load">Cargando territorio…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const D = __DATA__;
+</script>
+<script>
+(()=>{
+'use strict';
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const sm=t=>t*t*(3-2*t);
+const u8=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const i16=s=>new Int16Array(u8(s).buffer), u16=s=>new Uint16Array(u8(s).buffer);
+const rnd=(()=>{let s=7;return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646}})();
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MOBILE=matchMedia('(max-width:900px)').matches||('ontouchstart' in window);
+
+/* ---------- datos ---------- */
+const g=D.grid, NX=g.nx, NY=g.ny, CS=g.cs;
+const MASK=u8(g.mask);
+/* el centro de investigación queda fuera del rectángulo: se agrega su terreno al área visible */
+D.inter.filter(o=>o.id==='centro_inv').forEach(o=>{for(let iy=0;iy<NY;iy++)for(let ix=0;ix<NX;ix++){const cx=g.x0+(ix+.5)*CS,cy=g.y0+(iy+.5)*CS;if(Math.hypot(cx-o.x,cy-o.y)<260)MASK[iy*NX+ix]=1;}});
+const inM=(x,y)=>{const ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);return ix>=0&&iy>=0&&ix<NX&&iy<NY&&MASK[iy*NX+ix]===1;};
+function inRuns(pts,step=25){const P=[];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/step));for(let k=0;k<n;k++)P.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]);}
+  P.push(pts[pts.length-1]);const R=[];let cur=[];P.forEach(p=>{if(inM(p[0],p[1]))cur.push(p);else{if(cur.length>1)R.push(cur);cur=[];}});if(cur.length>1)R.push(cur);return R;}
+Object.keys(D.lines).forEach(k=>{const r=inRuns(D.lines[k]);if(r.length){r.sort((a,b)=>b.length-a.length);D.lines[k]=r[0];}});
+const L={};['cov','pop','ew','food','conn','cohab','spec','soc'].forEach(k=>L[k]=u8(g[k]));
+const gh=(x,z)=>{const ix=Math.floor((x-g.x0)/CS), iy=Math.floor((-z-g.y0)/CS);
+  if(ix<0||iy<0||ix>=NX||iy>=NY)return 4; return MASK[iy*NX+ix]?14:4;};
+const W3=(p)=>({x:p[0],z:-p[1]});
+const mcells=[]; for(let i=0;i<NX*NY;i++) if(MASK[i]) mcells.push(i);
+const MC=mcells.length;
+const cx=new Float32Array(MC), cy=new Float32Array(MC);
+mcells.forEach((c,j)=>{cx[j]=g.x0+((c%NX)+.5)*CS; cy[j]=g.y0+(Math.floor(c/NX)+.5)*CS;});
+
+/* ---------- modelo ---------- */
+const VAR0={resC:95,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
+const VAR=Object.assign({},VAR0);const VARS={act:Object.assign({},VAR0),pro:Object.assign({},VAR0)};
+const VKEYS={act:['resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0)};
+const CI=[];
+const KEYS=['ew','food','conn','cohab','spec','soc'];
+const KNAME={ew:'Residuos',food:'Alimentos',conn:'Conectividad',cohab:'Cohabitabilidad',spec:'Especulación',soc:'Capital social'};
+const WT={ // tipo -> indicador:[peso, radio de influencia m]
+ plaza:{ew:[.8,1800],food:[.9,1700],soc:[.3,900],spec:[.2,1200]},
+ ecocirc:{ew:[.6,1100],food:[.3,900],soc:[.3,800]},
+ centro:{ew:[.5,2200],food:[.3,2000],soc:[.2,1500]},
+ parque:{conn:[.6,1100],cohab:[.6,1000],ew:[.3,1000]},
+ ecotono:{conn:[.6,900],cohab:[.9,900]},
+ corredor:{conn:[.9,520],cohab:[.5,520]},
+ puente:{conn:[.9,1000],cohab:[.8,1000]},
+ custodia:{cohab:[.6,600],soc:[.5,800]},
+ habitat:{cohab:[.6,600],soc:[.4,700]},
+ saberes:{soc:[.8,1000]},
+ vivienda:{spec:[.9,1600],soc:[.5,900]},
+ renov:{spec:[.7,1400],cohab:[.3,800],soc:[.4,900]},
+ suelo:{spec:[.8,1600],soc:[.3,900]},
+};
+const CAP={cora:38,osorio:8,bav:8,eco:12,centro:12}; // t/día de biomasa valorizada (supuesto)
+const INT=D.inter; INT.forEach((o,i)=>{o.i=i;});
+const byId={}; INT.forEach(o=>byId[o.id]=o);
+const cap=o=>(cap0(o))*VAR.capX/100;
+const cap0=o=>o.capv||(o.id==='plaza_cora'?CAP.cora:o.id==='plaza_osorio'?CAP.osorio:o.id==='plaza_bav'?CAP.bav:o.id==='ecocirc'?CAP.eco:o.id==='centro_inv'?CAP.centro:0);
+/* la propuesta existe completa desde el año 0; lo que evoluciona es su funcionamiento (madurez) */
+const MAT=o=>(Math.max(2,o.e-o.s)+1)/(VAR.exec/100);
+const prog=(o,t)=>sm(clamp(t/MAT(o)));
+const yrs=o=>'madura en '+Math.round(MAT(o))+' años';
+// influencia estática por intervención e indicador
+function samples(pts,step=50){const out=[];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.max(2,Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])/step));for(let k=0;k<n;k++)out.push([lerp(a[0],b[0],k/n),lerp(a[1],b[1],k/n)]);}out.push(pts[pts.length-1]);return out;}
+function prep(o){
+  o.infl={}; const w=WT[o.type]; if(!w)return;
+  let S=null; if(o.type==='corredor') S=samples(D.lines[o.id]);
+  for(const k in w){const [wt,R]=w[k], G=new Float32Array(MC);
+    for(let j=0;j<MC;j++){let d;
+      if(S){d=1e9;for(const p of S){const dd=Math.hypot(cx[j]-p[0],cy[j]-p[1]);if(dd<d)d=dd;}}
+      else d=Math.hypot(cx[j]-o.x,cy[j]-o.y);
+      G[j]=Math.exp(-(d/R)*(d/R));}
+    o.infl[k]={w:wt,G};}
+}
+INT.forEach(prep);
+const NEED={}, NEEDSUM={};
+KEYS.forEach(k=>{const a=new Float32Array(MC);let s=0;for(let j=0;j<MC;j++){a[j]=L[k][mcells[j]]/255;s+=a[j];}NEED[k]=a;NEEDSUM[k]=s;});
+const act=()=>S.adopt?INT.concat(CI):INT;
+function remaining(k,t,scn){ // fracción de necesidad que queda por celda
+  const r=new Float32Array(MC).fill(1); if(scn!=='pro')return r;
+  for(const o of act()){const inf=o.infl[k]; if(!inf)continue; const f=prog(o,t); if(f<=0.001)continue;
+    const fw=Math.min(.97,f*inf.w*VAR.inv/100), G=inf.G; for(let j=0;j<MC;j++) r[j]*=1-fw*G[j];}
+  return r;
+}
+function sat(k,t,scn){const r=remaining(k,t,scn);let s=0;for(let j=0;j<MC;j++)s+=NEED[k][j]*r[j];return 1-s/NEEDSUM[k];}
+const emis=t=>VAR.resC*(1+VAR.emisG/100*t);
+function biomass(t,scn,sO){if(scn!=='pro')return 0;let b=0;for(const o of act()){const c=cap(o);if(c)b+=c*prog(o,t);}b*=(0.8+0.4*(sO||0));return Math.min(b,VAR.maxVal/100*emis(t));}
+const meanProg=(f,t)=>{const a=INT.filter(f);return a.length?a.reduce((x,o)=>x+prog(o,t),0)/a.length:0;};
+function drivers(scn,t){
+  const sC=sat('conn',t,scn), sE=sat('ew',t,scn), sF=sat('food',t,scn), sH=sat('cohab',t,scn), sS=sat('spec',t,scn), sO=sat('soc',t,scn);
+  const B=biomass(t,scn,sO), E=emis(t), val=B/E;
+  const specBase=62+1.15*t*VAR.spec/100;
+  const o={ sC,sE,sF,sH,sS,sO,B,E,val };
+  if(scn==='pro'){
+    o.conn=16+70*sC; o.food=3+42*sF; o.spec=Math.max(20,specBase-60*sS); o.soc=Math.min(100,6+72*sO*VAR.soc/100);
+  }else{
+    o.conn=Math.max(6,16-0.32*t); o.food=Math.max(1.5,3-0.05*t); o.spec=Math.min(95,specBase); o.soc=Math.max(2,6-0.15*t);
+  }
+  o.specBase=specBase;
+  const Dn=clamp((o.food-3)/42), Cn=clamp((o.conn-16)/70), Sn=clamp((o.soc-6)/72);
+  o.sroi= scn==='pro'? -0.5+6.4*(0.40*Dn+0.30*Cn+0.30*Sn) : -0.6-0.03*t;
+  o.untreated=E-B;
+  // relaciones del diagrama causal
+  const pro=scn==='pro';
+  o.cot=pro?meanProg(x=>x.type==='plaza'||x.type==='ecocirc',t):0;
+  o.conv=pro?clamp(val/0.75):0;
+  o.coop=pro?meanProg(x=>x.type==='vivienda'||x.type==='renov',t):0;
+  o.puentes=pro?meanProg(x=>x.type==='puente',t):0;
+  o.centroP=pro?prog(byId.centro_inv,t):0;
+  const sp01=clamp(o.spec/100);
+  o.zd=clamp(.9*sp01-.35*o.puentes);
+  o.AH=100*clamp(.30+.55*o.conv*(1-.6*o.zd)-(pro?.10*o.zd:.12*o.zd*t/20)-(pro?0:.004*t));
+  o.abono=.55*B; o.huertas=clamp(o.abono/25); o.ahorro=clamp(B/45);
+  if(pro)o.food=Math.min(100,o.food+7*o.huertas);
+  o.despl=sp01*(1-.7*o.coop);
+  o.dep=100*clamp(.92-(pro?.55*(.5*o.centroP+.5*clamp((o.food-3)/42)):0));
+  return o;
+}
+// especies (reglas del documento: tope de población y reproducción con energía > 85)
+const CAPS={tingua:60,falcon:15,hum:80,pigeon:100};
+function simSpecies(scn,drv){
+  const N={tingua:[14],falcon:[3],hum:[22],pigeon:[48]};
+  for(let y=1;y<=20;y++){
+    const d=drv[y-1];
+    const rD=VAR.resD*(scn==='pro'?1-clamp(d.val/0.85):1);d.rD=rD;
+    const dis=clamp(.75*N.pigeon[y-1]/CAPS.pigeon+.25*(d.untreated+rD)/(d.E+VAR.resD+1e-6));d.dis=dis;     // palomas → enfermedades
+    const qs0= scn==='pro'? clamp(0.55*d.sC+0.25*d.val/0.7+0.20*d.sH) : clamp(0.12-0.006*y);
+    const qs=qs0*(1-.18*dis);                                                          // enfermedades → fauna nativa (−)
+    const awf=.5+.5*clamp(d.AH/100/.6);
+    const en=100*qs+35, g=clamp((en-70)/30);          // energía como proxy de calidad de hábitat
+    const step=(n,K,r,imm,gate)=>{K=Math.max(K,0.4);let v=n+ (r*(gate?g:1))*n*(1-n/K); if(n>K) v=n-0.3*(n-K); if(qs>0.3) v+=imm*VAR.imm/100; return clamp(v,0,K>n?Math.max(K,n):n);};
+    const last=k=>N[k][y-1];
+    N.tingua.push(Math.min(CAPS.tingua,step(last('tingua'),CAPS.tingua*clamp(qs*1.25)*awf,0.45,0.6,true)));
+    N.hum.push(Math.min(CAPS.hum,step(last('hum'),CAPS.hum*clamp(qs*1.2),0.5,2,true)));
+    N.falcon.push(Math.min(CAPS.falcon,step(last('falcon'),CAPS.falcon*clamp(qs*1.1),0.3,0.25,true)));
+    const kp=CAPS.pigeon*(0.25+0.75*(1-(scn==='pro'?d.val/0.85:0)))*(0.6+0.4*clamp(rD/30,0,2.2));
+    N.pigeon.push(Math.min(CAPS.pigeon,step(last('pigeon'),kp,0.4,0,false)));
+  }
+  return N;
+}
+const SER={};
+function buildSeries(){['act','pro'].forEach(scn=>{Object.assign(VAR,VARS[scn]);
+  const drv=[];for(let y=0;y<=20;y++)drv.push(drivers(scn==='pro'?'pro':'act',y));
+  const sp=simSpecies(scn,drv);
+  drv.forEach((d,y)=>{if(d.rD===undefined)d.rD=VAR.resD;if(d.dis===undefined)d.dis=clamp(.75*sp.pigeon[y]/CAPS.pigeon+.25*(d.untreated+d.rD)/(d.E+VAR.resD+1e-6));d.N={tingua:sp.tingua[y],falcon:sp.falcon[y],hum:sp.hum[y],pigeon:sp.pigeon[y]};
+    d.cohab=100*(0.35*d.N.tingua/60+0.20*d.N.falcon/15+0.25*d.N.hum/80+0.20*(1-d.N.pigeon/100));});
+  SER[scn]=drv;
+});Object.assign(VAR,VARS[(typeof S!=='undefined'&&S.scn)||'pro']);}
+function at(scn,t){const s=SER[scn],i=Math.min(19,Math.floor(t)),f=t-i,a=s[i],b=s[i+1],o={};
+  for(const k in a){if(k==='N'){o.N={};for(const n in a.N)o.N[n]=lerp(a.N[n],b.N[n],f);}else o[k]=lerp(a[k],b[k],f);}return o;}
+
+/* ---------- estado de la app ---------- */
+const S={scn:'pro',t:0,playing:false,speed:1,layer:'estado',sel:null,cands:true,adopt:false,hq:!MOBILE,tab:'ind'};
+const IND=[
+ {k:'conn',g:'Ecosistema',n:'Conectividad ecosistémica',s:'Corredores, puentes y ecotonos enlazados',u:'',lay:'conn',fmt:v=>v.toFixed(0)},
+ {k:'cohab',g:'Ecosistema',n:'Cohabitabilidad multiespecie',s:'Tingua, colibríes, halcón y palomas',u:'',lay:'cohab',fmt:v=>v.toFixed(0)},
+ {k:'val',g:'Metabolismo',n:'Reducción de residuos',s:'Biomasa de Corabastos valorizada en origen',u:'%',lay:'ew',fmt:v=>(v*100).toFixed(0)},
+ {k:'food',g:'Metabolismo',n:'Descentralización alimentaria',s:'Flujo de alimento que pasa por nodos locales',u:'%',lay:'food',fmt:v=>v.toFixed(0)},
+ {k:'spec',g:'Comunidad y economía',n:'Presión especulativa',s:'Índice 0 a 100 · menor es mejor',u:'',lay:'spec',fmt:v=>v.toFixed(0),lower:true},
+ {k:'soc',g:'Comunidad y economía',n:'Capital social',s:'Participación en asambleas y círculos',u:'',lay:'soc',fmt:v=>v.toFixed(0)},
+ {k:'sroi',g:'Comunidad y economía',n:'Retorno social de la inversión',s:'SROI · meta mayor a 3,5×',u:'×',lay:'all',fmt:v=>v.toFixed(1).replace('.',',')},
+];
+const other=()=>S.scn==='pro'?'act':'pro';
+buildSeries();
+
+/* ---------- escena ---------- */
+const cv=$('#gl');
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:!MOBILE,alpha:true});
+R.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); R.setClearColor(0x000000,0);
+const sc=new THREE.Scene();
+sc.add(new THREE.HemisphereLight(0xcfd8ff,0x2c2560,.62));
+const sun=new THREE.DirectionalLight(0xfff1d6,.9); sun.position.set(-1500,3000,1200); sc.add(sun);
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,10,40000);
+const V={tx:500,tz:-900,H:2500,az:0.62,el:0.62};
+const OFF={x:0,y:0,tx:0,ty:0};let offN=0;
+function calcOff(){if(document.body.classList.contains('intro')){OFF.tx=0;OFF.ty=0;return;}
+  const p=$('#panel').getBoundingClientRect(),w=innerWidth,h=innerHeight;
+  if(p.width>w*.9){OFF.tx=0;OFF.ty=p.height<80?0:Math.max(0,(h-p.top)/h)*.9;}   // hoja inferior
+  else{OFF.ty=0;OFF.tx=-Math.min(.6,(p.right)/w)*.9;}}                          // panel lateral
+function placeCam(){const d=12000;cam.position.set(V.tx+d*Math.cos(V.el)*Math.sin(V.az),d*Math.sin(V.el),V.tz+d*Math.cos(V.el)*Math.cos(V.az));cam.lookAt(V.tx,0,V.tz);
+  const w=cv.clientWidth,h=cv.clientHeight,a=w/h;const hs=OFF.x*a*V.H,vs=OFF.y*V.H;cam.left=-V.H*a+hs;cam.right=V.H*a+hs;cam.top=V.H-vs;cam.bottom=-V.H-vs;cam.updateProjectionMatrix();cam.updateMatrixWorld();}
+const mat=(c,o={})=>new THREE.MeshPhongMaterial(Object.assign({color:c,flatShading:true,shininess:0,specular:0x000000},o));
+const lam=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+const geo={};
+geo.box=new THREE.BoxGeometry(1,1,1);geo.box.translate(0,.5,0);
+geo.cyl=new THREE.CylinderGeometry(1,1,1,18);geo.cyl.translate(0,.5,0);
+geo.ico=new THREE.IcosahedronGeometry(1,0);
+geo.cone=new THREE.ConeGeometry(1,1,5);geo.cone.translate(0,.5,0);
+geo.blobs=[];for(let k=0;k<7;k++){const g=new THREE.CylinderGeometry(1,1,1,30,1);g.translate(0,.5,0);const p=[k*1.7,k*2.9,k*.6],a=[.16,.11,.07];
+  const pos=g.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),r0=Math.hypot(x,z);if(r0<1e-4)continue;const th=Math.atan2(z,x);
+    const f=.74+.26*(.5+.5*Math.sin(th*2+p[0]))*.7+a[0]*Math.sin(th*3+p[1])+a[1]*Math.sin(th*5+p[2])+a[2]*Math.sin(th*8+p[0]);pos.setXYZ(i,x*f,pos.getY(i),z*f);}
+  g.computeVertexNormals();geo.blobs.push(g);}
+let _bk=0;const blob=()=>geo.blobs[(_bk++)%7];
+geo.dome=new THREE.SphereGeometry(1,14,6,0,Math.PI*2,0,Math.PI/2);
+const M=(geom,m,x,y,z,sx,sy,sz,ry)=>{const o=new THREE.Mesh(geom,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);if(ry)o.rotation.y=ry;return o;};
+
+/* suelo en bloques (celdas de 100 m) */
+const NC=NX*NY;
+const earthG=geo.box, earth=new THREE.InstancedMesh(earthG,lam(0x2b2766),NC);
+const topG=new THREE.PlaneGeometry(1,1);topG.rotateX(-Math.PI/2);
+const tops=new THREE.InstancedMesh(topG,new THREE.MeshLambertMaterial({color:0xffffff}),NC);
+{const m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc1=new THREE.Vector3(),p=new THREE.Vector3(),c=new THREE.Color(0x2f7468);
+ for(let i=0;i<NC;i++){const x=g.x0+((i%NX)+.5)*CS,y=g.y0+(Math.floor(i/NX)+.5)*CS,h=MASK[i]?14:4;
+  const k0=MASK[i]?1:0;m.compose(p.set(x,-40,-y),q,sc1.set((CS-1.5)*k0,(h+40)*k0,(CS-1.5)*k0));earth.setMatrixAt(i,m);
+  m.compose(p.set(x,h+.05,-y),q,sc1.set((CS-1.5)*k0,1,(CS-1.5)*k0));tops.setMatrixAt(i,m);tops.setColorAt(i,c);}
+ earth.instanceMatrix.needsUpdate=tops.instanceMatrix.needsUpdate=true;}
+sc.add(earth,tops);
+
+/* edificios */
+const B=D.b, bx=i16(B.x),by=i16(B.y),bw=u16(B.w),bd=u16(B.d),ba=u8(B.a),bf=u8(B.f);
+const order=Array.from({length:B.n},(_,i)=>i).sort((a,b)=>bw[b]*bd[b]-bw[a]*bd[a]);
+let bmesh;
+function buildBuildings(){
+  if(bmesh){sc.remove(bmesh);bmesh.dispose();}
+  const n=S.hq?B.n:Math.floor(B.n*0.5);
+  bmesh=new THREE.InstancedMesh(geo.box,lam(0xffffff),n);
+  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),p=new THREE.Vector3(),s=new THREE.Vector3(),c=new THREE.Color();
+  for(let k=0;k<n;k++){const i=order[k],x=bx[i]/2,y=by[i]/2,w=bw[i]/2,d=bd[i]/2,f=bf[i],h=Math.min(f,24)*3.3*1.25+2;
+    e.set(0,ba[i]/255*Math.PI,0);q.setFromEuler(e);
+    m.compose(p.set(x,gh(x,-y),-y),q,s.set(w,h,d));bmesh.setMatrixAt(k,m);
+    const v=rnd(); c.setHSL(0.115+v*0.02,0.5-0.25*clamp(f/10),0.74-0.05*clamp(f/8)+(v-.5)*0.07);bmesh.setColorAt(k,c);}
+  bmesh.instanceMatrix.needsUpdate=true;bmesh.instanceColor.needsUpdate=true;sc.add(bmesh);BM0=bmesh.instanceMatrix.array.slice();KB=null;bScn='';
+  if(MK.items.length)applyMarket(true);applyBldScn();
+}
+/* en la propuesta solo quedan los volúmenes existentes que forman parte del masterplan */
+var BM0=null,KB=null,bScn='';
+const INBAV=new Uint8Array(B.n);{const pv=D.viv;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;pv.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;if(x>x0&&x<x1&&y>y0&&y<y1&&polyIn([x,y],pv))INBAV[i]=1;}}
+function applyBldScn(){if(!bmesh||!BM0)return;
+  if(!KB){KB=new Uint8Array(B.n);const Z=INT.map(o=>[o.x,o.y,Math.max(o.r||0,140)]);
+    for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;for(const [zx,zy,zr] of Z)if(Math.hypot(x-zx,y-zy)<zr){KB[i]=1;break;}}
+    MK.items.forEach(it=>{KB[it.i]=1;});}
+  const pro=S.scn==='pro';if(bScn===S.scn)return;bScn=S.scn;const a=bmesh.instanceMatrix.array;
+  for(let k=0;k<bmesh.count;k++){const i=order[k];if(!INBAV[i])continue;const o=k*16;if(pro)a.fill(0,o,o+16);else for(let j=0;j<16;j++)a[o+j]=BM0[o+j];}
+  bmesh.instanceMatrix.needsUpdate=true;}
+
+/* Corabastos: su huella se reduce y aparece el ecotono */
+const MK={items:[],P:-1,patch:null,reed:null,tree:null,A0:0,removed:0};
+const posOf=new Int32Array(B.n);order.forEach((i,k)=>{posOf[i]=k;});
+function initMarket(){
+  const pc=byId.plaza_cora;let sx=0,sy=0,sn=0;
+  for(let i=0;i<B.n;i++){const a=bw[i]*bd[i]/4;if(a>1500&&Math.hypot(bx[i]/2-pc.x,by[i]/2-pc.y)<700){sx+=bx[i]/2;sy+=by[i]/2;sn++;}}
+  const mx=sx/sn,my=sy/sn,list=[];
+  for(let i=0;i<B.n;i++){const a=bw[i]*bd[i]/4,x=bx[i]/2,y=by[i]/2;
+    if(a>=600&&Math.hypot(x-mx,y-my)<560)list.push({i,x,y,w:bw[i]/2,d:bd[i]/2,a,f:bf[i],ang:ba[i]/255*Math.PI,dp:Math.hypot(x-pc.x,y-pc.y)});}
+  const KEEP=230;let rmax=KEEP+1;list.forEach(it=>{if(it.dp>KEEP&&it.dp>rmax)rmax=it.dp;});
+  list.forEach(it=>{it.tau=it.dp>KEEP?0.06+0.86*(1-(it.dp-KEEP)/(rmax-KEEP)):9;it.e=0;});
+  {const cellOf=new Map();mcells.forEach((c,j)=>cellOf.set(c,j));MK.gj=new Set();
+   list.forEach(it=>{const ix=Math.floor((it.x-g.x0)/CS),iy=Math.floor((it.y-g.y0)/CS),j=cellOf.get(iy*NX+ix);if(j!==undefined)MK.gj.add(j);});}
+  MK.items=list;MK.A0=list.reduce((a,it)=>a+it.a,0);
+  const rem=list.filter(it=>it.tau<5),nR=rem.length;
+  MK.patch=new THREE.InstancedMesh(geo.box,lam(0x4fae78),nR);MK.reed=new THREE.InstancedMesh(geo.cone,mat(0x3f9a67),nR*5);MK.tree=new THREE.InstancedMesh(geo.ico,mat(0x2f8a52),Math.ceil(nR/2)+1);
+  rem.forEach((it,j)=>{it.j=j;it.rp=[];for(let k=0;k<5;k++)it.rp.push([(rnd()-.5)*it.w*.8,(rnd()-.5)*it.d*.8,9+rnd()*8]);it.tr=j%2===0?[(rnd()-.5)*it.w*.5,(rnd()-.5)*it.d*.5,8+rnd()*5]:null;});
+  [MK.patch,MK.reed,MK.tree].forEach(m=>{m.frustumCulled=false;sc.add(m);});
+}
+const _m4=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_p=new THREE.Vector3(),_s=new THREE.Vector3();
+function applyMarket(force){
+  if(!MK.items.length)return;
+  const P=S.scn==='pro'?clamp(at('pro',S.t).val/0.75):0;
+  if(!force&&Math.abs(P-MK.P)<0.004)return;MK.P=P;let removed=0;
+  MK.items.forEach(it=>{const e=it.tau>5?0:sm(clamp((P-it.tau)/0.12));it.e=e;removed+=it.a*e;
+    const gy=gh(it.x,-it.y);_e.set(0,it.ang,0);_q.setFromEuler(_e);
+    const k=posOf[it.i];
+    if(bmesh&&k<bmesh.count){const h=Math.min(it.f,24)*3.3*1.25+2;_m4.compose(_p.set(it.x,gy,-it.y),_q,_s.set(it.w,Math.max(h*(1-e),0.01),it.d));bmesh.setMatrixAt(k,_m4);}
+    if(it.tau<5){
+      _m4.compose(_p.set(it.x,gy+.1,-it.y),_q,_s.set(it.w*.98,Math.max(1.6*e,0.001),it.d*.98));MK.patch.setMatrixAt(it.j,_m4);
+      const ca=Math.cos(it.ang),sa=Math.sin(it.ang);
+      it.rp.forEach((r,k2)=>{_m4.compose(_p.set(it.x+r[0]*ca-r[1]*sa,gy+1,-(it.y+r[0]*sa+r[1]*ca)),_q.identity(),_s.set(1.7,Math.max(r[2]*e,0.001),1.7));MK.reed.setMatrixAt(it.j*5+k2,_m4);});
+      if(it.tr){const r=it.tr,t=Math.max(r[2]*e,0.001);_m4.compose(_p.set(it.x+r[0],gy+1+t*1.1,-(it.y+r[1])),_q.identity(),_s.set(t,t*.95,t));MK.tree.setMatrixAt(it.j>>1,_m4);}
+    }});
+  if(bmesh)bmesh.instanceMatrix.needsUpdate=true;MK.patch.instanceMatrix.needsUpdate=MK.reed.instanceMatrix.needsUpdate=MK.tree.instanceMatrix.needsUpdate=true;
+  MK.removed=removed;
+}
+/* contexto: ronda del río, río, agua */
+const mkShape=(pts)=>{const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0],p[1]):s.moveTo(p[0],p[1]));return s;};
+function flat(pts,color,y,opts={}){const geom=new THREE.ShapeGeometry(mkShape(pts));geom.rotateX(-Math.PI/2);
+  const o=new THREE.Mesh(geom,new THREE.MeshLambertMaterial(Object.assign({color},opts)));o.position.y=y;return o;}
+function ribbon(pts,w,color,y,follow){const P=samples(pts,40),pos=[],idx=[];
+  P.forEach((p,i)=>{const a=P[Math.max(0,i-1)],b=P[Math.min(P.length-1,i+1)];let dx=b[0]-a[0],dy=b[1]-a[1];const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;
+    const yy=follow?gh(p[0],-p[1])+y:0;pos.push(p[0]-dy*w/2,yy,-(p[1]+dx*w/2),p[0]+dy*w/2,yy,-(p[1]-dx*w/2));if(i){const k=(i-1)*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}});
+  const geom=new THREE.BufferGeometry();geom.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geom.setIndex(idx);geom.computeVertexNormals();
+  const o=new THREE.Mesh(geom,new THREE.MeshLambertMaterial({color,side:THREE.DoubleSide}));o.position.y=follow?0:y;o.userData.n=idx.length;return o;}
+inRuns(D.river).forEach(run=>sc.add(ribbon(run,50,0x62c6e8,15.2)));
+D.rivers.forEach(r=>{if(r.pts.length<2)return;inRuns(r.pts).forEach(run=>sc.add(ribbon(run,r.name==='Río Bogotá'?90:r.t===503?64:18,r.t===503?0x62c6e8:0x4fb0d6,1.4,true)));});
+const cen=p=>[p.reduce((a,q)=>a+q[0],0)/p.length,p.reduce((a,q)=>a+q[1],0)/p.length];
+const wv=flat(D.water.vaca,0x62c6e8,15.3), wstrip=flat(D.water.strip,0x62c6e8,15.3);
+sc.add(wv,wstrip);
+const WATERS=[{m:wv.material,k:1},{m:wstrip.material,k:.8}];
+D.water.techo.forEach(p=>{const m=flat(p,0x8fd3ee,15.25);sc.add(m);WATERS.push({m:m.material,k:.6});});
+D.water.stream.forEach(p=>{const m=flat(p,0x62c6e8,15.3);sc.add(m);WATERS.push({m:m.material,k:.6});});
+const cWater=new THREE.Color(0x62c6e8), cSick=new THREE.Color(0x7b8a2c);
+
+function polyIn(p,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
+/* parques reales */
+{const lawn=new THREE.MeshLambertMaterial({color:0x2f9a58}),grp=new THREE.Group(),tp=[];
+ D.parks.forEach(p=>{try{const r=p.r,sh=mkShape(r),geom=new THREE.ShapeGeometry(sh);geom.rotateX(-Math.PI/2);
+   let sx=0,sy=0;r.forEach(q=>{sx+=q[0];sy+=q[1];});sx/=r.length;sy/=r.length;if(!inM(sx,sy))return;
+   const m=new THREE.Mesh(geom,lawn);m.position.y=gh(sx,-sy)+.75;grp.add(m);
+   if(p.a>1200){let xs=r.map(q=>q[0]),ys=r.map(q=>q[1]);const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+     const n=Math.min(36,Math.floor(p.a/650));for(let k=0,t=0;k<n&&t<n*6;t++){const x=lerp(x0,x1,rnd()),y=lerp(y0,y1,rnd());if(polyIn([x,y],r)){tp.push([x,y,gh(x,-y)]);k++;}}}
+ }catch(e){}});
+ sc.add(grp);
+ const tm=new THREE.InstancedMesh(geo.ico,mat(0x1f7f4a),Math.max(tp.length,1)),m4=new THREE.Matrix4(),q4=new THREE.Quaternion(),p4=new THREE.Vector3(),s4=new THREE.Vector3();
+ tp.forEach((t,i)=>{const rr=7+rnd()*6;m4.compose(p4.set(t[0],t[2]+rr*1.1,-t[1]),q4,s4.set(rr,rr*.95,rr));tm.setMatrixAt(i,m4);});
+ tm.instanceMatrix.needsUpdate=true;sc.add(tm);}
+/* vías reales */
+{[[0,9,0x6f6b9c,.95],[1,14,0x5e5a8f,1.0],[2,28,0x4a4580,1.05]].forEach(([c,w,col,yo])=>{const R0=D.roads[c];if(!R0||!R0.n)return;
+  const co=i16(R0.xy),ln=u16(R0.len),pos=[],idx=[];let o=0,v=0;
+  for(let k=0;k<ln.length;k++){const n=ln[k],pl=[];for(let i=0;i<n;i++)pl.push([co[(o+i)*2]/2,co[(o+i)*2+1]/2]);o+=n;
+    const runs=[];let cur=[];pl.forEach(p=>{if(inM(p[0],p[1]))cur.push(p);else{if(cur.length>1)runs.push(cur);cur=[];}});if(cur.length>1)runs.push(cur);
+    runs.forEach(P=>{const m=P.length;for(let i=0;i<m;i++){const x=P[i][0],y=P[i][1],a=Math.max(0,i-1),b=Math.min(m-1,i+1);
+      let dx=P[b][0]-P[a][0],dy=P[b][1]-P[a][1];const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;
+      const yy=gh(x,-y)+yo;pos.push(x-dy*w/2,yy,-(y+dx*w/2),x+dy*w/2,yy,-(y-dx*w/2));
+      if(i){idx.push(v-2,v-1,v,v-1,v+1,v);}v+=2;}});}
+  const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g2.setIndex(idx);g2.computeVertexNormals();
+  sc.add(new THREE.Mesh(g2,new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide})));});}
+/* ---------- constructores de intervenciones ---------- */
+const COL={blue:0x3d52d5,orange:0xf2a93b,mag:0xa21c6b,green:[0x4fae78,0x62c07f,0x3f9a67,0x76c98a],pink:0xff3d96,cream:0xf1dfae};
+const gm={ blue:mat(COL.blue), org:mat(COL.orange), mag:mat(COL.mag), gray:mat(0xc9d3ea), wat:mat(0x62c6e8), grn:COL.green.map(c=>mat(c)), trunk:mat(0x6b4a3a),
+  dome:mat(0x58c79b), cre:mat(COL.cream), vio:mat(0x8a4fd6), red:mat(0xe0495c), pk:mat(0xf3a8c8), lawn:mat(0x8fbf4a), amber:mat(0xd9953a), brown:mat(0x7a5a2e)};
+function tree(grp,x,z,r,m){const t=M(geo.ico,m||gm.grn[Math.floor(rnd()*4)],x,r*1.15,z,r,r*.95,r);t.rotation.y=rnd()*6;grp.add(t);return t;}
+function ring(r,color,op){const o=new THREE.Mesh(new THREE.RingGeometry(r-7,r,56),new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false}));o.rotation.x=-Math.PI/2;o.position.y=.6;return o;}
+const B3={};
+B3.plaza=(o)=>{const r=o.r,G=new THREE.Group();
+  G.add(M(blob(),gm.gray,0,0,0,r*.92,2,r*.92,rnd()*6.28));
+  for(let i=0;i<4;i++){const z=-r*.55+i*r*.34;for(let j=0;j<2;j++){const x=(j?1:-1)*r*.36;G.add(M(geo.box,gm.blue,x,2,z,r*.52,16,r*.18));G.add(M(geo.box,gm.org,x+(j?1:-1)*r*.3,2,z,r*.06,6,r*.14));}}
+  G.add(M(geo.cyl,gm.cre,r*.1,2,r*.82,r*.16,10,r*.16));G.add(M(geo.dome,gm.dome,r*.1,12,r*.82,r*.16,r*.16,r*.16));
+  tree(G,-r*.75,r*.7,13);tree(G,r*.72,-r*.7,11);tree(G,-r*.8,-.2*r,12);
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+B3.parque=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));G.add(M(blob(),gm.wat,-r*.1,1.2,r*.05,r*.55,1,r*.42,rnd()*6.28));
+  for(let i=0;i<30;i++){const a=rnd()*6.28,d=r*(.6+rnd()*.38);tree(G,Math.cos(a)*d,Math.sin(a)*d,10+rnd()*8);}
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+B3.ecotono=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.2,r*.92,rnd()*6.28));
+  for(let i=0;i<46;i++){const a=rnd()*6.28,d=r*(.25+rnd()*.7);G.add(M(geo.cone,gm.dome,Math.cos(a)*d,1,Math.sin(a)*d,2.6,16+rnd()*10,2.6));}
+  for(let i=0;i<9;i++){const a=rnd()*6.28,d=r*(.55+rnd()*.4);tree(G,Math.cos(a)*d,Math.sin(a)*d,9+rnd()*5);}
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+B3.custodia=(o)=>circle(o,0xb0306a);B3.habitat=(o)=>circle(o,0xe0495c);B3.saberes=(o)=>circle(o,0x8a4fd6);
+function circle(o,col){const r=o.r,G=new THREE.Group(),m=mat(col);G.add(M(blob(),m,0,0,0,r*.92,2.5,r*.92,rnd()*6.28));
+  G.add(M(geo.box,gm.cre,0,2.5,0,r*.5,12,r*.5));G.add(M(geo.cone,m,0,14.5,0,r*.46,12,r*.46,.78));
+  for(let i=0;i<6;i++){const a=i*1.047;tree(G,Math.cos(a)*r*.75,Math.sin(a)*r*.75,6);}
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;}
+B3.ecocirc=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.gray,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));
+  [[-.4,-.3],[.35,-.3],[-.4,.35],[.35,.35]].forEach(([x,z])=>{G.add(M(geo.box,gm.mag,x*r,1.5,z*r,r*.5,16,r*.28));G.add(M(geo.box,gm.org,x*r+r*.3,1.5,z*r,r*.07,7,r*.12));});
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+B3.centro=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.gray,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));
+  [[-.3,-.2,.4],[.25,-.3,-.5],[.2,.35,.9]].forEach(([x,z,a],i)=>G.add(M(geo.box,gm.blue,x*r,1.5,z*r,r*.5,22+i*6,r*.2,a)));
+  G.add(M(geo.cyl,gm.cre,-.45*r,1.5,.35*r,r*.1,62,r*.1));G.add(M(geo.cyl,gm.org,-.45*r,63,.35*r,r*.12,5,r*.12));
+  tree(G,r*.7,.7*r,13);tree(G,-r*.7,-.6*r,12);
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+B3.puente=(o)=>{const r=o.r,G=new THREE.Group();
+  const arc=new THREE.Mesh(new THREE.TorusGeometry(r*.55,7,6,14,Math.PI),gm.dome);arc.position.y=0;arc.rotation.y=.8;G.add(arc);
+  G.add(M(geo.box,gm.lawn,0,0,0,r*1.15,4,16,.8));
+  for(let i=0;i<10;i++){const a=.8+(i%2?0:Math.PI),d=r*.5+rnd()*r*.45;tree(G,Math.cos(a)*d+rnd()*20,-Math.sin(a)*d+rnd()*20,9+rnd()*5);}
+  G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+function corridor(o){const pts=D.lines[o.id],P=samples(pts,52),G=new THREE.Group();
+  const rb=ribbon(pts,26,0x5fbf63,14.8);G.add(rb);
+  const n=P.length*2,trees=new THREE.InstancedMesh(geo.ico,mat(0x4fae78),n),m=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3();
+  let k=0;P.forEach((p0,i)=>{const a=P[Math.max(0,i-1)],b=P[Math.min(P.length-1,i+1)];let dx=b[0]-a[0],dy=b[1]-a[1];const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;
+    for(const sd of [-1,1]){const r=9+rnd()*5,off=22+rnd()*6;m.compose(p.set(p0[0]-dy*off*sd,15+r*1.1,-(p0[1]+dx*off*sd)),q,s.set(r,r*.95,r));trees.setMatrixAt(k++,m);}});
+  trees.instanceMatrix.needsUpdate=true;G.add(trees);G.userData.abs=true;
+  G.userData.grow=f=>{trees.count=Math.floor(f*n);rb.geometry.setDrawRange(0,Math.floor(f*(rb.userData.n/6))*6);};return G;}
+function lot(poly,fn){const xs=poly.map(p=>p[0]),ys=poly.map(p=>p[1]);return{x0:Math.min(...xs),x1:Math.max(...xs),y0:Math.min(...ys),y1:Math.max(...ys)};}
+function extr(poly,h,col,y0){const sh=new THREE.Shape(poly.map(p=>new THREE.Vector2(p[0],p[1])));const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false});g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,lam(col));m.position.y=y0||0;return m;}
+function vivienda(o){const poly=D.viv,G=new THREE.Group();G.userData.abs=true;
+  /* volúmenes tomados del masterplan: vivienda (naranja), equipamientos (amarillo), plaza satélite (azul) */
+  const base=flat(poly,0x8fbf4a,14.6);G.add(base);const towers=new THREE.Group();const MP=D.mpbav||{};
+  (MP.orange||[]).forEach((q,k)=>towers.add(extr(q,15+(k%3)*6,k%4?0xf39a3d:0xf6bb5d)));
+  (MP.yellow||[]).forEach((q,k)=>towers.add(extr(q,9+(k%2)*4,0xf8de6b)));
+  (MP.blue||[]).forEach(q=>towers.add(extr(q,12,0x4e5f8f)));
+  towers.position.y=14.6;G.add(towers);G.userData.grow=f=>{towers.scale.set(1,Math.max(f,.001),1);base.material.opacity=1;};
+  G.userData.towers=towers;return G;}
+function renov(o){const poly=D.renov[o.id==='reno_mp'?'mariapaz':'tintal'],G=new THREE.Group();G.userData.abs=true;
+  /* renovación sin edificios nuevos: techos verdes dispersos sobre lo existente + parques de bolsillo */
+  const bb=lot(poly),R=[];
+  for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;if(x<bb.x0||x>bb.x1||y<bb.y0||y>bb.y1||!polyIn([x,y],poly))continue;if(rnd()>.38)continue;R.push(i);}
+  const roofs=new THREE.InstancedMesh(geo.box,lam(0xffffff),Math.max(1,R.length)),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),pv=new THREE.Vector3(),sv=new THREE.Vector3(),c=new THREE.Color(),RH=[];
+  const gc=[0x5fbf4a,0x7fcf55,0x3fa65a,0x9bd36a];
+  R.forEach((i,k)=>{const x=bx[i]/2,y=by[i]/2,w=bw[i]/2,d=bd[i]/2,h=Math.min(bf[i],24)*3.3*1.25+2;e.set(0,ba[i]/255*Math.PI,0);q.setFromEuler(e);
+    RH.push([x,gh(x,-y)+h,-y,w*.9,d*.9,q.clone()]);c.setHex(gc[k%4]);roofs.setColorAt(k,c);});
+  roofs.count=R.length;G.add(roofs);
+  const P=new THREE.Group();
+  for(let u=bb.x0;u<bb.x1;u+=170)for(let v=bb.y0;v<bb.y1;v+=170){const x=u+(rnd()-.5)*70,y=v+(rnd()-.5)*70;if(!polyIn([x,y],poly)||rnd()>.5)continue;
+    const r=22+rnd()*18,pk=new THREE.Group();pk.position.set(x,gh(x,-y)+.6,-y);pk.add(M(blob(),gm.lawn,0,0,0,r,1.4,r,rnd()*6.28));
+    const nt=3+Math.floor(rnd()*4);for(let t=0;t<nt;t++){const a=rnd()*6.28,dd=rnd()*r*.65;tree(pk,Math.cos(a)*dd,Math.sin(a)*dd,5+rnd()*4);}P.add(pk);}
+  G.add(P);
+  G.userData.grow=f=>{const k2=Math.max(f,.001);RH.forEach(([x,y,z,w,d,qq],k)=>{m4.compose(pv.set(x,y,z),qq,sv.set(w,2.2,d));roofs.setMatrixAt(k,m4);});roofs.instanceMatrix.needsUpdate=true;if(roofs.instanceColor)roofs.instanceColor.needsUpdate=true;P.children.forEach(pk=>pk.scale.set(1,k2,1));};
+  return G;}
+B3.suelo=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.2,r*.92,rnd()*6.28));
+  for(let i=0;i<8;i++){const a=i*.785,d=r*.55;G.add(M(geo.box,i%2?gm.org:mat(0xf6bb5d),Math.cos(a)*d,1.2,Math.sin(a)*d,r*.3,12+(i%3)*5,r*.2,-a));}
+  tree(G,0,0,10);G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
+const BUILD={corredor:corridor,vivienda:vivienda,renov:renov};
+/* grupos */
+const proGroup=new THREE.Group(), actGroup=new THREE.Group(); sc.add(proGroup,actGroup);
+const hits=[];
+INT.forEach(o=>{
+  const G=(BUILD[o.type]||B3[o.type])(o); if(!G.userData.abs){G.position.set(o.x,gh(o.x,-o.y),-o.y);}
+  o.G=G; proGroup.add(G);o.out=!inM(o.x,o.y);if(o.out)G.visible=false;
+  if(o.r>0){o.ring=ring(o.r,0xff3d96,.55);o.ring.position.set(o.x,gh(o.x,-o.y)+.8,-o.y);proGroup.add(o.ring);}
+  else if(o.type==='corredor'){const pts=D.lines[o.id];const pos=[];samples(pts,30).forEach(p=>pos.push(p[0],15.5,-p[1]));
+    const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));o.ring=new THREE.Line(lg,new THREE.LineBasicMaterial({color:0xff3d96,transparent:true,opacity:.7}));proGroup.add(o.ring);}
+  else if(o.type==='vivienda'||o.type==='renov'){const poly=o.type==='vivienda'?D.viv:D.renov[o.id==='reno_mp'?'mariapaz':'tintal'];const pos=[];poly.concat([poly[0]]).forEach(p=>pos.push(p[0],15.6,-p[1]));
+    const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));o.ring=new THREE.Line(lg,new THREE.LineBasicMaterial({color:0xff3d96,transparent:true,opacity:.7}));proGroup.add(o.ring);}
+});
+const CMAP={ew:['ecocirc',90],food:['plaza',150],conn:['parque',170],cohab:['ecotono',120],spec:['suelo',130]};
+D.cands.forEach(c=>{const [type,r]=CMAP[c.key];const o={id:c.id,type,name:c.what,x:c.x,y:c.y,r,s:c.s,e:c.s+4,cand:true,key:c.key,capv:type==='plaza'?10:type==='ecocirc'?6:0};
+  prep(o);const G=B3[type](o);G.position.set(o.x,gh(o.x,-o.y),-o.y);o.G=G;G.visible=false;proGroup.add(G);
+  o.ring=ring(r,0xffffff,.0);o.ring.position.set(o.x,gh(o.x,-o.y)+.8,-o.y);o.ring.visible=false;proGroup.add(o.ring);c.o=o;CI.push(o);});
+/* Escenario actual: montículos de residuo, lixiviado */
+const mounds=[];{const C=D.cora;for(let i=0;i<34;i++){const a=rnd()*6.28,d=40+rnd()*260,s=14+rnd()*28;
+  const m=M(geo.box,i%3?gm.amber:gm.brown,C[0]+Math.cos(a)*d,14,-(C[1]+Math.sin(a)*d),s,s*.55,s*(.7+rnd()*.6),rnd()*3);m.userData.u=rnd();actGroup.add(m);mounds.push(m);}
+  const vc=cen(D.water.vaca);
+  for(let i=0;i<14;i++){const a=rnd()*6.28,d=rnd()*90;const m=M(geo.cyl,gm.brown,vc[0]+Math.cos(a)*d,15.4,-(vc[1]+Math.sin(a)*d),20+rnd()*20,.8,20+rnd()*20);m.visible=false;}}
+/* partículas de residuo */
+const NP=260,pm=new THREE.InstancedMesh(geo.box,new THREE.MeshLambertMaterial({color:0xffffff}),NP);pm.frustumCulled=false;pm.visible=false;sc.add(pm);
+const part=[];for(let i=0;i<NP;i++){part.push({u:rnd(),v:rnd(),o:rnd(),a:rnd()*6.28,d:rnd()*200,w:rnd()*6.28});}
+const vacaC=cen(D.water.vaca);
+const WET=[D.water.vaca,D.water.strip].concat(D.water.techo).map(p=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;p.forEach(q=>{x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);});return{p,x0,y0,x1,y1,w:Math.max(1,(x1-x0)*(y1-y0))};});
+const WETW=WET.reduce((a,b)=>a+Math.sqrt(b.w),0);
+function inPoly(x,y,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if(((p[i][1]>y)!==(p[j][1]>y))&&(x<(p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0]))c=!c;}return c;}
+const WETH=(()=>{const a=[];for(let i=0;i<120;i++){let r=Math.random()*WETW,k=0;for(;k<WET.length-1;k++){r-=Math.sqrt(WET[k].w);if(r<=0)break;}a.push(k);}return a;})();
+function wetIn(w,tries){for(let k=0;k<(tries||40);k++){const x=w.x0+Math.random()*(w.x1-w.x0),y=w.y0+Math.random()*(w.y1-w.y0);if(inPoly(x,y,w.p))return[x,y];}return cen(w.p);}
+function wetPoint(){let r=Math.random()*WETW,w=WET[0];for(const q of WET){r-=Math.sqrt(q.w);if(r<=0){w=q;break;}}
+  for(let k=0;k<40;k++){const x=w.x0+Math.random()*(w.x1-w.x0),y=w.y0+Math.random()*(w.y1-w.y0);if(inPoly(x,y,w.p))return[x,y];}
+  return cen(w.p);}
+/* puntos de recogida de residuos domiciliarios: esquinas y postes de luz */
+const BIN=[];
+(function(){const R0=D.roads[0];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len),cnt=new Map();let o=0;
+  for(let k=0;k<ln.length;k++){const n=ln[k];if(n>=2)for(const i of [0,n-1]){const x=co[(o+i)*2]/2,y=co[(o+i)*2+1]/2,key=Math.round(x/12)+','+Math.round(y/12);const c=cnt.get(key);if(c)c.n++;else cnt.set(key,{x,y,n:1});}o+=n;}
+  const pc=INT.find(o=>o.id==='plaza_cora')||{x:D.cora[0],y:D.cora[1]},MB=[];
+  for(let i=0;i<B.n;i++){const ar=bw[i]*bd[i]/4,x=bx[i]/2,y=by[i]/2;if(ar>=600&&Math.hypot(x-pc.x,y-pc.y)<620)MB.push([x,y,Math.max(bw[i],bd[i])/4]);}
+  const nearMk=(x,y)=>MB.some(([bx2,by2,r])=>Math.hypot(x-bx2,y-by2)<r+70);
+  const cand=[...cnt.values()].filter(c=>c.n>=3&&inM(c.x,c.y)&&nearMk(c.x,c.y)&&!WET.some(w=>inPoly(c.x,c.y,w.p)));
+  for(let i=cand.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[cand[i],cand[j]]=[cand[j],cand[i]];}
+  const WV=[];WET.forEach(w=>w.p.forEach(q=>WV.push(q)));
+  const BF=INT.filter(o=>cap0(o)>0&&!o.out);
+  for(const c of cand){if(BIN.length>=80)break;if(BIN.some(b=>Math.hypot(b.x-c.x,b.y-c.y)<40))continue;
+    let wx=0,wy=0,wd=1e9;for(const q of WV){const d=Math.hypot(q[0]-c.x,q[1]-c.y);if(d<wd){wd=d;wx=q[0];wy=q[1];}}
+    let bf=null,bd=1e9;for(const o of BF){const d=Math.hypot(o.x-c.x,o.y-c.y);if(d<bd){bd=d;bf=o;}}
+    const a=rnd()*6.28;BIN.push({x:c.x+Math.cos(a)*5,y:c.y+Math.sin(a)*5,wx,wy,wd,bf,ld:.6+rnd()*.8});}
+})();
+const BINF=BIN.map((b,i)=>i).filter(i=>BIN[i].wd<2600);
+const BM={pole:null,bag:null,flow:null,NF:140,fp:[],init:false};
+function initBins(){if(BM.init||!BIN.length)return;BM.init=true;
+  BM.pole=new THREE.InstancedMesh(new THREE.CylinderGeometry(.5,.5,1,6),new THREE.MeshBasicMaterial({color:0xd6d3ee}),BIN.length);
+  BM.lamp=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xfff0b0}),BIN.length);
+  BM.bag=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:0xffffff}),BIN.length*3);
+  BM.flow=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:0xffffff}),BM.NF);
+  const c=new THREE.Color(),cols=[0x9bd03a,0xc9822f,0x5f7d2c,0xe0a53c];for(let i=0;i<BIN.length*3;i++){c.setHex(cols[i%4]);BM.bag.setColorAt(i,c);}
+  for(let i=0;i<BM.NF;i++){BM.fp.push({b:BINF.length?BINF[Math.floor(rnd()*BINF.length)]:0,s:rnd(),v:.7+rnd()*.6,bio:false});BM.flow.setColorAt(i,c.setHex(0xffb02e));}
+  [BM.pole,BM.lamp,BM.bag,BM.flow].forEach((m,k)=>{m.frustumCulled=false;m.material.depthTest=false;m.renderOrder=20+k;sc.add(m);});}
+const _bm=new THREE.Matrix4(),_bq=new THREE.Quaternion(),_bp=new THREE.Vector3(),_bs=new THREE.Vector3(),_by=new THREE.Vector3(0,1,0);
+const C_HUM=new THREE.Color(0xffb02e),C_BIO=new THREE.Color(0x58c79b);
+function animBins(dt,st,sz0){const px=clamp(2*V.H/cv.clientHeight,.4,2.6),sz=px;initBins();if(!BM.init)return;const pro=S.scn==='pro',dtt=dt/1000;
+  const load=clamp((st.rD===undefined?VAR.resD:st.rD)/30,0,2.4),toHum=pro?clamp(1-st.val/0.85,.08,1):1;
+  for(let i=0;i<BIN.length;i++){const b=BIN[i],g=gh(b.x,-b.y),vis=i<Math.round(BIN.length*clamp(load/2.67));
+    _bm.compose(_bp.set(b.x,g+px*9,-b.y),_bq.identity(),_bs.set(vis?px*2:1e-3,vis?px*18:1e-3,vis?px*2:1e-3));BM.pole.setMatrixAt(i,_bm);
+    _bm.compose(_bp.set(b.x,g+px*18,-b.y),_bq,_bs.set(vis?px*5:1e-3,vis?px*2:1e-3,vis?px*5:1e-3));BM.lamp.setMatrixAt(i,_bm);
+    const k=vis?px*5.5*(.8+.4*b.ld):1e-3;
+    for(let j=0;j<3;j++){const a=j*2.1+i;_bm.compose(_bp.set(b.x+Math.cos(a)*k*.7,g+k*.45,-(b.y+Math.sin(a)*k*.7)),_bq.setFromAxisAngle(_by,a),_bs.set(k,k*.85,k));BM.bag.setMatrixAt(i*3+j,_bm);}}
+  const nF=0;BM.flow.count=0;let cc=false;
+  for(let i=0;i<nF;i++){const p=BM.fp[i],b=BIN[p.b];let tx=b.wx,ty=b.wy;const bfOn=pro&&b.bf&&prog(b.bf,S.t)>.05;if(p.bio&&bfOn){tx=b.bf.x;ty=b.bf.y;}
+    const L=Math.max(60,Math.hypot(tx-b.x,ty-b.y));p.s+=dtt*55*p.v/L*(S.playing?1.6:1);
+    if(p.s>=1){p.s=0;p.b=BINF[Math.floor(Math.random()*BINF.length)];const nb=pro&&BIN[p.b].bf&&prog(BIN[p.b].bf,S.t)>.05&&Math.random()>toHum;if(nb!==p.bio){p.bio=nb;BM.flow.setColorAt(i,nb?C_BIO:C_HUM);cc=true;}continue;}
+    const x=b.x+(tx-b.x)*p.s,y=b.y+(ty-b.y)*p.s,hgt=gh(x,-y)+1.5+Math.sin(p.s*Math.PI)*px*22;
+    _bm.compose(_bp.set(x,hgt,-y),_bq.identity(),_bs.set(px*10,px*10,px*10));BM.flow.setMatrixAt(i,_bm);}
+  BM.pole.instanceMatrix.needsUpdate=BM.lamp.instanceMatrix.needsUpdate=BM.bag.instanceMatrix.needsUpdate=BM.flow.instanceMatrix.needsUpdate=true;if(cc)BM.flow.instanceColor.needsUpdate=true;}
+/* fauna */
+function mergeG(parts){const P=[],Nn=[],I=[];let off=0;
+  parts.forEach(([g,m])=>{g=g.clone();g.applyMatrix4(m);const pa=g.attributes.position,na=g.attributes.normal;
+    for(let i=0;i<pa.count;i++){P.push(pa.getX(i),pa.getY(i),pa.getZ(i));Nn.push(na.getX(i),na.getY(i),na.getZ(i));}
+    if(g.index)for(let i=0;i<g.index.count;i++)I.push(g.index.getX(i)+off);else for(let i=0;i<pa.count;i++)I.push(i+off);off+=pa.count;});
+  const r=new THREE.BufferGeometry();r.setAttribute('position',new THREE.Float32BufferAttribute(P,3));r.setAttribute('normal',new THREE.Float32BufferAttribute(Nn,3));r.setIndex(I);return r;}
+const _V=new THREE.Vector3(),_Q=new THREE.Quaternion(),_E=new THREE.Euler(),_S=new THREE.Vector3();
+const mpart=(g,x,y,z,sx,sy,sz,rx,ry,rz)=>[g,new THREE.Matrix4().compose(_V.set(x,y,z),_Q.setFromEuler(_E.set(rx||0,ry||0,rz||0)),_S.set(sx,sy,sz))];
+const gB=new THREE.BoxGeometry(1,1,1),gI=new THREE.IcosahedronGeometry(.5,1),gC=new THREE.ConeGeometry(.5,1,6),gY=new THREE.CylinderGeometry(.5,.5,1,8);
+const AG={
+ pigeon:mergeG([mpart(gI,0,.3,0,1,.55,.6),mpart(gI,.55,.5,0,.4,.4,.4),mpart(gB,-.15,.45,.5,.5,.06,.9,.5,.2,0),mpart(gB,-.15,.45,-.5,.5,.06,.9,-.5,-.2,0),mpart(gB,-.65,.3,0,.4,.05,.3)]),
+ hum:mergeG([mpart(gI,0,.2,0,.7,.35,.35),mpart(gC,.85,.2,0,.12,.8,.12,0,0,-Math.PI/2),mpart(gB,-.05,.45,.38,.35,.04,.9,.9,.3,0),mpart(gB,-.05,.45,-.38,.35,.04,.9,-.9,-.3,0)]),
+ tingua:mergeG([mpart(gI,0,.35,0,1,.7,.7),mpart(gB,.5,.8,0,.2,.6,.2),mpart(gI,.55,1.15,0,.38,.38,.38),mpart(gC,.85,1.12,0,.1,.3,.1,0,0,-Math.PI/2),mpart(gB,-.1,0,.12,.06,.4,.06),mpart(gB,-.1,0,-.12,.06,.4,.06)]),
+ falcon:mergeG([mpart(gI,0,0,0,1.2,.35,.4),mpart(gB,-.1,0,.9,.55,.05,1.6,0,-.45,0),mpart(gB,-.1,0,-.9,.55,.05,1.6,0,.45,0),mpart(gB,-.8,0,0,.5,.04,.4)]),
+ pers:mergeG([mpart(gY,0,.5,0,.5,1,.5),mpart(gI,0,1.2,0,.45,.45,.45)])};
+/* arbolado urbano (inventario real) */
+const TR={on:true,mesh:null};
+{const T=D.trees,tx=i16(T.x),ty=i16(T.y),th=u8(T.h),n=S.hq?T.n:Math.floor(T.n*.35);
+ const gT=mergeG([mpart(new THREE.CylinderGeometry(.09,.13,.55,5),0,.27,0,1,1,1),mpart(new THREE.IcosahedronGeometry(.5,0),0,.95,0,1,1,1)]);
+ TR.mesh=new THREE.InstancedMesh(gT,new THREE.MeshLambertMaterial({color:0xffffff}),n);TR.mesh.frustumCulled=false;
+ const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),p=new THREE.Vector3(),sc3=new THREE.Vector3(),c=new THREE.Color();
+ const pal=[0x1f7a45,0x2a8f55,0x1d6e46,0x3aa05f,0x267a4c];
+ for(let i=0;i<n;i++){const x=tx[i]/2,y=ty[i]/2,h=th[i]/4,r=clamp(h*.8,4.6,11);
+   e.set(0,(i*2.399)%6.28,0);q.setFromEuler(e);p.set(x,gh(x,-y),-y);sc3.set(r,r*(.9+(i%5)*.06),r);m4.compose(p,q,sc3);TR.mesh.setMatrixAt(i,m4);
+   c.setHex(pal[(i*7+Math.floor(h))%5]);TR.mesh.setColorAt(i,c);}
+ TR.mesh.instanceMatrix.needsUpdate=true;TR.mesh.instanceColor.needsUpdate=true;sc.add(TR.mesh);}
+const FA={pigeon:{n:100,col:0xffffff,y:0},tingua:{n:60,col:0x00e5c3,y:0},hum:{n:80,col:0xff3d96,y:0},falcon:{n:15,col:0xffe27a,y:150},pers:{n:90,col:0x9b8cff,y:0}};
+for(const k in FA){const f=FA[k];f.mesh=new THREE.InstancedMesh(AG[k],new THREE.MeshBasicMaterial({color:0xffffff}),f.n);f.mesh.frustumCulled=false;
+  const c=new THREE.Color(f.col);for(let i=0;i<f.n;i++)f.mesh.setColorAt(i,c);f.mesh.count=0;f.seed=Array.from({length:f.n},()=>({a:rnd()*6.28,d:rnd(),p:rnd()*6.28,s:.5+rnd()}));sc.add(f.mesh);}
+/* vehículos sobre la red vial real */
+const NET=[];
+[0,1,2].forEach(c=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;
+  for(let k=0;k<ln.length;k++){const n=ln[k];if(n>=2){const x=new Float32Array(n),y=new Float32Array(n),L=new Float32Array(n);
+    for(let i=0;i<n;i++){x[i]=co[(o+i)*2]/2;y[i]=co[(o+i)*2+1]/2;if(i)L[i]=L[i-1]+Math.hypot(x[i]-x[i-1],y[i]-y[i-1]);}
+    if(L[n-1]>110&&Array.from(x).every((xx,ii)=>inM(xx,y[ii])))NET.push({x,y,L,len:L[n-1],c,mx:x[n>>1],my:y[n>>1]});}o+=n;}});
+const NETM=NET.filter(p=>p.c>=1),NETC=NET.filter(p=>p.c>=1&&Math.hypot(p.mx-D.cora[0],p.my-D.cora[1])<2000);
+/* accesos de carga: red de avenidas (clase 1 y 2), entradas en el borde del polígono y rutas hasta Corabastos */
+const ENT=[],GATES=[];
+const mkPath=(pts,cost)=>{const x=new Float32Array(pts.length),y=new Float32Array(pts.length),L=new Float32Array(pts.length);pts.forEach((p,j)=>{x[j]=p[0];y[j]=p[1];if(j)L[j]=L[j-1]+Math.hypot(x[j]-x[j-1],y[j]-y[j-1]);});return{x,y,L,len:L[L.length-1],cost};};
+(function(){const T=22,idx=new Map(),X=[],Y=[],adj=[];
+  const node=(x,y)=>{const cx=Math.floor(x/T),cy=Math.floor(y/T);let best=-1,bd=T;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=idx.get((cx+a)+','+(cy+b));if(l)for(const i of l){const d=Math.hypot(X[i]-x,Y[i]-y);if(d<bd){bd=d;best=i;}}}
+    if(best>=0)return best;const i=X.length;X.push(x);Y.push(y);adj.push([]);const k=cx+','+cy;if(!idx.has(k))idx.set(k,[]);idx.get(k).push(i);return i;};
+  const C86=new Set();{const L=D.lines.cra86||[];for(let i=0;i<L.length-1;i++){const n=Math.ceil(Math.hypot(L[i+1][0]-L[i][0],L[i+1][1]-L[i][1])/20);for(let k=0;k<=n;k++){const x=L[i][0]+(L[i+1][0]-L[i][0])*k/n,y=L[i][1]+(L[i+1][1]-L[i][1])*k/n;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)C86.add((Math.floor(x/40)+a)+','+(Math.floor(y/40)+b));}}}
+  const onC86=(x,y)=>C86.has(Math.floor(x/40)+','+Math.floor(y/40));
+  [0,1,2].forEach(c=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;
+    for(let k=0;k<ln.length;k++){const n=ln[k];if(c===0){let nr=false;for(let i=0;i<n;i+=2)if(Math.hypot(co[(o+i)*2]/2-D.cora[0],co[(o+i)*2+1]/2-D.cora[1])<1300){nr=true;break;}if(!nr){o+=n;continue;}}let prev=-1;for(let i=0;i<n;i++){const u=node(co[(o+i)*2]/2,co[(o+i)*2+1]/2);if(prev>=0&&prev!==u){const w=Math.hypot(X[u]-X[prev],Y[u]-Y[prev]);const cc=onC86((X[u]+X[prev])/2,(Y[u]+Y[prev])/2)?9:c;adj[prev].push([u,w,cc]);adj[u].push([prev,w,cc]);}prev=u;}o+=n;}});
+  const N=X.length;if(!N)return;
+  const comp=new Int32Array(N).fill(-1),csz=[];for(let i=0;i<N;i++){if(comp[i]>=0)continue;const id=csz.length;let n=0;const st=[i];comp[i]=id;while(st.length){const u=st.pop();n++;for(const [v] of adj[u])if(comp[v]<0){comp[v]=id;st.push(v);}}csz.push(n);}
+  let big=0;csz.forEach((n,i)=>{if(n>csz[big])big=i;});
+  let src=0,bq=1e18;for(let i=0;i<N;i++){if(comp[i]!==big)continue;const d=Math.hypot(X[i]-D.cora[0],Y[i]-D.cora[1]);if(d<bq){bq=d;src=i;}}
+  const dist=new Float64Array(N).fill(1e18),pre=new Int32Array(N).fill(-1),heap=[[0,src]];dist[src]=0;
+  const push=e=>{heap.push(e);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p][0]<=heap[i][0])break;[heap[p],heap[i]]=[heap[i],heap[p]];i=p;}};
+  const pop=()=>{const t=heap[0],l=heap.pop();if(heap.length){heap[0]=l;let i=0;for(;;){let a=2*i+1,b=a+1,m=i;if(a<heap.length&&heap[a][0]<heap[m][0])m=a;if(b<heap.length&&heap[b][0]<heap[m][0])m=b;if(m===i)break;[heap[m],heap[i]]=[heap[i],heap[m]];i=m;}}return t;};
+  while(heap.length){const [d,u]=pop();if(d>dist[u])continue;for(const [v,w,c] of adj[u]){if(!inM(X[v],Y[v])&&!inM(X[u],Y[u]))continue;const nd=d+w*(c===9?.35:c===2?1:c===1?1.35:1.9);if(nd<dist[v]){dist[v]=nd;pre[v]=u;push([nd,v]);}}}
+  // candidatos: nodos dentro del polígono con un vecino fuera
+  const cand=[];for(let u=0;u<N;u++){if(!inM(X[u],Y[u])||dist[u]>=1e17)continue;let ok=false,c2=false,c0=true;for(const [v,w,c] of adj[u]){if(c>=2)c2=true;if(c>0)c0=false;}if(c0)continue;for(const [dx,dy] of [[150,0],[-150,0],[0,150],[0,-150],[110,110],[-110,110],[110,-110],[-110,-110]])if(!inM(X[u]+dx,Y[u]+dy)){ok=true;break;}if(ok)cand.push({u,c2,d:dist[u]});}
+    cand.sort((a,b)=>(b.c2-a.c2)||(b.d-a.d));const pick=[];
+  /* accesos reales de carga: Av. Ciudad de Cali (norte y sur) y la entrada desde Mosquera (occidente, Calle 13) */
+  const L86=(D.lines.cra86||[]).filter(p=>inM(p[0],p[1]));const nodeAt=(x,y,need86)=>{let b=-1,d0=1e18;for(let i=0;i<N;i++){if(comp[i]!==big||dist[i]>=1e17)continue;if(need86&&!adj[i].some(a=>a[2]===9))continue;const d=Math.hypot(X[i]-x,Y[i]-y);if(d<d0){d0=d;b=i;}}return b;};
+  const mos=cand.filter(c=>c.c2).sort((a,b)=>(X[a.u]-Y[a.u])-(X[b.u]-Y[b.u]))[0];
+  const ACC=[];if(L86.length){const a=nodeAt(...L86[L86.length-1],true),b=nodeAt(...L86[0],true);if(a>=0)ACC.push({u:a,id:'Cali N',name:'Av. Ciudad de Cali (norte)'});if(b>=0)ACC.push({u:b,id:'Cali S',name:'Av. Ciudad de Cali (sur)'});}
+  if(mos)ACC.push({u:mos.u,id:'Mosquera',name:'Entrada desde Mosquera'});
+  pick.length=0;ACC.filter(a=>a.id!=='Mosquera').forEach(a=>pick.push(a));
+  pick.forEach((c,i)=>{const pts=[];let u=c.u;while(u>=0){pts.push([X[u],Y[u]]);u=pre[u];}
+    const x=new Float32Array(pts.length),y=new Float32Array(pts.length),L=new Float32Array(pts.length);
+    pts.forEach((p,j)=>{x[j]=p[0];y[j]=p[1];if(j)L[j]=L[j-1]+Math.hypot(x[j]-x[j-1],y[j]-y[j-1]);});
+    ENT.push({id:c.id,name:c.name,u:c.u,x:x[0],y:y[0],route:{x,y,L,len:L[L.length-1]},w:1,ratio:.85,traf:null,c:2,rg:[]});});
+  /* puertas de Corabastos (según el plano del PRM, ubicación aproximada sobre el borde del mercado) */
+  const pc=INT.find(o=>o.id==='plaza_cora')||{x:D.cora[0],y:D.cora[1]},MP=[];
+  for(let i=0;i<B.n;i++){const ar=bw[i]*bd[i]/4,x=bx[i]/2,y=by[i]/2;if(ar>=600&&Math.hypot(x-pc.x,y-pc.y)<620)MP.push([x,y]);}
+  if(MP.length<4)return;
+  let mx=0,my=0;MP.forEach(p=>{mx+=p[0];my+=p[1];});mx/=MP.length;my/=MP.length;
+  let sxx=0,syy=0,sxy=0;MP.forEach(([x,y])=>{sxx+=(x-mx)**2;syy+=(y-my)**2;sxy+=(x-mx)*(y-my);});
+  const th=.5*Math.atan2(2*sxy,sxx-syy),ux=[Math.cos(th),Math.sin(th)],vx=[-Math.sin(th),Math.cos(th)];
+  let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;MP.forEach(([x,y])=>{const a=(x-mx)*ux[0]+(y-my)*ux[1],b=(x-mx)*vx[0]+(y-my)*vx[1];u0=Math.min(u0,a);u1=Math.max(u1,a);v0=Math.min(v0,b);v1=Math.max(v1,b);});
+  u0-=25;u1+=25;v0-=25;v1+=25;
+  const P=(a,b)=>[mx+a*ux[0]+b*vx[0],my+a*ux[1]+b*vx[1]];
+  // lado que mira a cada dirección del mundo
+  const sides=[[u1,'u',1],[u0,'u',-1],[v1,'v',1],[v0,'v',-1]].map(([val,ax,sg])=>{const n=ax==='u'?[ux[0]*sg,ux[1]*sg]:[vx[0]*sg,vx[1]*sg];return{val,ax,n};});
+  const side=(dx,dy)=>sides.reduce((b,s)=>(s.n[0]*dx+s.n[1]*dy>b.n[0]*dx+b.n[1]*dy?s:b));
+  const along=(sd,t,dx,dy)=>{if(sd.ax==='u'){const b=v0+(v1-v0)*t;return P(sd.val,b);}const a=u0+(u1-u0)*t;return P(a,sd.val);};
+  const E=side(1,0),Sx=side(0,-1),W=side(-1,0),Nn=side(0,1);
+  const ord=(sd,t)=>{const p0=along(sd,0),p1=along(sd,1);return (p1[1]-p0[1])*(sd===E||sd===W?1:0)+(p1[0]-p0[0])*(sd===Sx||sd===Nn?1:0)>=0?t:1-t;};
+  /* ubicadas por el equipo sobre el mapa (19-nov-2026); funciones según el plano del PRM */
+  const G0=[['P1','Puerta 1 · entrada',316,28,'in'],['P2','Puerta 2 · salida',259,-116,'out'],['P3','Puerta 3 · salida',168,-235,'out'],
+    ['P4','Puerta 4 · peatonal',100,-320,'ped'],['P5','Puerta 5',2,-423,'ped'],['P6','Puerta 6 · peatonal',-556,-23,'ped'],
+    ['P7','Puerta 7 · entrada y salida',-268,276,'both'],['P8','Puerta 8',-75,174,'ped'],['P9','Puerta 9 · peatonal',79,190,'ped']];
+  const near=(x,y)=>{let b=-1,d0=1e18;for(let i=0;i<N;i++){if(comp[i]!==big)continue;const d=Math.hypot(X[i]-x,Y[i]-y);if(d<d0){d0=d;b=i;}}return b;};
+  G0.forEach(([id,name,gx,gy,kind])=>{const p=[gx,gy];const g={id,name,kind,x:p[0],y:p[1],dock:[mx+(p[0]-mx)*.35,my+(p[1]-my)*.35]};if(kind==='ped'){GATES.push(g);return;}
+    const s0=near(p[0],p[1]),di=new Float64Array(N).fill(1e18),pr=new Int32Array(N).fill(-1),hp=[[0,s0]];di[s0]=0;heap.length=0;heap.push(...hp);
+    while(heap.length){const [d,u]=pop();if(d>di[u])continue;for(const [v,w,c] of adj[u]){if(!inM(X[v],Y[v])&&!inM(X[u],Y[u]))continue;const nd=d+w*(c===9?.35:c===2?1:c===1?1.35:1.9);if(nd<di[v]){di[v]=nd;pr[v]=u;push([nd,v]);}}}
+    ENT.forEach(e=>{const pts=[];let u=e.u;while(u>=0){pts.push([X[u],Y[u]]);u=pr[u];}pts.push([g.x,g.y]);e.rg[GATES.length]=mkPath(pts,di[e.u]);});
+    GATES.push(g);});
+  /* circulación interna: rejilla de 6 m que evita las bodegas; los camiones van por patios y calles internas */
+  const CSg=6,gx0=mx-900,gy0=my-900,GW=300,GH=300,occ=new Uint8Array(GW*GH),occ0=new Uint8Array(GW*GH);
+  for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;if(Math.abs(x-mx)>880||Math.abs(y-my)>880)continue;const w=bw[i]/2+5,d=bd[i]/2+5,th=ba[i]/255*Math.PI,c=Math.cos(th),sn=Math.sin(th),r=Math.hypot(w,d)/2;
+    const i0=Math.max(0,Math.floor((x-r-gx0)/CSg)),i1=Math.min(GW-1,Math.ceil((x+r-gx0)/CSg)),j0=Math.max(0,Math.floor((y-r-gy0)/CSg)),j1=Math.min(GH-1,Math.ceil((y+r-gy0)/CSg));
+    for(let jj=j0;jj<=j1;jj++)for(let ii=i0;ii<=i1;ii++){const dx=gx0+(ii+.5)*CSg-x,dz=-(gy0+(jj+.5)*CSg-y);const lx=dx*c-dz*sn,lz=dx*sn+dz*c;if(Math.abs(lx)<w/2&&Math.abs(lz)<d/2){occ[jj*GW+ii]=1;if(Math.abs(lx)<w/2-5&&Math.abs(lz)<d/2-5)occ0[jj*GW+ii]=1;}}}
+  const cell=(x,y)=>[Math.round((x-gx0)/CSg-.5),Math.round((y-gy0)/CSg-.5)];
+  const freeNear=(x,y)=>{const [ci,cj]=cell(x,y);for(let r=0;r<25;r++)for(let a=-r;a<=r;a++)for(const [ii,jj] of [[ci+a,cj-r],[ci+a,cj+r],[ci-r,cj+a],[ci+r,cj+a]]){if(ii>=0&&jj>=0&&ii<GW&&jj<GH&&!occ[jj*GW+ii])return jj*GW+ii;}return cj*GW+ci;};
+  const astar=(sa,sb,OC,pen)=>{const g2=new Float32Array(GW*GH).fill(1e9),pr2=new Int32Array(GW*GH).fill(-1),hp2=[];const bi=sb%GW,bj=(sb/GW)|0;
+    const h=k=>Math.hypot((k%GW)-bi,((k/GW)|0)-bj);g2[sa]=0;const P2=e=>{hp2.push(e);let i=hp2.length-1;while(i>0){const p=(i-1)>>1;if(hp2[p][0]<=hp2[i][0])break;[hp2[p],hp2[i]]=[hp2[i],hp2[p]];i=p;}};
+    const Q2=()=>{const t=hp2[0],l=hp2.pop();if(hp2.length){hp2[0]=l;let i=0;for(;;){let a=2*i+1,b=a+1,m=i;if(a<hp2.length&&hp2[a][0]<hp2[m][0])m=a;if(b<hp2.length&&hp2[b][0]<hp2[m][0])m=b;if(m===i)break;[hp2[m],hp2[i]]=[hp2[i],hp2[m]];i=m;}}return t;};
+    P2([h(sa),sa]);let it=0;while(hp2.length&&it++<300000){const [,u]=Q2();if(u===sb)break;const ui=u%GW,uj=(u/GW)|0;
+      for(const [di2,dj,w] of [[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]]){const vi=ui+di2,vj=uj+dj;if(vi<0||vj<0||vi>=GW||vj>=GH)continue;const v=vj*GW+vi;
+        if(OC[v]&&v!==sb&&!pen)continue;const nd=g2[u]+w*(OC[v]&&v!==sb?pen:1);if(nd<g2[v]){g2[v]=nd;pr2[v]=u;P2([nd+h(v),v]);}}}
+    if(pr2[sb]<0&&sa!==sb)return null;const out=[];let u=sb,k=0;while(u>=0){if(k++%3===0||u===sa)out.push([gx0+((u%GW)+.5)*CSg,gy0+(((u/GW)|0)+.5)*CSg]);u=pr2[u];}return out.reverse();};
+  // patios de descargue: celdas libres dentro del mercado
+  const DK=[];for(const [a,b] of [[.25,.2],[-.2,.25],[.1,-.3],[-.3,-.15],[.35,-.05],[-.05,.05]]){const k=freeNear(mx+(u1-u0)*a*ux[0]+(v1-v0)*b*vx[0],my+(u1-u0)*a*ux[1]+(v1-v0)*b*vx[1]);DK.push(k);}
+  GATES.forEach((g,gi)=>{if(g.kind==='ped')return;const ka=freeNear(g.x,g.y);g.inner=DK.map(k=>{const p=astar(ka,k,occ,0)||astar(ka,k,occ0,0)||astar(ka,k,occ0,8);if(!p)return null;p.unshift([g.x,g.y]);return mkPath(p,0);});});
+})();
+/* tráfico medido con TomTom Flow Segment Data (19-nov-2026, ~7 p. m.) */
+const TT0={};/* medir TomTom en los dos extremos de la Av. Ciudad de Cali */
+ENT.forEach(e=>{const t=TT0[e.id];if(t){e.traf={cur:t[0],free:t[1]};e.ratio=Math.min(1,t[0]/t[1]);e.w=1.6-e.ratio;}});
+/* residuo de Corabastos: pilas en las puertas 5 y 6 y arrastre hacia el humedal */
+const CR={pile:null,flow:null,NP:70,NF:180,src:[],fp:[]};
+(function(){const WV=[];WET.forEach(w=>w.p.forEach(q=>WV.push(q)));
+  GATES.filter(g=>g.id==='P5'||g.id==='P6').forEach(g=>{let wx=0,wy=0,wd=1e9;for(const q of WV){const d=Math.hypot(q[0]-g.x,q[1]-g.y);if(d<wd){wd=d;wx=q[0];wy=q[1];}}
+    const ox=(g.x-g.dock[0]),oy=(g.y-g.dock[1]),ol=Math.hypot(ox,oy)||1;CR.src.push({x:g.x+ox/ol*18,y:g.y+oy/ol*18,wx,wy});});
+  if(!CR.src.length)return;
+  CR.pile=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0xffffff}),CR.NP);
+  CR.flow=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:0xd9953a}),CR.NF);
+  const c=new THREE.Color(),cols=[0xd9953a,0x8a5a2b,0xb8762e,0x6b4a2a];
+  CR.pl=[];for(let i=0;i<CR.NP;i++){const s0=CR.src[i%CR.src.length],a=Math.random()*6.28,r=Math.sqrt(Math.random())*45;CR.pl.push([s0.x+Math.cos(a)*r,s0.y+Math.sin(a)*r,.6+Math.random()*.8,Math.random()*3]);CR.pile.setColorAt(i,c.setHex(cols[i%4]));}
+  for(let i=0;i<CR.NF;i++)CR.fp.push({k:i%CR.src.length,s:Math.random(),v:.6+Math.random()*.8,o:(Math.random()-.5)*40});
+  [CR.pile,CR.flow].forEach((m,k)=>{m.frustumCulled=false;m.material.depthTest=false;m.renderOrder=25+k;sc.add(m);});})();
+const _cm=new THREE.Matrix4(),_cq=new THREE.Quaternion(),_cp=new THREE.Vector3(),_cs=new THREE.Vector3(),_cy=new THREE.Vector3(0,1,0);
+function animCora(dt,st){if(!CR.pile)return;const px=clamp(2*V.H/cv.clientHeight,.6,3),E=st.E,U=st.untreated,dtt=Math.min(dt,60)/1000;
+  const nP=Math.round(CR.NP*clamp(U/200,0,1));CR.pile.count=nP;
+  for(let i=0;i<nP;i++){const p=CR.pl[i],k=Math.max(14,px*9)*p[2];_cm.compose(_cp.set(p[0],gh(p[0],-p[1]),-p[1]),_cq.setFromAxisAngle(_cy,p[3]),_cs.set(k,k*1.1,k*.8));CR.pile.setMatrixAt(i,_cm);}
+  const nF=Math.round(CR.NF*clamp(U/200,0,1));CR.flow.count=nF;
+  for(let i=0;i<nF;i++){const f=CR.fp[i],s0=CR.src[f.k],L=Math.max(60,Math.hypot(s0.wx-s0.x,s0.wy-s0.y));f.s+=dtt*40*f.v/L;if(f.s>=1)f.s-=1;
+    const t=f.s,nx=-(s0.wy-s0.y)/L,ny=(s0.wx-s0.x)/L,w=Math.sin(t*Math.PI)*f.o,x=s0.x+(s0.wx-s0.x)*t+nx*w,y=s0.y+(s0.wy-s0.y)*t+ny*w,k=Math.max(8,px*5.5);
+    _cm.compose(_cp.set(x,gh(x,-y)+k*.6,-y),_cq.identity(),_cs.set(k,k,k));CR.flow.setMatrixAt(i,_cm);}
+  CR.pile.instanceMatrix.needsUpdate=CR.flow.instanceMatrix.needsUpdate=true;}
+const gateG=new THREE.Group();{const mO=new THREE.MeshBasicMaterial({color:0xff9f1c}),mW=new THREE.MeshBasicMaterial({color:0xfff3e0}),bx3=new THREE.BoxGeometry(1,1,1);
+  GATES.forEach(g=>{const a=Math.atan2(g.dock[1]-g.y,g.dock[0]-g.x),gg=new THREE.Group();if(g.kind==='ped')gg.scale.set(.55,.6,.55);gg.position.set(g.x,gh(g.x,-g.y),-g.y);gg.rotation.y=a+Math.PI/2;
+    [[-16,mO],[16,mO]].forEach(([o,m])=>{const p=new THREE.Mesh(bx3,m);p.scale.set(4,26,4);p.position.set(o,13,0);gg.add(p);});
+    const t=new THREE.Mesh(bx3,mW);t.scale.set(38,5,5);t.position.set(0,27,0);gg.add(t);
+    const sg=new THREE.Mesh(bx3,g.kind==='ped'?mW:g.kind==='out'?new THREE.MeshBasicMaterial({color:0x8a5a2b}):g.kind==='in'?mO:new THREE.MeshBasicMaterial({color:0xffd166}));sg.scale.set(30,3,5.5);sg.position.set(0,23,0);gg.add(sg);gateG.add(gg);});}
+sc.add(gateG);
+const CLOCK={h:22,day:40};/* un día simulado = 40 s */
+const VH={car:{n:70,mesh:null},truck:{n:34,mesh:null}};const TC_IN=new THREE.Color(0xff9f1c),TC_OUT=new THREE.Color(0x8a5a2b);
+{const gB2=new THREE.BoxGeometry(1,1,1);
+ const gCar=mergeG([mpart(gB2,0,.32,0,1,.36,.52),mpart(gB2,-.05,.64,0,.52,.3,.46)]);
+ const gTr=mergeG([mpart(gB2,-.1,.5,0,1.15,.7,.62),mpart(gB2,.68,.38,0,.4,.5,.58)]);
+ const cols=[0xffffff,0xe84a5f,0x4aa3ff,0xffd166,0xc9c9d6,0x2ec4b6];
+ [['car',gCar],['truck',gTr]].forEach(([k,g])=>{const m=new THREE.InstancedMesh(g,new THREE.MeshBasicMaterial({color:0xffffff}),VH[k].n);m.frustumCulled=false;
+   const c=new THREE.Color();for(let i=0;i<VH[k].n;i++){c.setHex(k==='truck'?(VH.truck.n&&i%2?0xff9f1c:0x8a5a2b):cols[i%cols.length]);m.setColorAt(i,c);}m.count=0;sc.add(m);VH[k].mesh=m;
+   const p=k==='truck'?(ENT.length?ENT:NETC):NETM;VH[k].ph=new Uint8Array(VH[k].n);VH[k].wt=new Float32Array(VH[k].n);VH[k].pi=new Int32Array(VH[k].n);VH[k].s=new Float32Array(VH[k].n);VH[k].d=new Float32Array(VH[k].n);VH[k].v=new Float32Array(VH[k].n);
+   for(let i=0;i<VH[k].n;i++){VH[k].pi[i]=Math.floor(rnd()*p.length);VH[k].s[i]=rnd()*(k==='truck'&&ENT.length?ENT[VH[k].pi[i]].route.len:p[VH[k].pi[i]].len);VH[k].ph[i]=rnd()<.5?0:2;VH[k].d[i]=rnd()<.5?1:-1;VH[k].v[i]=.6+rnd()*.8;}});}
+const AXY=new THREE.Vector3(0,1,0);const PT=new THREE.Matrix4(),PQ=new THREE.Quaternion(),PP=new THREE.Vector3(),PS=new THREE.Vector3();
+const lineAt=(id,u)=>{const P=D.lines[id];const L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));let d=u*L[L.length-1],i=1;while(i<P.length-1&&L[i]<d)i++;const f=(d-L[i-1])/(L[i]-L[i-1]||1);return[lerp(P[i-1][0],P[i][0],f),lerp(P[i-1][1],P[i][1],f)];};
+function animAgents(time,dt){
+  const st=at(S.scn,S.t),upp=2*V.H/cv.clientHeight,sz=clamp(upp*5.5,4,12);
+  const wob=REDUCE?0:1;CLOCK.h=(CLOCK.h+Math.min(dt,60)/1000*24/CLOCK.day)%24;{const ce=$('#clk');if(ce){const hh=Math.floor(CLOCK.h),mm=Math.floor((CLOCK.h-hh)*60);const t=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');if(ce.textContent!==t)ce.textContent=t;}}animBins(dt,st,sz);animCora(dt,st);
+  // residuo
+  const emR=clamp(st.E/130), div=S.scn==='pro'?clamp(st.val/0.85):0;
+  const pc=new THREE.Color(),C=D.cora;
+  const tgtP=S.scn==='pro'?[(byId.plaza_cora.x),(byId.plaza_cora.y)]:vacaC;
+  for(let i=0;i<NP;i++){const p=part[i];if(p.o>emR){PM(i);continue;}
+    const diverted=p.v<div, T=diverted?tgtP:vacaC, ph=((time*.00006*(S.playing?S.speed:1)+p.u)%1);
+    const sx=C[0]+Math.cos(p.a)*p.d*.5, sy=C[1]+Math.sin(p.a)*p.d*.5, e=diverted?Math.min(1,ph*1.6):ph;
+    const x=lerp(sx,T[0]+Math.cos(p.a)*60,e)+Math.sin(p.w+time*.002)*10*wob,y=lerp(sy,T[1]+Math.sin(p.a)*60,e),h=15+Math.sin(ph*3.14)*(diverted?14:6);
+    const s=(diverted?Math.max(0,1-Math.max(0,ph-.75)*4):1)*sz*1.15;
+    pm.setColorAt(i,pc.set(diverted?0x58c79b:0xd9953a));
+    PP.set(x,h,-y);PS.set(s,s,s);PT.compose(PP,PQ,PS);pm.setMatrixAt(i,PT);}
+  pm.instanceMatrix.needsUpdate=true;if(pm.instanceColor)pm.instanceColor.needsUpdate=true;
+  function PM(i){PT.makeScale(0,0,0);pm.setMatrixAt(i,PT);}
+  // fauna
+  const N=st.N,pro=S.scn==='pro';
+  const f=(id)=>pro?prog(byId[id],S.t):0;
+  const tAnch=[vacaC]; if(pro){[['parque_vaca'],['ecotono_s'],['ecotono_techo'],['custodia_2'],['ecotono_dos'],['parque_bav'],['ecotono_ck']].forEach(([id])=>{if(f(id)>.3)tAnch.push([byId[id].x,byId[id].y]);});}
+  const set=(m,i,x,y,z,s,ry)=>{PP.set(x,y,z);PS.set(s,s,s);PQ.setFromAxisAngle(AXY,ry||0);PT.compose(PP,PQ,PS);m.setMatrixAt(i,PT);};
+  // agentes que recorren el territorio: cada uno elige un destino, camina o vuela hasta él y elige otro
+  const R=Math.random,dtt=Math.min(dt,60)/1000;
+  const aps=pro?INT.filter(o=>['plaza','parque','custodia','habitat','saberes','ecocirc','centro'].includes(o.type)&&prog(o,S.t)>.25):[];
+  const pAn=[C];if(pro)INT.forEach(o=>{if(o.type==='plaza'&&prog(o,S.t)>.3)pAn.push([o.x,o.y]);});
+  const lines=pro?[['cra86',f('cra86')],['calle6',f('calle6')]].filter(l=>l[1]>.05):[];
+  const fc=pro&&f('puente_c')>.3?[byId.puente_c.x,byId.puente_c.y]:C;
+  const pick={
+    pigeon:()=>{if(BIN.length&&R()<clamp((st.rD===undefined?VAR.resD:st.rD)/45,0,.75)){const nv=Math.max(1,Math.round(BIN.length*clamp((st.rD===undefined?VAR.resD:st.rD)/80))),b=BIN[Math.floor(R()*nv)],t=R()*6.283,r=3+R()*10;return[b.x+Math.cos(t)*r,b.y+Math.sin(t)*r];}const a=pAn[Math.floor(R()*pAn.length)],r=60+R()*(R()<.3?700:260),t=R()*6.283;return[a[0]+Math.cos(t)*r,a[1]+Math.sin(t)*r];},
+    tingua:i=>wetIn(WET[WETH[i%WETH.length]]),
+    hum:()=>{if(lines.length&&R()<.75){const l=lines[Math.floor(R()*lines.length)],p=lineAt(l[0],R()*l[1]);return[p[0]+(R()-.5)*50,p[1]+(R()-.5)*50];}
+      const a=tAnch[Math.floor(R()*tAnch.length)];return[a[0]+(R()-.5)*320,a[1]+(R()-.5)*220];},
+    falcon:()=>{const r=150+R()*1700,t=R()*6.283;return[fc[0]+Math.cos(t)*r,fc[1]+Math.sin(t)*r];},
+    pers:()=>{if(NETM.length&&R()<.4){const p=NET[Math.floor(R()*NET.length)],u=R()*p.len;let j=1;while(j<p.L.length-1&&p.L[j]<u)j++;const f=(u-p.L[j-1])/((p.L[j]-p.L[j-1])||1);return[p.x[j-1]+(p.x[j]-p.x[j-1])*f+(R()-.5)*14,p.y[j-1]+(p.y[j]-p.y[j-1])*f+(R()-.5)*14];}
+      if(aps.length){const o=aps[Math.floor(R()*aps.length)],r=(o.r||80)*(.2+.9*R()),t=R()*6.283;return[o.x+Math.cos(t)*r,o.y+Math.sin(t)*r];}
+      const r=40+R()*320,t=R()*6.283;return[C[0]+Math.cos(t)*r,C[1]+Math.sin(t)*r];}};
+  const SPD={pigeon:55,tingua:14,hum:62,falcon:95,pers:17},SZ={pigeon:1.4,tingua:1.9,hum:1.2,falcon:2.6,pers:.9};
+  const HGT={pigeon:i=>44+Math.sin(time*.006+i)*4*wob,tingua:()=>16.6,hum:i=>50+Math.sin(time*.005+i*1.7)*6*wob,falcon:i=>170+(i%7)*7,pers:(i,x,y)=>gh(x,-y)+2+Math.abs(Math.sin(time*.012+i))*1.6*wob};
+  const cnt={pigeon:Math.round(N.pigeon),tingua:Math.round(N.tingua),hum:Math.round(N.hum),falcon:Math.round(N.falcon),
+    pers:pro?Math.round(FA.pers.n*clamp(.12+(st.soc||0)/100*.9)):Math.round(FA.pers.n*.14)};
+  for(const k in FA){const F=FA[k],n=cnt[k];F.mesh.count=n;
+    if(!F.px){F.px=new Float32Array(F.n);F.py=new Float32Array(F.n);F.tx=new Float32Array(F.n);F.ty=new Float32Array(F.n);F.hd=new Float32Array(F.n);
+      for(let i=0;i<F.n;i++){const p=pick[k](i);F.px[i]=p[0];F.py[i]=p[1];const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];F.hd[i]=Math.atan2(q[1]-p[1],q[0]-p[0]);}}
+    for(let i=0;i<n;i++){let dx=F.tx[i]-F.px[i],dy=F.ty[i]-F.py[i],d=Math.hypot(dx,dy);const v=SPD[k]*(.6+F.seed[i].s*.5)*dtt;
+      if(d<Math.max(v*2,4)){const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];dx=q[0]-F.px[i];dy=q[1]-F.py[i];d=Math.hypot(dx,dy)||1;}
+      const th=Math.atan2(dy,dx);let dh=th-F.hd[i];dh=Math.atan2(Math.sin(dh),Math.cos(dh));F.hd[i]+=dh*Math.min(1,dtt*4);
+      if(k==='tingua'){const nx=F.px[i]+dx/d*v,ny=F.py[i]+dy/d*v;
+        if(inPoly(nx,ny,WET[WETH[i%WETH.length]].p)){F.px[i]=nx;F.py[i]=ny;}else{const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];}}
+      else{F.px[i]+=dx/d*v;F.py[i]+=dy/d*v;}
+      const x=F.px[i],y=F.py[i];
+      set(F.mesh,i,x,HGT[k](i,x,y),-y,sz*SZ[k],F.hd[i]);}
+    F.mesh.instanceMatrix.needsUpdate=true;}
+  // autos y camiones de residuo en las vías
+  {const divv=pro?clamp(st.val/0.85):0;
+   const nC=NETM.length?Math.round(VH.car.n*(pro?.85:1)):0,nT=NETC.length?Math.max(pro?3:0,Math.round(VH.truck.n*clamp(st.E/130)*(1-.8*divv))):0;
+   if(ENT.length&&GATES.length){const T=VH.truck;
+     const hr=CLOCK.h,prof=(hr>=2&&hr<3)?.15:(hr>=20||hr<2)?1:(hr>=3&&hr<6)?.75:(hr>=6&&hr<10)?.35:.12;  // llegadas: noche y madrugada
+     const nT2=Math.max(pro?3:0,Math.round(T.n*clamp(st.E/130)*(1-.8*divv)));T.mesh.count=nT2;let cc=false;
+     const pickE=()=>{let r=R()*ENT.reduce((a,e)=>a+e.w,0);for(let j=0;j<ENT.length;j++){r-=ENT[j].w;if(r<=0)return j;}return 0;};
+     const pickG=(e,k)=>{const ok=GATES.map((g,gi)=>gi).filter(gi=>(GATES[gi].kind===k||GATES[gi].kind==='both')&&e.rg[gi]);ok.sort((a,b)=>e.rg[a].cost-e.rg[b].cost);return R()<.75?ok[0]:ok[Math.floor(R()*ok.length)];};
+     if(!T.gi){T.gi=new Int8Array(T.n).fill(-1);T.go=new Int8Array(T.n);T.dk=new Int8Array(T.n);for(let i=0;i<T.n;i++){T.ph[i]=5;T.wt[i]=R()*2;}}
+     const newTrip=i=>{const e=ENT[T.pi[i]];T.gi[i]=pickG(e,'in');T.go[i]=pickG(e,'out');const gI=GATES[T.gi[i]].inner,gO=GATES[T.go[i]].inner;const ok=gI.map((p,k)=>k).filter(k=>gI[k]&&gO[k]);T.dk[i]=ok.length?ok[Math.floor(R()*ok.length)]:-1;T.s[i]=0;T.ph[i]=0;};
+     for(let i=0;i<T.n;i++){if(i>=nT2){continue;}
+       if(T.ph[i]===5){T.wt[i]-=dtt;if(T.wt[i]<=0&&R()<prof*dtt*1.5){T.pi[i]=pickE();newTrip(i);cc=true;T.mesh.setColorAt(i,TC_IN);}else{set(T.mesh,i,0,-500,0,.01,0);continue;}}
+       const e=ENT[T.pi[i]],sp2=34*T.v[i]*clamp(e.ratio,.15,1.1);let q,dr=1;
+       const qIn=T.dk[i]>=0?GATES[T.gi[i]].inner[T.dk[i]]:null,qOut=T.dk[i]>=0?GATES[T.go[i]].inner[T.dk[i]]:null;
+       if(T.ph[i]===0){q=e.rg[T.gi[i]];T.s[i]+=sp2*dtt;if(T.s[i]>=q.len){T.s[i]=0;T.ph[i]=qIn?1:2;T.wt[i]=3+R()*5;}}
+       else if(T.ph[i]===1){q=qIn;T.s[i]+=sp2*.4*dtt;if(T.s[i]>=q.len){T.s[i]=q.len;T.ph[i]=2;T.wt[i]=3+R()*5;}}
+       else if(T.ph[i]===2){q=qIn||e.rg[T.gi[i]];T.s[i]=q.len;T.wt[i]-=dtt;if(T.wt[i]<=0){T.ph[i]=qOut?3:4;T.s[i]=qOut?qOut.len:e.rg[T.go[i]].len;cc=true;T.mesh.setColorAt(i,TC_OUT);}}
+       else if(T.ph[i]===3){q=qOut;dr=-1;T.s[i]-=sp2*.4*dtt;if(T.s[i]<=0){T.ph[i]=4;T.s[i]=e.rg[T.go[i]].len;}}
+       else{q=e.rg[T.go[i]];dr=-1;T.s[i]-=sp2*dtt;if(T.s[i]<=0){T.ph[i]=5;T.wt[i]=2+R()*6;set(T.mesh,i,0,-500,0,.01,0);continue;}}
+       const sv=clamp(T.s[i],0,q.len);let j=1;while(j<q.L.length-1&&q.L[j]<sv)j++;const f=(sv-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
+       const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*dr,(q.x[j]-q.x[j-1])*dr);
+       set(T.mesh,i,x,gh(x,-y)+1.4,-y,sz*2.7,hd);}
+     T.mesh.instanceMatrix.needsUpdate=true;if(cc)T.mesh.instanceColor.needsUpdate=true;}
+   [['car',NETM,nC,42,2],...(ENT.length?[]:[['truck',NETC,nT,30,2.7]])].forEach(([k,pl,n,sp,zs])=>{const V2=VH[k];V2.mesh.count=n;
+     for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*(p.c===2?1.25:p.c===0?.7:1)*dtt;
+       if(V2.s[i]<0||V2.s[i]>p.len){V2.d[i]*=-1;V2.s[i]=clamp(V2.s[i],0,p.len);if(R()<.35){V2.pi[i]=Math.floor(R()*pl.length);V2.s[i]=R()*pl[V2.pi[i]].len;}}
+       const q=pl[V2.pi[i]];let j=1;while(j<q.L.length-1&&q.L[j]<V2.s[i])j++;const f=(V2.s[i]-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
+       const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*V2.d[i],(q.x[j]-q.x[j-1])*V2.d[i]);
+       set(V2.mesh,i,x,gh(x,-y)+1.4,-y,sz*zs,hd);}
+     V2.mesh.instanceMatrix.needsUpdate=true;});}
+}
+
+/* ---------- colores del suelo ---------- */
+const ramp=(stops,v)=>{v=clamp(v);const n=stops.length-1,i=Math.min(n-1,Math.floor(v*n)),f=v*n-i,a=stops[i],b=stops[i+1];return[lerp(a[0],b[0],f),lerp(a[1],b[1],f),lerp(a[2],b[2],f)];};
+const hx=h=>[(h>>16&255)/255,(h>>8&255)/255,(h&255)/255];
+const RAMP_CONT=[hx(0x3fae82),hx(0x9ccd66),hx(0xd9b13c),hx(0xc2652f),hx(0x8a2f2f)];
+const RAMP_NEED=[hx(0x3fae82),hx(0x8fd0a8),hx(0xe9b0c8),hx(0xff4fa0),hx(0xe0147a)];
+const CTX=new THREE.Color(0x4c8a80), CIN=new THREE.Color(0x5fbf99);
+let lastPaint=-1,lastKey='';
+function paint(force){
+  const key=S.scn+S.layer; if(!force&&Math.abs(S.t-lastPaint)<.02&&key===lastKey)return; lastPaint=S.t;lastKey=key;
+  const c=new THREE.Color();
+  let vals=new Float32Array(MC);
+  const ks=S.layer==='all'?KEYS:S.layer==='estado'?['ew']:[S.layer];
+  ks.forEach(k=>{const r=remaining(k,S.t,S.scn);for(let j=0;j<MC;j++){let nv=NEED[k][j];
+    if(S.scn==='act')nv=clamp(nv*(S.layer==='estado'?(0.6+0.04*Math.min(S.t,18)):(1+0.01*S.t)));
+    else if(S.layer==='estado')nv=clamp(nv*(0.6+0.04*Math.min(S.t,18)));
+    vals[j]+=nv*r[j]/ks.length;}});
+  const rp=S.layer==='estado'?RAMP_CONT:RAMP_NEED;
+  for(let j=0;j<MC;j++){const v=S.layer==='estado'?vals[j]*1.15:vals[j]*1.05;const col=ramp(rp,v);c.setRGB(col[0],col[1],col[2]);tops.setColorAt(mcells[j],c);}
+  if(MK.gj){const gc=new THREE.Color(0x9b9ba2),k=S.scn==='pro'?clamp(MK.P<0?0:MK.P):0;
+    MK.gj.forEach(j=>{tops.getColorAt(mcells[j],c);c.lerp(gc,1-k);tops.setColorAt(mcells[j],c);});}
+  tops.instanceColor.needsUpdate=true;
+  const q=S.scn==='pro'?1-clamp(remaining('ew',S.t,'pro').reduce((a,b)=>a+b,0)/MC):0;
+  WATERS.forEach(w=>{w.m.color.copy(cWater).lerp(cSick,clamp((S.scn==='pro'?(0.55+0.04*Math.min(S.t,12))*(1-q*1.5):0.35+0.05*Math.min(S.t,12))*w.k));});
+}
+const AGL=[['pers','Personas','custodios y vecinos','#9b8cff','<circle cx="12" cy="4" r="3"/><rect x="8.5" y="7.5" width="7" height="10" rx="3"/>'],
+ ['pigeon','Palomas','sinantrópicas, señal de residuo','#ffffff','<ellipse cx="12" cy="10" rx="6" ry="3.5"/><path d="M12 9 L3 2 L9 11Z M12 9 L21 2 L15 11Z"/>'],
+ ['hum','Colibríes','polinizadores, siguen corredores','#ff3d96','<ellipse cx="10" cy="9" rx="4" ry="2"/><path d="M13 9 L23 8" stroke="#ff3d96" stroke-width="1.3"/><path d="M9 8 L5 1 L12 7Z M9 10 L5 17 L12 11Z"/>'],
+ ['tingua','Tingua bogotana','vive en el humedal','#00e5c3','<ellipse cx="10" cy="13" rx="7" ry="4"/><rect x="14" y="4" width="3" height="9"/><circle cx="16" cy="4" r="2.6"/>'],
+ ['car','Autos','circulan por las vías reales','#e84a5f','<rect x="2" y="8" width="20" height="6" rx="2"/><rect x="6" y="4" width="11" height="5" rx="1.5"/>'],
+ ['truck','Camiones de carga','llegan de noche y madrugada: entran por las puertas 1 y 7, descargan en los patios y salen por 2, 3 o 7','#ff9f1c','<rect x="1" y="5" width="14" height="9"/><rect x="16" y="8" width="7" height="6"/>'],
+ ['falcon','Halcón peregrino','depredador tope, vuela alto','#ffe27a','<path d="M12 6 L23 12 L12 10 L1 12Z"/>']];
+const svgI=(c,p)=>`<svg viewBox="0 0 24 18" width="22" height="17" fill="${c}" aria-hidden="true">${p}</svg>`;
+function lgAgents(){$('#lgA').innerHTML=`<div style="font-weight:700;margin-bottom:4px">Agentes del modelo</div>`+
+  `<div class="ag">${svgI('#8d8aa8','<rect x="11" y="1" width="2" height="16"/><rect x="8" y="1" width="8" height="2" fill="#fff0b0"/><circle cx="6" cy="14" r="3.5" fill="#9bd03a"/><circle cx="17" cy="14" r="3" fill="#c9822f"/>')}<span><b>Residuo domiciliario</b><small>bolsas en esquinas y postes; atraen palomas</small></span></div>`+`<div class="ag">${svgI('#d9953a','<rect x="3" y="9" width="8" height="6"/><rect x="9" y="6" width="6" height="9" fill="#8a5a2b"/><circle cx="20" cy="8" r="2.2"/>')}<span><b>Residuo de Corabastos</b><small>pilas en las puertas 5 y 6; fluye al humedal</small></span></div>`+`<div class="ag">${svgI('#58b36f','<circle cx="12" cy="7" r="5.5"/><rect x="11" y="11" width="2" height="6"/>')}<span><b>Arbolado urbano</b><small>inventario real, por altura</small></span></div>`+
+  AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+`<div style="height:8px"></div>`;}
+function legend(){lgAgents();const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
+  const st=need?'#58c79b,#8fd0a8,#e9b0c8,#ff4fa0,#e0147a':'#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f';
+  $('#lgBar').style.background=`linear-gradient(90deg,${st})`;$('#lgL').textContent=need?'Cubierta':'Sano';$('#lgR').textContent=need?'Falta espacio':'Contaminado';}
+
+/* ---------- aplicar tiempo / escenario ---------- */
+function applyState(force){
+  INT.forEach(o=>{const f=prog(o,S.t);o.f=f;
+    if(o.G.userData.grow)o.G.userData.grow(1);o.G.visible=S.scn==='pro'&&!o.out;
+    if(o.ring)o.ring.visible=false;});
+  CI.forEach(o=>{const f=prog(o,S.t);o.f=f;const on=S.adopt&&S.scn==='pro';o.G.visible=on;if(o.G.userData.grow)o.G.userData.grow(1);o.ring.visible=false;});
+  D.cands.forEach(c=>c.pin.classList.toggle('on',S.adopt));
+  proGroup.visible=true;actGroup.visible=S.scn==='act';
+  const e=emis(S.t)/130;mounds.forEach(m=>{m.visible=false;m.scale.y=Math.max(.2,m.scale.x*.55*(0.6+0.4*clamp(S.t/12)));});
+  applyMarket(force);paint(force);
+}
+/* ---------- pins y etiquetas ---------- */
+const GRP={plaza:'met',ecocirc:'met',centro:'met',parque:'eco',ecotono:'eco',corredor:'eco',puente:'eco',custodia:'com',habitat:'com',saberes:'com',vivienda:'viv',renov:'viv'};
+const CRIT=[
+ {id:'k_cora',name:'Corabastos',sub:'Hasta 120 t/día de residuo orgánico sin valorizar',x:D.cora[0],y:D.cora[1],type:'crit',desc:'Nodo mayorista único. La biomasa sale por calle y escorrentía hacia el humedal sin intercepción: es el origen del metabolismo lineal.'},
+ {id:'k_vaca',name:'Humedal La Vaca',sub:'Eutrofización y anoxia',x:vacaC[0],y:vacaC[1],type:'crit',desc:'Humedal relicto con lixiviados continuos y ocupación de rondas. Sin franja de amortiguación la tingua bogotana no logra permanecer.'},
+ {id:'k_techo',name:'Humedal de Techo',sub:'Borde sellado por el tejido urbano',x:byId.ecotono_techo.x,y:byId.ecotono_techo.y,type:'crit',desc:'Cuerpo de agua rodeado de manzanas impermeables y sin conexión verde con otros humedales.'},
+];
+const pinsEl=$('#pins'),pinMap={};
+function mkPin(o,cls,label){const b=document.createElement('button');b.className='pin '+cls;b.innerHTML=`<i></i>${label}`;b.dataset.id=o.id;b.addEventListener('click',e=>{e.stopPropagation();select(o.id,true)});pinsEl.appendChild(b);pinMap[o.id]=b;return b;}
+INT.forEach((o,i)=>{o.pin=mkPin(o,'g-'+GRP[o.type],i+1);o.pin.setAttribute('aria-label',o.name);});
+D.cands.forEach((c,i)=>{c.pin=mkPin(c,'cand','+');c.pin.setAttribute('aria-label','Espacio candidato: '+c.what);});
+CRIT.forEach((c,i)=>{c.pin=mkPin(c,'g-crit','!');c.pin.setAttribute('aria-label',c.name);});
+const TAGS=[['Corabastos',D.cora[0]+260,D.cora[1]+30],['Av. Carrera 86',1240,1900],['Río Bogotá',-1270,2900],['Río Fucha',1850,3000],['Canal Cundinamarca',-300,2800],['Av. Calle 6',3100,-150],['Humedal de Techo',...cen(D.water.techo[0])]].concat(ENT.map(e=>['Acceso · '+e.name,e.x,e.y])).concat(GATES.map(g=>[g.name,g.x,g.y])).filter(([t,x,y])=>inM(x,y)).map(([t,x,y])=>{const e=document.createElement('div');e.className=t.startsWith('Puerta')?(/peatonal|^Puerta [58]$/.test(t)?'tag gate ped':'tag gate'):t.startsWith('Acceso')?'tag acc':'tag';e.textContent=t;pinsEl.appendChild(e);return{e,x,y,acc:t.startsWith('Acceso')||t.startsWith('Puerta')};});
+const v3=new THREE.Vector3();
+function proj(x,y,h){v3.set(x,h||20,-y).project(cam);return[(v3.x*.5+.5)*cv.clientWidth,(-v3.y*.5+.5)*cv.clientHeight,v3.z];}
+function updatePins(){
+  const w=cv.clientWidth,hh=cv.clientHeight;
+  const show=(o,vis,h)=>{const [x,y]=proj(o.x,o.y,h);const ok=vis&&x>-30&&x<w+30&&y>-30&&y<hh+30;o.pin.style.display=ok?'':'none';if(ok)o.pin.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;};
+  INT.forEach(o=>show(o,S.scn==='pro'&&!o.out,(o.r?gh(o.x,-o.y):15)+30));
+  D.cands.forEach(c=>show(c,S.scn==='pro'&&S.cands&&V.H<4200&&(S.layer==='estado'||S.layer==='all'||S.layer===c.key||(S.layer==='ew'&&c.key==='ew')),26));
+  CRIT.forEach(c=>show(c,S.scn==='act',34));
+  TAGS.forEach(t=>{const [x,y]=proj(t.x,t.y,10);t.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;t.e.style.opacity=(t.acc?V.H<7000:V.H<3200)?.85:0;});
+  const cs=S.sel&&findItem(S.sel);const co=$('#callout');
+  if(cs){const [x,y]=proj(cs.x,cs.y,60);co.style.display='block';co.style.transform=`translate(${x}px,${y}px) translate(-14px,-100%) translateY(-34px)`;}else co.style.display='none';
+}
+const findItem=id=>byId[id]||D.cands.find(c=>c.id===id)||CRIT.find(c=>c.id===id);
+/* ---------- cámara y controles ---------- */
+let flying=null;
+function flyTo(x,y,H){const a={tx:V.tx,tz:V.tz,H:V.H},t0=performance.now();flying={a,b:{tx:x,tz:-y,H:H||V.H},t0,d:REDUCE?1:700};}
+function stepFly(now){if(!flying)return;const f=clamp((now-flying.t0)/flying.d),e=sm(f);V.tx=lerp(flying.a.tx,flying.b.tx,e);V.tz=lerp(flying.a.tz,flying.b.tz,e);V.H=lerp(flying.a.H,flying.b.H,e);if(f>=1)flying=null;}
+let azT=null;
+function rot(dir){azT=(azT??V.az)+dir*Math.PI/2;}
+const ptrs=new Map();let moved=0,startXY=null,lastPinch=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;startXY=[e.clientX,e.clientY];cv.classList.add('drag');flying=null;lastPinch=null;});
+cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);
+  if(ptrs.size===1){if(e.buttons===2||e.shiftKey){V.az-=dx*.006;azT=null;}else{
+      const upp=2*V.H/cv.clientHeight,c=Math.cos(V.az),sn=Math.sin(V.az),k=dy*upp/Math.sin(V.el);
+      V.tx+=-dx*upp*c-sn*k; V.tz+=dx*upp*sn-c*k;}}
+  p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),an=Math.atan2(b.y-a.y,b.x-a.x);if(lastPinch){V.H=clamp(V.H*lastPinch.d/d,500,9500);V.az-=(an-lastPinch.an);azT=null;}lastPinch={d,an};}
+});
+const endP=e=>{ptrs.delete(e.pointerId);cv.classList.remove('drag');lastPinch=null;if(ptrs.size===0&&moved<6&&startXY)pickAt(e.clientX,e.clientY);};
+cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',endP);
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('wheel',e=>{e.preventDefault();V.H=clamp(V.H*Math.exp(e.deltaY*.0011),500,9500);},{passive:false});
+function pickAt(px,py){const r=cv.getBoundingClientRect();let best=null,bd=1e9;
+  const test=(o,vis)=>{if(!vis)return;const [x,y]=proj(o.x,o.y,20);const d=Math.hypot(x-(px-r.left),y-(py-r.top));const rad=Math.max(26,(o.r||0)/(2*V.H/cv.clientHeight));if(d<rad&&d<bd){bd=d;best=o.id;}};
+  INT.forEach(o=>test(o,S.scn==='pro'));CRIT.forEach(o=>test(o,S.scn==='act'));
+  if(best)select(best,false);else select(null);}
+/* ---------- UI ---------- */
+function setTab(t){S.tab=t;$$('.tabs button[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));['ind','mp','fi','var','rel'].forEach(k=>$('#b-'+k).hidden=k!==t);if(t==='rel')renderRel();}
+$$('.tabs button[data-tab]').forEach(b=>b.addEventListener('click',()=>{setTab(b.dataset.tab);$('#panel').classList.remove('min');}));
+const fmtYear=t=>2026+Math.floor(t);
+const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
+function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años`;
+  const SAT=x=>`<b>S<sub>${x}</sub></b>`,satNote=`${'<i>S</i>'} = parte de la necesidad del territorio (mapa de 100 m) que cubren las intervenciones: cada espacio aporta según su distancia (campana de influencia), su madurez y la inversión.`;
+  const F={
+   conn:P?[`Conectividad = 16 + 70 × ${SAT('C')}`,`= 16 + 70 × ${nf(st.sC,2)} = <b>${nf(st.conn,0)}</b>`,`16 es la línea base de hoy. ${SAT('C')} lo aportan corredores, puentes y ecotonos. ${satNote}`]
+          :[`Conectividad = máx(6; 16 − 0,32 × t)`,`= máx(6; 16 − 0,32 × ${nf(t)}) = <b>${nf(st.conn,0)}</b>`,`Sin intervenciones, la fragmentación avanza 0,32 puntos por año hasta un piso de 6.`],
+   cohab:[`Cohabitabilidad = 100 × (0,35·T/60 + 0,20·H/15 + 0,25·C/80 + 0,20·(1 − P/100))`,`T=${nf(st.N.tingua,0)} tinguas · H=${nf(st.N.falcon,0)} halcones · C=${nf(st.N.hum,0)} colibríes · P=${nf(st.N.pigeon,0)} palomas → <b>${nf(st.cohab,0)}</b>`,`Cada especie se divide por su población tope. Las palomas restan: más palomas, menos cohabitabilidad. Las poblaciones salen del modelo de fauna (abajo).`],
+   val:P?[`Valorización = B ÷ E`,`B = ${nf(st.B,0)} t/día valorizadas · E = ${nf(st.E,0)} t/día de residuo → <b>${nf(st.val*100,0)} %</b>`,`E = residuo de Corabastos × (1 + crecimiento × t). B = suma de la capacidad de cada bio-factoría × su madurez × capacidad (%) × (0,8 + 0,4·${SAT('O')}), con tope en el % valorizable de E. Sin tratar = E − B = ${nf(st.untreated,0)} t/día.`]
+          :[`Valorización = 0`,`E = ${nf(st.E,0)} t/día, todo sin tratar → <b>0 %</b>`,`En la situación actual no hay bio-factorías: el metabolismo es lineal. E = residuo de Corabastos × (1 + crecimiento × t).`],
+   food:P?[`Descentralización = 3 + 42 × ${SAT('F')} + 7 × huertas`,`= 3 + 42 × ${nf(st.sF,2)} + 7 × ${nf(st.huertas,2)} = <b>${nf(st.food,0)} %</b>`,`${SAT('F')} lo aportan plazas satélite, ecocircuitos y el centro. Huertas = mín(1; abono ÷ 25), con abono = 0,55 × B (residuo valorizado que vuelve como compost).`]
+          :[`Descentralización = máx(1,5; 3 − 0,05 × t)`,`= <b>${nf(st.food,0)} %</b>`,`Hoy casi todo el alimento pasa por Corabastos; sin nodos locales la concentración aumenta.`],
+   spec:P?[`Especulación = máx(20; tendencia − 60 × ${SAT('S')})`,`tendencia = 62 + 1,15 × t × presión% = ${nf(st.specBase,0)} → ${nf(st.specBase,0)} − 60 × ${nf(st.sS,2)} = <b>${nf(st.spec,0)}</b>`,`${SAT('S')} lo aportan vivienda cooperativa, renovación y custodia del suelo. Menor es mejor.`]
+          :[`Especulación = mín(95; 62 + 1,15 × t × presión%)`,`= <b>${nf(st.spec,0)}</b>`,`Sin custodia del suelo, la presión crece cada año según la variable de presión inmobiliaria externa.`],
+   soc:[`Capital social = mín(100; 6 + 72 × ${SAT('O')} × participación%)`,`= 6 + 72 × ${nf(st.sO,2)} × ${VAR.soc} % = <b>${nf(st.soc,0)}</b>`,`${SAT('O')} lo aportan los espacios comunitarios (plazas, vivienda, renovación, centro). 6 es la línea base.`],
+   sroi:P?[`SROI = −0,5 + 6,4 × (0,40·D + 0,30·C + 0,30·So)`,`D = ${nf(clamp((st.food-3)/42),2)} · C = ${nf(clamp((st.conn-16)/70),2)} · So = ${nf(clamp((st.soc-6)/72),2)} → <b>${nf(st.sroi,1)}×</b>`,`D, C y So son descentralización, conectividad y capital social normalizados de 0 a 1 sobre su rango. Los pesos se fijaron para que la meta de 3,5× se alcance con los espacios candidatos.`]
+          :[`SROI = −0,6 − 0,03 × t`,`= <b>${nf(st.sroi,1)}×</b>`,`Sin inversión social el retorno es negativo y empeora con los costos del deterioro.`]};
+  const f=F[k];if(!f)return'';return `<div class="fxf">${f[0]}</div><div class="fxv">${f[1]}</div><p>${f[2]}</p><p class="fxs">${yr}. Pesos y coeficientes: supuestos del modelo, a calibrar.</p>`;}
+function renderInd(){S.fxOpen=S.fxOpen||new Set();
+  const st=at(S.scn,S.t),ot=at(other(),S.t),el=$('#b-ind');
+  const val=(s,k)=>k==='val'?s.val:s[k];
+  const groups={};IND.filter(i=>!(i.k==='soc'&&S.scn==='act')).forEach(i=>(groups[i.g]=groups[i.g]||[]).push(i));
+  const A0=MK.A0/1e4,left=(MK.A0-(S.scn==='pro'?MK.removed:0))/1e4,eco=(S.scn==='pro'?MK.removed:0)/1e4;
+  let h=`<div class="card" style="grid-template-columns:1fr 1fr;border-color:var(--pink);background:rgba(255,61,150,.12)" aria-live="polite"><span class="nm" style="grid-column:1/3">Corabastos en el territorio<small>${S.scn==='pro'?'La huella se reduce y el borde pasa a ser ecotono':'Sin cambio: la huella sigue completa'}</small></span>
+    <span><b style="font:800 28px var(--disp)">${left.toFixed(1).replace('.',',')}</b> ha<small style="display:block;color:var(--ink2)">de ${A0.toFixed(1).replace('.',',')} ha construidas hoy</small></span>
+    <span style="text-align:right"><b style="font:800 28px var(--disp);color:var(--mint)">${eco.toFixed(1).replace('.',',')}</b> ha<small style="display:block;color:var(--ink2)">de ecotono nuevo</small></span></div>`;
+  for(const gname in groups){h+=`<h3>${gname}</h3>`;
+    groups[gname].forEach(i=>{const v=val(st,i.k),o=val(ot,i.k),d=v-o;const better=i.lower?d<0:d>0;
+      const sr=SER[S.scn].map(s=>val(s,i.k)),so=SER[other()].map(s=>val(s,i.k)),all=sr.concat(so),mn=Math.min(...all),mx=Math.max(...all),rg=(mx-mn)||1;
+      const pth=a=>a.map((y,j)=>`${j?'L':'M'}${(j/20*118+1).toFixed(1)},${(27-(y-mn)/rg*24).toFixed(1)}`).join('');
+      const cx=(S.t/20*118+1).toFixed(1),cyy=(27-(v-mn)/rg*24).toFixed(1);
+      const dtxt=i.k==='val'?(Math.abs(d)*100).toFixed(0)+' pts':i.k==='sroi'?Math.abs(d).toFixed(1).replace('.',','):Math.abs(d).toFixed(0);
+      const extra=i.k==='val'?` · ${st.untreated.toFixed(0)} t/día sin tratar`:i.k==='spec'&&S.scn==='pro'?` · ${(((st.specBase-st.spec)/st.specBase)*100).toFixed(0)}% menos que la tendencia`:'';
+      h+=`<button class="card" data-lay="${i.lay}" aria-pressed="${S.layer===i.lay}"><span class="nm">${i.n}<small>${i.s}</small></span><span class="val">${i.fmt(v)}<u>${i.u}</u></span>
+      <svg viewBox="0 0 120 30" preserveAspectRatio="none" aria-hidden="true"><path d="${pth(so)}" fill="none" stroke="rgba(255,255,255,.28)" stroke-dasharray="3 3" stroke-width="1.5" vector-effect="non-scaling-stroke"/><path d="${pth(sr)}" fill="none" stroke="${S.scn==='pro'?'#ff3d96':'#eaa43c'}" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${cx}" cy="${cyy}" r="3.2" fill="#fff"/></svg>
+      <span class="delta"><span class="chip ${Math.abs(d)<.0001?'':better?'up':'dn'}">${S.scn==='pro'?'vs actual':'vs propuesta'} ${d>=0?'+':'−'}${dtxt}</span><span>${extra.replace(/^ · /,'')}</span></span></button><details class="fx" data-k="${i.k}" ${S.fxOpen.has(i.k)?'open':''}><summary>Cómo se calcula</summary>${fxHTML(i.k,st)}</details>`;});}
+  const N=st.N;
+  h+=`<h3>Fauna (agentes del modelo)</h3><details class="fx" data-k="fauna" ${S.fxOpen.has('fauna')?'open':''}><summary>Cómo se calcula la fauna</summary><div class="fxf">N(año+1) = N + r · g · N · (1 − N/K) + llegada</div><p>Crecimiento logístico. <b>K</b> (población tope) = tope de la especie × calidad de hábitat; para la tingua también × superficie efectiva del humedal. Calidad de hábitat = ${S.scn==='pro'?'0,55·S<sub>C</sub> + 0,25·valorización/0,7 + 0,20·S<sub>H</sub>':'0,12 − 0,006·año'}, reducida por la enfermedad que traen las palomas (−18 % × presión sanitaria). <b>g</b>: solo se reproduce si la energía (100 × calidad + 35) supera 70–100. Palomas: K = 100 × (0,25 + 0,75 × residuo sin tratar) × residuo domiciliario. Presión sanitaria = 0,75 × palomas/100 + 0,25 × residuo sin tratar / residuo total = <b>${nf(st.dis*100,0)} %</b>.</p></details>`;
+  [['Tingua bogotana','tingua',60,'#58c79b'],['Halcón peregrino','falcon',15,'#f1dfae'],['Colibríes y polinizadores','hum',80,'#ff4fa0'],['Palomas sinantrópicas','pigeon',100,'#c9c7d8']].forEach(([n,k,c,col])=>{
+    h+=`<div class="sp"><span>${n}</span><span class="bar"><b style="width:${N[k]/c*100}%;background:${col}"></b></span><output>${Math.round(N[k])} / ${c}</output></div>`;});
+  h+=`<div class="sp"><span>Personas (custodios, vecinos)</span><span class="bar"><b style="width:${Math.round(FA.pers.mesh.count/FA.pers.n*100)}%;background:#9b8cff"></b></span><output>${FA.pers.mesh.count} / ${FA.pers.n}</output></div>`;
+  h+=`<p class="note">Una especie se reproduce solo si su energía supera 85 y su población está por debajo del tope. Los valores son un modelo ilustrativo y se calibran con datos medidos. El SROI combina descentralización, conectividad y capital social; sus pesos se fijaron para que la meta del documento (3,5×) se cruce cuando se suman los espacios candidatos.</p>`;
+  el.innerHTML=h;
+  $$('details.fx',el).forEach(d=>d.addEventListener('toggle',()=>{d.open?S.fxOpen.add(d.dataset.k):S.fxOpen.delete(d.dataset.k);}));
+  $$('.card',el).forEach(b=>b.addEventListener('click',()=>{S.layer=S.layer===b.dataset.lay?'estado':b.dataset.lay;lastKey='';applyState(true);legend();renderInd();}));
+}
+const VDEF=[
+ ['resC','Residuo orgánico de Corabastos hoy',40,200,5,'t/día','Lo que sale del mercado sin tratar en el año 0 (base 95 t/día; reportes: 95–120).',v=>v+' t/día'],
+ ['emisG','Crecimiento de los residuos de Corabastos',0,4,.1,'% anual','Más residuo por tratar cada año (base 1,2%).',v=>v.toFixed(1).replace('.',',')+' % anual'],
+ ['maxVal','Residuo que se puede valorizar en origen',40,100,5,'%','Tope de la biomasa que pueden procesar los nodos (base 85%).',v=>v+' %'],
+ ['capX','Capacidad de las bio-factorías',50,200,10,'%','Toneladas por día que procesa cada nodo (base 100%).',v=>v+' %'],
+ ['inv','Inversión / alcance de las intervenciones',50,150,5,'%','Qué tanto necesidad resuelve cada espacio construido (base 100%).',v=>v+' %'],
+ ['exec','Velocidad de apropiación y maduración',50,200,10,'%','Todo el masterplan existe desde el año 0. Menos de 100% hace que los espacios tarden más en funcionar plenamente.',v=>(v/100).toFixed(1).replace('.',',')+'×'],
+ ['spec','Presión inmobiliaria externa',50,200,10,'%','Qué tan rápido sube el precio del suelo sin intervención (base 100%).',v=>v+' %'],
+ ['soc','Participación comunitaria',50,200,10,'%','Qué tanto se convierten los espacios en capital social (base 100%).',v=>v+' %'],
+ ['resD','Residuo orgánico domiciliario (fuera de Corabastos)',0,80,2,'t/día','Bolsas en esquinas y postes alrededor del mercado. Atrae palomas y aumenta la presión sanitaria (base 30 t/día, supuesto).',v=>v+' t/día'],
+ ['imm','Llegada de fauna silvestre',0,300,10,'%','Individuos que llegan de afuera cuando el hábitat es bueno (base 100%).',v=>v+' %']];
+const PRESETS={base:['Base',{}],opt:['Optimista',{resD:15,emisG:.5,maxVal:95,capX:150,inv:125,exec:130,spec:70,soc:140,imm:150}],
+  pes:['Pesimista',{resD:55,emisG:3,maxVal:60,capX:70,inv:80,exec:70,spec:160,soc:70,imm:50}],
+  esp:['Estrés inmobiliario',{spec:200,soc:60}],rap:['Obra rápida',{exec:200,inv:110}],res:['Más residuos',{emisG:4,resD:70,capX:70}]};
+let baseCache={};
+function baselineFor(){const key=S.adopt?'a':'n';if(baseCache[key])return baseCache[key];
+  const kA=Object.assign({},VARS.act),kP=Object.assign({},VARS.pro);Object.assign(VARS.act,VAR0);Object.assign(VARS.pro,VAR0);buildSeries();const r=at('pro',20),a=at('act',20);baseCache[key]={pro:r,act:a};Object.assign(VARS.act,kA);Object.assign(VARS.pro,kP);buildSeries();return baseCache[key];}
+const LON0=-74.1585,LAT0=4.6315,KX=111320*Math.cos(LAT0*Math.PI/180),KY=110574;
+const LL=(lat,lon)=>[(lon-LON0)*KX,(lat-LAT0)*KY];
+function entList(){const el=$('#entL');if(!el)return;el.innerHTML=ENT.map(e=>`<div class="er"><b>${e.id}</b><span>${e.traf?Math.round(e.traf.cur)+' / '+Math.round(e.traf.free)+' km/h':'sin dato'}</span><i style="width:${Math.round(e.ratio*100)}%"></i></div>`).join('');}
+function ttApply(j){const pts=j.puntos||j.points||[];let n=0;ENT.forEach(e=>{let best=null,bd=250;pts.forEach(p=>{const [x,y]=LL(p.lat,p.lon);const d=Math.hypot(x-e.x,y-e.y);if(d<bd){bd=d;best=p;}});
+    if(best){const cur=best.currentSpeed,fr=best.freeFlowSpeed||cur||1;e.traf={cur,free:fr};e.ratio=Math.min(1,cur/fr);e.w=1.6-e.ratio;n++;}});
+  const m=ENT.reduce((a,e)=>a+e.w,0);$('#ttMsg').textContent=n?`Datos aplicados a ${n} de ${ENT.length} accesos. Más congestión = camiones más lentos y más acumulados en ese acceso.`:'Ningún punto del archivo cae a menos de 250 m de un acceso.';entList();}
+function renderVar(){const el=$('#b-var');
+  const P=S.scn==='pro';let h=`<div class="vhd ${P?'vp':'va'}">${P?'Variables de la <b>propuesta</b>':'Variables de la <b>situación actual</b>'}</div><p class="note">${P?'Controlan cómo se construye y funciona el masterplan. No cambian la situación actual.':'Controlan la tendencia sin intervención: residuo, especulación y fauna. No cambian la propuesta.'} Todo se recalcula al instante.</p><div class="presets"><button data-pre="base">Restablecer valores base</button></div>`;
+  VDEF.filter(v=>VKEYS[S.scn].includes(v[0])).forEach(([k,n,mn,mx,st,u,desc,fmt])=>{h+=`<div class="vr"><label for="v_${k}">${n}<output id="o_${k}">${fmt(VAR[k])}</output></label><input type="range" id="v_${k}" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${VAR[k]}"><small>${desc}</small></div>`;});
+  h+=`<h3>Tráfico de carga (TomTom)</h3><p class="note">Los camiones entran por ${ENT.length} accesos (${ENT.map(e=>e.id).join(', ')}) y siguen la ruta más corta por avenidas hasta Corabastos. Carga el archivo <b>trafico_tomtom.json</b> para que la velocidad y el flujo reflejen el tráfico medido.</p><div class="ent" id="entL"></div><label class="fl"><input type="file" id="ttFile" accept=".json,application/json"> Cargar trafico_tomtom.json</label><p class="note" id="ttMsg">Sin medición en estos accesos todavía: velocidades de referencia (supuesto).</p>`;
+  h+=`<h3>Resultado al año 20 · ${S.scn==='pro'?'propuesta':'situación actual'}</h3><div class="cmp" id="cmp"></div><p class="note">Comparado con los valores base. Son supuestos ilustrativos del modelo, por calibrar con datos medidos.</p>`;
+  el.innerHTML=h;
+  $$('input[type=range]',el).forEach(i=>i.addEventListener('input',()=>{const k=i.dataset.k;VAR[k]=+i.value;VARS[S.scn][k]=+i.value;$('#o_'+k).textContent=VDEF.find(v=>v[0]===k)[7](VAR[k]);scheduleRecompute();}));
+  entList();$('#ttFile').addEventListener('change',ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{ttApply(JSON.parse(r.result));}catch(e){$('#ttMsg').textContent='Archivo no válido: '+e.message;}};r.readAsText(f);});
+  $$('.presets button',el).forEach(b=>b.addEventListener('click',()=>{const pr=PRESETS[b.dataset.pre][1],o={};VKEYS[S.scn].forEach(k=>{o[k]=k in pr?pr[k]:VAR0[k];});Object.assign(VARS[S.scn],o);Object.assign(VAR,VARS[S.scn]);renderVar();recompute();}));
+  renderCmp();}
+function renderCmp(){const c=$('#cmp');if(!c)return;const b=baselineFor()[S.scn],n=at(S.scn,20);
+  const rows=[['Conectividad ecosistémica','conn',v=>v.toFixed(0)],['Cohabitabilidad multiespecie','cohab',v=>v.toFixed(0)],['Residuos valorizados','val',v=>(v*100).toFixed(0)+' %'],['Descentralización alimentaria','food',v=>v.toFixed(0)+' %'],['Presión especulativa','spec',v=>v.toFixed(0)],['Capital social','soc',v=>v.toFixed(0)],['SROI','sroi',v=>v.toFixed(1).replace('.',',')+'×']];
+  c.innerHTML=rows.map(([l,k,f])=>{const d=n[k]-b[k],lower=k==='spec',good=lower?d<0:d>0,flat=Math.abs(d)<(k==='val'?.004:k==='sroi'?.04:.4);
+    return `<span>${l}</span><b>${f(n[k])}</b><span class="chip ${flat?'':good?'up':'dn'}" style="justify-self:end">${flat?'igual':(d>0?'+':'−')+(k==='val'?(Math.abs(d)*100).toFixed(0)+' pts':k==='sroi'?Math.abs(d).toFixed(1).replace('.',','):Math.abs(d).toFixed(0))}</span>`;}).join('');}
+let rcT=0;function scheduleRecompute(){clearTimeout(rcT);rcT=setTimeout(recompute,90);}
+function recompute(){buildSeries();goCompute();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
+  const tg=$('#b-var');if(tg&&!tg.hidden){}}
+/* ---------- diagrama causal dinámico ---------- */
+const RK={sp:['Espacio propuesto','#c2276f'],ex:['Condición existente','#a96a1c'],ag:['Agente / especie / comunidad','#0f8f84'],fl:['Flujo o indicador','#4b4aa8']};
+const NODES=[
+ {id:'res',l:['Residuos orgánicos'],x:140,y:105,k:'ex',v:a=>a.untreated/a.E*100,d:'Biomasa de Corabastos sin tratar. Hoy llegan 95 a 120 t al día al humedal.',sp:['k_cora']},
+ {id:'pal',l:['Palomas'],x:330,y:40,k:'ag',v:a=>a.N.pigeon/CAPS.pigeon*100,d:'Especie sinantrópica: crece donde hay residuo orgánico expuesto.',sp:[]},
+ {id:'enf',l:['Enfermedades'],x:530,y:40,k:'fl',v:a=>a.dis*100,d:'Presión sanitaria sobre la fauna silvestre. Sube con las palomas y el residuo sin tratar.',sp:[]},
+ {id:'fau',l:['Fauna nativa'],x:735,y:70,k:'ag',v:a=>(a.N.tingua/60+a.N.hum/80+a.N.falcon/15)/3*100,d:'Tingua bogotana, colibríes y halcón. Dependen del hábitat, de la conectividad y de que no haya enfermedad.',sp:[]},
+ {id:'con',l:['Conectividad'],x:925,y:40,k:'fl',v:a=>a.conn,d:'Corredores, puentes y ecotonos enlazados que dejan pasar a la fauna.',sp:['cra86','calle6']},
+ {id:'pue',l:['Puentes verdes'],x:915,y:150,k:'sp',v:a=>a.puentes*100,d:'Pasos de fauna sobre vías. Elevan la conectividad y frenan las zonas duras.',sp:['puente_c','puente_w']},
+ {id:'bio',l:['Biodigestores'],x:330,y:175,k:'sp',v:a=>clamp(a.val/.85)*100,d:'Bio-factorías que transforman el residuo. Con más participación comunitaria operan mejor.',sp:['plaza_cora','ecocirc','plaza_osorio']},
+ {id:'par',l:['Participación','comunitaria'],x:625,y:155,k:'ag',v:a=>a.soc,d:'Vecinos, custodios y cocinas que sostienen los espacios.',sp:['custodia_1','habitat_1','saberes_1']},
+ {id:'hum',l:['Área de humedal'],x:775,y:250,k:'ex',v:a=>a.AH,d:'Superficie efectiva del humedal y su ecotono. Crece al liberar suelo duro y se pierde con las zonas duras.',sp:['parque_vaca','ecotono_s','ecotono_techo']},
+ {id:'huer',l:['Huertas urbanas'],x:75,y:205,k:'sp',v:a=>a.huertas*100,d:'Producen alimento local con el abono de los biodigestores.',sp:['parque_bav']},
+ {id:'abo',l:['Producción','de abono'],x:200,y:275,k:'fl',v:a=>clamp(a.abono/25)*100,d:'Abono orgánico que sale de la biodigestión.',sp:[]},
+ {id:'ene',l:['Energía'],x:380,y:305,k:'fl',v:a=>a.ahorro*100,d:'Biogás de los biodigestores.',sp:[]},
+ {id:'fac',l:['Factura de energía'],x:410,y:395,k:'ex',v:a=>(1-a.ahorro)*100,d:'Costo de energía que se reduce con el biogás local.',sp:[]},
+ {id:'cot',l:['Centros operativos','temáticos'],x:555,y:310,k:'sp',v:a=>a.cot*100,d:'Plazas satélite y bio-factorías donde se organiza la operación del sistema.',sp:['plaza_cora','plaza_osorio','plaza_bav','ecocirc']},
+ {id:'cnv',l:['Conversión','de suelo duro'],x:745,y:340,k:'fl',v:a=>a.conv*100,d:'Superficie de Corabastos que se libera y pasa a ecotono.',sp:['plaza_cora','ecotono_s']},
+ {id:'zon',l:['Zonas duras'],x:930,y:360,k:'ex',v:a=>a.zd*100,d:'Suelo pavimentado y construido. Lo empuja la especulación y lo frenan los puentes verdes.',sp:[]},
+ {id:'cop',l:['Cooperativa','de vivienda'],x:640,y:445,k:'sp',v:a=>a.coop*100,d:'Vivienda nueva y renovación en zonas de María Paz y El Tintal.',sp:['viv_bav','reno_mp','reno_ti']},
+ {id:'esp',l:['Especulación','inmobiliaria'],x:875,y:510,k:'ex',v:a=>a.spec,d:'Presión del precio del suelo. Baja con cooperativas de vivienda.',sp:[]},
+ {id:'dsp',l:['Desplazamiento','de personas'],x:790,y:600,k:'fl',v:a=>a.despl*100,d:'Familias que salen del barrio por el aumento de precios.',sp:[]},
+ {id:'ali',l:['Alimentos'],x:80,y:445,k:'fl',v:a=>clamp((a.food-3)/42)*100,d:'Alimento que circula por nodos locales.',sp:[]},
+ {id:'com',l:['Comedores y cocinas','comunitarias'],x:90,y:330,k:'ag',v:a=>clamp((a.food-3)/42)*90,d:'Cocinas colectivas que aprovechan los alimentos locales.',sp:['saberes_1']},
+ {id:'cen',l:['Centralización','del abastecimiento'],x:215,y:520,k:'ex',v:a=>100-clamp((a.food-3)/42)*100,d:'Dependencia del abastecimiento en un solo punto, Corabastos.',sp:[]},
+ {id:'pla',l:['Plazas de mercado','satélites'],x:430,y:520,k:'sp',v:a=>meanProg(x=>x.type==='plaza',S.t)*(S.scn==='pro'?100:0),d:'Nodos de abastecimiento descentralizados.',sp:['plaza_cora','plaza_osorio','plaza_bav']},
+ {id:'dep',l:['Dependencia','del exterior'],x:600,y:585,k:'ex',v:a=>a.dep,d:'Alimento y recursos que vienen de afuera del territorio.',sp:[]},
+ {id:'ci',l:['Centro de investigación,','transformación y acopio'],x:225,y:610,k:'sp',v:a=>a.centroP*100,d:'Centro agrícola de investigación, transformación y acopio.',sp:['centro_inv']}];
+const NID={};NODES.forEach(n=>NID[n.id]=n);
+const EDGES=[['res','pal',1],['pal','enf',1],['enf','fau',-1],['res','bio',1],['bio','res',-1],['par','bio',1],['bio','abo',1],['abo','huer',1],['huer','ali',1],['bio','ene',1],['ene','fac',-1],
+ ['ali','com',1],['par','cot',1],['cot','cnv',1],['cnv','hum',1],['hum','fau',1],['cot','cop',1],['cop','esp',-1],['cop','dsp',-1],['esp','dsp',1],['esp','zon',1],['zon','hum',-1],
+ ['pue','zon',-1],['pue','con',1],['con','fau',1],['ci','ali',1],['ci','dep',-1],['ci','pla',1],['pla','cen',-1]];
+const LOOPS=[['B1','Residuos ⇄ biodigestores','más residuo alimenta a los biodigestores y estos lo reducen.'],
+ ['R1','Residuos → palomas → enfermedades','el residuo expuesto atrae palomas, sube la enfermedad y cae la fauna nativa.'],
+ ['R2','Participación → centros → suelo duro → humedal','la comunidad opera los centros, se libera suelo y crece el humedal y su fauna.'],
+ ['B2','Cooperativa → especulación → zonas duras','la vivienda cooperativa frena la especulación, las zonas duras y el desplazamiento.']];
+let relSel=null;
+const NW=150,NH=46;
+function edgePath(a,b,sg){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
+  const cut=(n,sx,sy)=>{const tx=Math.abs(ux)>1e-6?(NW/2+3)/Math.abs(ux):1e9,ty=Math.abs(uy)>1e-6?(NH/2+3)/Math.abs(uy):1e9,t=Math.min(tx,ty);return[n.x+sx*ux*t,n.y+sx*uy*t];};
+  const p0=cut(a,1),p1=cut(b,-1),off=(a.id<b.id?1:-1)*.16*L,mx=(p0[0]+p1[0])/2-uy*off,my=(p0[1]+p1[1])/2+ux*off;
+  return {d:`M${p0[0].toFixed(1)} ${p0[1].toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${p1[0].toFixed(1)} ${p1[1].toFixed(1)}`,lx:.25*p0[0]+.5*mx+.25*p1[0],ly:.25*p0[1]+.5*my+.25*p1[1]};}
+function relSVG(){const a=at(S.scn,S.t),sel=relSel;const rel=new Set();if(sel)EDGES.forEach(([f,t])=>{if(f===sel||t===sel){rel.add(f);rel.add(t);}});
+  let h=`<svg viewBox="0 0 1010 650" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama causal dinámico entre espacios, condiciones existentes y agentes"><defs>
+   <marker id="mP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7ee7b0"/></marker>
+   <marker id="mN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffa24a"/></marker></defs>`;
+  EDGES.forEach(([f,t,sg])=>{const A=NID[f],B=NID[t],e=edgePath(A,B,sg),on=sel&&(f===sel||t===sel),dim=sel&&!on;
+    h+=`<path class="re ${on?'on':''} ${dim?'dim':''}" d="${e.d}" stroke="${sg>0?'#7ee7b0':'#ffa24a'}" marker-end="url(#${sg>0?'mP':'mN'})"/>
+    <text class="rl" x="${e.lx.toFixed(1)}" y="${(e.ly+6).toFixed(1)}" text-anchor="middle" fill="${sg>0?'#7ee7b0':'#ffa24a'}" opacity="${dim?.15:1}" stroke="#14123f" stroke-width="4" paint-order="stroke">${sg>0?'+':'−'}</text>`;});
+  NODES.forEach(n=>{const v=clamp((n.v(a)||0)/100)*100,dim=sel&&!rel.has(n.id)&&n.id!==sel,col=RK[n.k][1];
+    h+=`<g class="rn ${dim?'dim':''}" data-id="${n.id}" tabindex="0" role="button" aria-label="${n.l.join(' ')}: ${v.toFixed(0)} de 100" transform="translate(${n.x-NW/2},${n.y-NH/2})">
+     <rect width="${NW}" height="${NH}" rx="9" fill="${col}" stroke="${sel===n.id?'#fff':'rgba(255,255,255,.35)'}" stroke-width="${sel===n.id?3:1.2}"/>
+     ${n.l.map((t,i)=>`<text x="${NW/2}" y="${n.l.length>1?17+i*15:22}" text-anchor="middle" style="font-size:${n.l.length>1?13:14}px">${t}</text>`).join('')}
+     <rect class="v" x="10" y="${NH-9}" width="${NW-20}" height="4" rx="2"/><rect class="vf" x="10" y="${NH-9}" width="${((NW-20)*v/100).toFixed(1)}" height="4" rx="2"/></g>`;});
+  return h+'</svg>';}
+function relInfo(){if(!relSel)return`<div class="rinfo">Toca un nodo para ver cómo se relaciona con los demás y con qué espacios del mapa se vincula.</div>`;
+  const n=NID[relSel],a=at(S.scn,S.t),v=clamp((n.v(a)||0)/100)*100;
+  const li=EDGES.filter(e=>e[1]===relSel).map(e=>`${NID[e[0]].l.join(' ')} <b style="color:${e[2]>0?'#7ee7b0':'#ffa24a'}">${e[2]>0?'(+)':'(−)'}</b>`),lo=EDGES.filter(e=>e[0]===relSel).map(e=>`${NID[e[1]].l.join(' ')} <b style="color:${e[2]>0?'#7ee7b0':'#ffa24a'}">${e[2]>0?'(+)':'(−)'}</b>`);
+  const sp=n.sp.map(id=>findItem(id)).filter(it=>it&&!it.out);
+  return`<div class="rinfo"><h4>${n.l.join(' ')} · ${v.toFixed(0)}/100</h4><div>${n.d}</div>
+   ${li.length?`<div style="margin-top:6px"><b>Lo afecta:</b> ${li.join(', ')}</div>`:''}${lo.length?`<div><b>Afecta a:</b> ${lo.join(', ')}</div>`:''}
+   ${sp.length?`<div class="sp">${sp.map(it=>`<button data-go="${it.id}">Ver ${it.name}</button>`).join('')}</div>`:''}</div>`;}
+function relBody(){return`<div class="relsvg">${relSVG()}</div><div class="rleg">${Object.values(RK).map(([t,c])=>`<span><i style="background:${c}"></i>${t}</span>`).join('')}<span><b style="color:#7ee7b0">+</b> aumenta</span><span><b style="color:#ffa24a">−</b> disminuye</span></div>${relInfo()}
+   <ul class="rloops">${LOOPS.map(l=>`<li><b>${l[0]}</b> ${l[1]}: ${l[2]}</li>`).join('')}</ul>`;}
+function bindRel(root){$$('.rn',root).forEach(g=>{const f=()=>{relSel=relSel===g.dataset.id?null:g.dataset.id;renderRel();};g.addEventListener('click',f);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
+  $$('[data-go]',root).forEach(b=>b.addEventListener('click',()=>{$('#relModal').hidden=true;select(b.dataset.go,true);}));}
+function renderRel(){const el=$('#b-rel'),mod=$('#relModal');
+  if(el&&!el.hidden){el.innerHTML=`<p class="note">Así se conectan los espacios propuestos, las condiciones existentes y los agentes. Las barras de cada nodo muestran su valor ${S.scn==='pro'?'en la propuesta':'en la situación actual'} para el año ${Math.round(S.t)}.</p><button id="openRel">Ver en grande</button>${relBody()}`;bindRel(el);$('#openRel').onclick=()=>{mod.hidden=false;renderRel();};}
+  if(mod&&!mod.hidden){$('#rmBody').innerHTML=`<h3 style="margin:0 40px 8px 0">Diagrama causal dinámico · ${S.scn==='pro'?'Propuesta':'Situación actual'} · año ${Math.round(S.t)}</h3>${relBody()}`;bindRel(mod);}}
+$('#rmClose').addEventListener('click',()=>{$('#relModal').hidden=true;});
+function renderMP(){
+  const el=$('#b-mp');let h=`<label class="switch"><input type="checkbox" id="swT" ${TR.on?'checked':''}> Mostrar arbolado urbano existente (${D.trees.n.toLocaleString('es-CO')} árboles del inventario)</label><label class="switch"><input type="checkbox" id="swC" ${S.cands?'checked':''}> Mostrar espacios candidatos que surgen de los indicadores</label><label class="switch"><input type="checkbox" id="swA" ${S.adopt?'checked':''}> Sumar los candidatos al escenario y ver cómo cambian los indicadores</label>`;
+  if(S.scn==='act')h+=`<p class="note">Estás viendo la situación actual: aquí no hay intervenciones. Cambia a Propuesta para ver el masterplan.</p>`;
+  const ph=[['Corto plazo · años 0 a 6',o=>o.s<4],['Mediano plazo · años 4 a 13',o=>o.s>=4&&o.s<10],['Largo plazo · años 10 a 20',o=>o.s>=10]];
+  const num={};INT.forEach((o,i)=>num[o.id]=i+1);
+  ph.forEach(([t,fn])=>{h+=`<h3>${t}</h3>`;INT.filter(fn).forEach(o=>{const f=prog(o,S.t);h+=`<button class="li" data-id="${o.id}"><span class="dot" style="background:${{met:'var(--amber)',eco:'var(--mint)',com:'var(--violet)',viv:'var(--cream)'}[GRP[o.type]]}"></span><span class="t">${num[o.id]}. ${o.name}<small>${yrs(o)}</small></span><span class="pc">${S.scn==='pro'?Math.round(f*100)+'%':'—'}</span></button>`;});});
+  h+=`<h3>Espacios que surgen de los indicadores</h3><p class="note">Celdas de 100 m con mayor necesidad y sin intervención del masterplan a menos de unos 450 m.</p>`;
+  D.cands.forEach(c=>{h+=`<button class="li" data-id="${c.id}"><span class="dot" style="background:transparent;border:2px dashed #fff"></span><span class="t">${c.what}<small>${c.ind} · necesidad ${Math.round(c.score*100)}%</small></span></button>`;});
+  el.innerHTML=h;
+  $$('.li',el).forEach(b=>b.addEventListener('click',()=>select(b.dataset.id,true)));
+  const swT=$('#swT');if(swT)swT.addEventListener('change',()=>{TR.on=swT.checked;TR.mesh.visible=TR.on;});const sw=$('#swC');if(sw)sw.addEventListener('change',()=>{S.cands=sw.checked;});
+  const sa=$('#swA');if(sa)sa.addEventListener('change',()=>{S.adopt=sa.checked;if(S.adopt&&S.scn!=='pro')setScn('pro');buildSeries();lastKey='';applyState(true);renderInd();renderCmp();});
+}
+const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabastos antes de que llegue a la calle, la composta o digiere y devuelve alimento de proximidad.',
+ parque:'Parque inundable: absorbe la escorrentía, filtra con macrófitas y devuelve la franja de amortiguación al humedal (ciudad esponja).',
+ ecotono:'Ecotono: borde de vegetación palustre entre ciudad y humedal. Refugio de la tingua bogotana y filtro de ruido y contaminación.',
+ corredor:'Corredor verde: arbolado continuo que une humedales. Ruta de colibríes y polinizadores, y espacio peatonal.',
+ puente:'Puente verde: cruce vegetado sobre una vía de alto tráfico para que la fauna pase sin riesgo.',
+ custodia:'Círculo de custodia multiespecie: asamblea barrial que cuida un tramo de humedal y acuerda reglas de convivencia.',
+ habitat:'Círculo de hábitat: refugios, nidos y charcas que sostienen especies focales dentro del tejido urbano.',
+ saberes:'Círculo de saberes: formación comunitaria en compostaje, huertas y observación de fauna.',
+ ecocirc:'Punto de economía circular: compostaje, reparación y comercio local que cierra el ciclo del residuo orgánico.',
+ centro:'Centro de investigación, transformación y acopio: laboratorio y planta para valorizar biomasa y monitorear el humedal.',
+ vivienda:'Vivienda nueva en la zona Bavaria, mezclada con huertas y un parque inundable. La propiedad colectiva frena la especulación.',
+ renov:'Zona de renovación para la cohabitabilidad: techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.'};
+function select(id,fly,quiet){
+  S.sel=id;Object.values(pinMap).forEach(p=>p.classList.toggle('sel',p.dataset.id===id));
+  const it=id&&findItem(id),co=$('#callout'),fi=$('#ficha');
+  if(!it){co.style.display='none';fi.innerHTML='<p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p>';return;}
+  const isC=!!it.key,isK=it.type==='crit';
+  let h='';
+  if(isK){co.className='';co.innerHTML=`<b>${it.name}</b><span>${it.sub}</span>`;
+    h=`<h2>${it.name}</h2><div class="st"><span class="chip dn">${it.sub}</span></div><p>${it.desc}</p><p class="note">Cambia a Propuesta para ver qué hace el masterplan aquí.</p>`;}
+  else if(isC){co.className='c-mint';co.innerHTML=`<b>${it.what}</b><span>Surge del indicador de ${it.ind.toLowerCase()}</span>`;
+    const why={ew:'La carga de residuo de Corabastos se concentra en esta zona densa y ninguna bio-factoría del masterplan queda cerca.',food:'Hay mucha población lejos de cualquier nodo de abastecimiento, y las plazas satélite del masterplan no llegan hasta aquí.',conn:'Manzanas muy selladas lejos de humedales y corredores: un parque de bolsillo o un tramo verde enlaza los espacios vecinos.',cohab:'Hábitat potencial cerca del agua, pero con borde construido. Un ecotono o refugio amplía el espacio para especies sensibles.',spec:'Alta cobertura construida de baja altura cerca de los corredores: la valorización del suelo aquí empuja desplazamiento. Conviene asegurar suelo comunitario.'}[it.key];
+    h=`<h2>${it.what}</h2><div class="st"><span class="chip">Candidato</span><span class="chip">Necesidad ${Math.round(it.score*100)}%</span></div><p>${why}</p><h3>Mejora</h3><div class="fx">${Object.keys(WT[it.o.type]||{}).map(k=>`<span>${KNAME[k]}</span>`).join('')}</div><p class="note">Propuesta derivada del indicador de ${it.ind.toLowerCase()} sobre la capa de edificios. No está en el plano del masterplan. Actívala en la pestaña Masterplan para sumarla al escenario.</p>`;}
+  else{co.className='';const f=prog(it,S.t),fx=Object.keys(WT[it.type]||{}).map(k=>KNAME[k]);
+    co.innerHTML=`<b>${it.name.split(' · ')[0]}</b><span>${it.name.includes(' · ')?it.name.split(' · ')[1]:DESC[it.type].split(':')[0]}</span>`;
+    h=`<h2>${it.name}</h2><div class="st"><span class="chip">${yrs(it)}</span><span class="chip">${S.scn==='pro'?Math.round(f*100)+'% de madurez':'Solo en propuesta'}</span></div><p>${DESC[it.type]}</p><h3>Mejora</h3><div class="fx">${fx.map(x=>`<span>${x}</span>`).join('')}</div>${cap(it)?`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`:''}<p class="note">Ubicación tomada del plano del masterplan, de forma aproximada.</p>`;}
+  fi.innerHTML=h;if(!quiet){setTab('fi');$('#panel').classList.remove('min');}
+  if(fly)flyTo(it.x,it.y,it.r>0?clamp(it.r*4.2,650,1300):1500);
+}
+function phaseLabel(){const t=S.t;return S.scn==='act'?('Tendencial'+(GO?' · '+THR.filter(h=>h.y!==null&&h.y<=t).length+'/'+THR.length+' umbrales':'')):(t<5?'Corto plazo':t<12?'Mediano plazo':'Largo plazo')+(GOP?' · '+GOP.crit.filter(h=>h.y<=t).length+'/'+THRP.length+' umbrales':' · sostenible');}
+function setT(t,fromUser){const prevT=S.t;const G=S.scn==='pro'?GOP:GO;if(G&&!S.goSeen&&t>=G.t&&prevT<G.t+1e-6){t=G.t;S.playing=false;$('#play').textContent='▶';setTimeout(()=>showGO(S.scn),60);}
+  else if(S.scn==='pro'&&!GOP&&!S.susSeen&&t>=19.999&&prevT<19.999&&S.playing){S.susSeen=true;setTimeout(showSUS,60);}S.t=clamp(t,0,20);goTick(prevT);if(S.playing)checkEvents(prevT,S.t);$('#yr').value=S.t;$('#yv').textContent='Año '+Math.round(S.t);$('#yc').textContent=fmtYear(S.t);$('#phase').textContent=phaseLabel();applyState();const nw=performance.now();if(!S.playing||nw-lastUI>220){lastUI=nw;renderInd();renderRel();if(S.tab==='mp')renderMP();}}
+let lastUI=0;
+function setScn(s){S.scn=s;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);
+  lastKey='';applyState(true);legend();renderInd();renderMP();renderVar();renderRel();$('#phase').textContent=phaseLabel();}
+$('#bAct').addEventListener('click',()=>setScn('act'));$('#bPro').addEventListener('click',()=>setScn('pro'));
+$('#yr').addEventListener('input',e=>{S.playing=false;$('#play').textContent='▶';setT(+e.target.value);});
+$('#play').addEventListener('click',()=>{if(S.t>=20)setT(0);S.playing=!S.playing;$('#play').textContent=S.playing?'❚❚':'▶';$('#play').setAttribute('aria-label',S.playing?'Pausar':'Reproducir');});
+$('#spd').addEventListener('click',()=>{S.speed=S.speed===1?2:S.speed===2?4:1;$('#spd').textContent=S.speed+'×';});
+$('#rotL').addEventListener('click',()=>rot(-1));$('#rotR').addEventListener('click',()=>rot(1));
+$('#zIn').addEventListener('click',()=>{V.H=clamp(V.H/1.4,500,9500);});$('#zOut').addEventListener('click',()=>{V.H=clamp(V.H*1.4,500,9500);});
+$('#qual').addEventListener('click',()=>{S.hq=!S.hq;buildBuildings();$('#qual').title=S.hq?'Detalle alto':'Detalle bajo';});
+addEventListener('keydown',e=>{if(e.key==='h')goHome();if(e.target.tagName==='INPUT'&&e.target.type!=='checkbox')return;if(e.key==='q')rot(-1);if(e.key==='e')rot(1);if(e.key===' '){e.preventDefault();$('#play').click();}if(e.key==='Escape'){select(null);goHome();}});
+$('#sheetBtn').addEventListener('click',()=>{const m=$('#panel').classList.toggle('min');$('#sheetBtn').textContent=m?'⌃':'⌄';});
+$('#panel .tabs').addEventListener('dblclick',()=>{if(matchMedia('(max-width:900px)').matches)$('#panel').classList.toggle('min');});
+const goHome=()=>{const a=cv.clientWidth/cv.clientHeight;flyTo(500,900,Math.min(9000,Math.max(2400,3300/a)));};
+$('#home').addEventListener('click',()=>{select(null);goHome();});$('#lgBtn').addEventListener('click',()=>$('#legend').classList.toggle('open'));
+let evtTimer=0;
+function showEvent(o,kind){const el=$('#evt');el.hidden=false;el.innerHTML=`<span><b>Año ${Math.round(S.t)} · ${kind}</b><br>${o.name||o.what}</span><button>Ver zona</button>`;
+  $('button',el).onclick=()=>{select(o.id,true);};clearTimeout(evtTimer);evtTimer=setTimeout(()=>{el.hidden=true;},7000);
+}
+function checkEvents(prev,now){if(S.scn!=='pro'||now<=prev)return;
+  const all=INT.concat(S.adopt?CI:[]);
+  for(const o of all){const ke=MAT(o);if(ke>prev&&ke<=now&&ke<=20){showEvent(o,'alcanza su madurez');return;}}}
+/* ---------- umbrales críticos y GAME OVER (situación actual) ---------- */
+const THR=[
+ {id:'dis',n:'Plaga de palomas y foco sanitario',f:(d)=>d.dis>=.95,v:d=>Math.round(d.dis*100)+' % de presión sanitaria',w:'El residuo orgánico sin tratar de Corabastos alimenta a las palomas; su presión desplaza a las especies nativas y enferma el entorno.'},
+ {id:'tin',n:'Extinción local de la tingua bogotana',f:(d)=>d.N.tingua<3,v:d=>Math.max(0,Math.round(d.N.tingua))+' individuos en el humedal',w:'La carga de residuo y la enfermedad reducen el hábitat del humedal; sin conexión con otros humedales la población no se recupera.'},
+ {id:'esp',n:'Expulsión por especulación inmobiliaria',f:(d)=>d.spec>=75,v:d=>Math.round(d.spec)+' / 100 de presión especulativa',w:'Sin nodos locales ni círculos de custodia, el suelo se valoriza y el territorio se vende: los vecinos pierden la capacidad de decidir.'},
+ {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=110,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
+const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
+const GO_N=3;let GO=null,GOP=null,MARKS={act:'',pro:''};
+function scanP(){const y={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;THRP.forEach(h=>{if(y[h.id]===undefined&&h.f(d))y[h.id]=t;if(y[h.id]!==undefined)n++;});if(n>=GO_N&&go===null)go=t;}
+  GOP=go===null?null:{t:go,crit:THRP.filter(h=>y[h.id]!==undefined&&y[h.id]<=go+1e-6).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y)};
+  MARKS.pro=THRP.filter(h=>y[h.id]!==undefined).map(h=>`<i style="left:${y[h.id]/20*100}%" title="${h.n}"></i>`).join('')+(GOP?`<i class="big" style="left:${GOP.t/20*100}%" title="Game over"></i>`:'');}
+function goCompute(){scanP();THR.forEach(h=>{h.y=null;});let go=null;
+  for(let t=0;t<=20.001;t+=.05){const d=at('act',Math.min(20,t));let n=0;THR.forEach(h=>{if(h.f(d)){if(h.y===null)h.y=t;}if(h.y!==null)n++;});if(n>=GO_N&&go===null)go=t;}
+  GO=go===null?null:{t:go,crit:THR.filter(h=>h.y!==null&&h.y<=go+1e-6).sort((a,b)=>a.y-b.y)};
+  MARKS.act=THR.filter(h=>h.y!==null).map(h=>`<i style="left:${h.y/20*100}%" title="${h.n}"></i>`).join('')+(GO?`<i class="big" style="left:${GO.t/20*100}%" title="Game over"></i>`:'');
+  const m=$('#goMarks');if(m)m.innerHTML=MARKS[S.scn]||'';const G=S.scn==='pro'?GOP:GO;
+  document.body.classList.toggle('collapse',!!(G&&S.t>=G.t));}
+let thrT=0;
+function goTick(prev){const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;if(gm.dataset.s!==S.scn+(P?MARKS.pro:MARKS.act).length){gm.innerHTML=MARKS[S.scn]||'';gm.dataset.s=S.scn+(P?MARKS.pro:MARKS.act).length;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
+  if(prev<0||t<=prev||!S.playing)return;const h=P?(GOP?GOP.crit.find(h=>h.y>prev&&h.y<=t):null):THR.find(h=>h.y!==null&&h.y>prev&&h.y<=t);
+  if(h&&(!G||h.y<=G.t)){const e=$('#thr');e.textContent='⚠ Umbral crítico: '+h.n;e.hidden=false;clearTimeout(thrT);thrT=setTimeout(()=>{e.hidden=true;},4200);}}
+function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Math.round((a/b-1)*100)+' %';
+  const M=[
+   ['Animal Aided Design','El diseño debe sostener el ciclo de vida de las especies objetivo.',[
+     ['Tingua bogotana (especie objetivo)',Math.round(N.tingua)+' ind. ('+pc(N.tingua,N0.tingua)+')',N.tingua<3],
+     ['Colibríes y halcón peregrino',Math.round(N.hum)+' colibríes · '+Math.round(N.falcon)+' halcones',N.hum<12||N.falcon<2],
+     ['Presión de palomas sobre nidos y alimento',Math.round(d.dis*100)+' %',d.dis>=.95]]],
+   ['Ciudades biofílicas','La gente necesita contacto cotidiano con naturaleza conectada.',[
+     ['Conectividad ecosistémica',Math.round(d.conn)+' / 100 (inicio '+Math.round(d0.conn)+')',d.conn<15],
+     ['Alimento local (nodos de cercanía)',Math.round(d.food)+' %',d.food<5]]],
+   ['Cohabitabilidad multiespecie','Humanos y no humanos comparten el territorio sin desplazarse.',[
+     ['Índice de cohabitabilidad',Math.round(d.cohab)+' / 100 (inicio '+Math.round(d0.cohab)+')',d.cohab<15],
+     ...(scn==='pro'?[['Capital social',d.soc.toFixed(1).replace('.',',')+' / 100',d.soc<=4.5]]:[]),
+     ['Desplazamiento de vecinos',Math.round(d.despl*100)+' %',d.despl>=.7],
+     ['Especulación inmobiliaria',Math.round(d.spec)+' / 100',d.spec>=75]]],
+   ['Ciudad esponja','El suelo y el humedal deben absorber agua y nutrientes.',[
+     ['Superficie efectiva del humedal',Math.round(d.AH)+' % (inicio '+Math.round(d0.AH)+' %)',d.AH<25],
+     ['Suelo duro / sellado',Math.round(d.zd*100)+' %',d.zd>=.6],
+     ['Residuo orgánico sin tratar',Math.round(d.untreated)+' t/día',d.untreated>=100]]]];
+  return `<h3 class="gmh">${ok?'Criterios por macromodelo':'Criterios incumplidos por macromodelo'}</h3><div class="gmm">`+M.map(([n,p,c])=>{const f=c.filter(x=>x[2]).length;
+    return `<div class="gm"><div class="gmt"><b>${n}</b><em style="${f?'':'color:var(--mint)'}">${f?f+'/'+c.length+' criterios fallan':'cumple '+c.length+'/'+c.length}</em></div><p>${p}</p>${c.map(([l,v,bad])=>`<div class="gmr${bad?' bad':''}"><span>${bad?'✕':'✓'} ${l}</span><span>${v}</span></div>`).join('')}</div>`;}).join('')+`</div>`;}
+function varDiff(){return VDEF.filter(v=>VKEYS.pro.includes(v[0])&&VARS.pro[v[0]]!==VAR0[v[0]]).map(v=>`${v[1]}: <b>${v[7](VARS.pro[v[0]])}</b> (base ${v[7](VAR0[v[0]])})`);}
+function showGO(scn){if(scn==='pro')return showGOP();if(!GO)return;$('#go').classList.remove('ok');const yr=2026+Math.floor(GO.t),d=at('act',GO.t);
+  $('#goBox').innerHTML=`<h2 id="goT">Game over</h2><div class="gs">Año ${Math.round(GO.t)} · ${yr}: el sistema actual de Kennedy colapsa.</div><p style="margin:0 0 6px;font-size:13px;color:var(--ink2)">Se cruzaron ${GO.crit.length} umbrales críticos del ecosistema, la comunidad y el metabolismo de residuos:</p>`+
+   GO.crit.map(h=>`<div class="gc"><b>Año ${Math.round(h.y)}</b><strong>${h.n}</strong><span>${h.v(d)} · ${h.w}</span></div>`).join('')+
+   macroGO(d,'act')+   `<div class="gchain"><b>Por qué llegó hasta aquí:</b> Corabastos crece sin transformarse (${Math.round(d.E)} t/día de residuo orgánico), el residuo no se valoriza (${Math.round(d.val*100)} %), no hay nodos locales de alimento (${Math.round(d.food)} % descentralizado) y el humedal queda desconectado (conectividad ${Math.round(d.conn)}). Cada fallo refuerza al siguiente: residuo → palomas y enfermedad → pérdida de fauna → menos cuidado del humedal → más especulación.</div>
+   <div class="gb"><button class="pri" id="goPro">Ver qué cambia con la propuesta</button><button id="goKeep">Seguir viendo el colapso</button><button id="goRe">Reiniciar</button></div>`;
+  $('#go').hidden=false;$('#goPro').onclick=()=>{$('#go').hidden=true;setScn('pro');setT(0);};$('#goKeep').onclick=()=>{S.goSeen=true;$('#go').hidden=true;};$('#goRe').onclick=()=>{$('#go').hidden=true;setT(0);};$('#goKeep').focus();}
+function showGOP(){const G=GOP;if(!G)return;$('#go').classList.remove('ok');const d=at('pro',G.t),vd=varDiff();
+  $('#goBox').innerHTML=`<h2 id="goT">Game over</h2><div class="gs">Año ${Math.round(G.t)} · ${2026+Math.floor(G.t)}: con estas variables la propuesta no se sostiene.</div><p style="margin:0 0 6px;font-size:13px;color:var(--ink2)">Aun con el masterplan, se cruzaron ${G.crit.length} umbrales críticos:</p>`+
+   G.crit.map(h=>`<div class="gc"><b>Año ${Math.round(h.y)}</b><strong>${h.n}</strong><span>${h.v(d)} · ${h.w}</span></div>`).join('')+macroGO(d,'pro')+
+   `<div class="gchain"><b>Por qué falla:</b> las bio-factorías solo valorizan el ${Math.round(d.val*100)} % de ${Math.round(d.E)} t/día, así que quedan ${Math.round(d.untreated)} t/día sin tratar; la especulación llega a ${Math.round(d.spec)}/100 y el capital social a ${d.soc.toFixed(1).replace('.',',')}/100.${vd.length?'<br><b>Variables que lo llevan aquí:</b><br>'+vd.join('<br>'):''}</div>
+   <div class="gb"><button class="pri" id="goVar">Ajustar variables</button><button id="goKeep">Seguir viendo</button><button id="goRe">Reiniciar</button></div>`;
+  $('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;S.goSeen=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};
+  $('#goKeep').onclick=()=>{S.goSeen=true;$('#go').hidden=true;};$('#goRe').onclick=()=>{$('#go').hidden=true;setT(0);};$('#goKeep').focus();}
+function showSUS(){const d=at('pro',20),d0=at('pro',0),a=at('act',20),vd=varDiff();
+  const near=THRP.map(h=>{const m={dis:[d.dis*100,95,'%'],tin:[d.N.tingua,3,'ind.'],esp:[d.spec,75,'/100'],res:[d.untreated,110,'t/día'],soc:[d.soc,4.5,'/100']}[h.id];return[h.n,m];});
+  $('#goBox').innerHTML=`<h2 id="goT" style="color:var(--mint)">Sostenible</h2><div class="gs">Año 20 · 2046: con estas variables la propuesta se sostiene en el tiempo.</div><p style="margin:0 0 6px;font-size:13px;color:var(--ink2)">No se cruzó ningún grupo de 3 umbrales críticos. Comparado con la situación actual al año 20:</p>`+
+   `<div class="gc"><b style="color:var(--mint)">${Math.round(d.val*100)} %</b><strong>Residuo valorizado en origen</strong><span>${Math.round(d.untreated)} t/día sin tratar frente a ${Math.round(a.untreated)} en la situación actual.</span></div>`+
+   `<div class="gc"><b style="color:var(--mint)">${Math.round(d.N.tingua)}</b><strong>Tinguas en el humedal</strong><span>empezó con ${Math.round(d0.N.tingua)}; en la situación actual quedan ${Math.round(a.N.tingua)}.</span></div>`+
+   `<div class="gc"><b style="color:var(--mint)">${Math.round(d.conn)}</b><strong>Conectividad ecosistémica</strong><span>los corredores y ecotonos enlazan los humedales (actual: ${Math.round(a.conn)}).</span></div>`+
+   `<div class="gc"><b style="color:var(--mint)">${Math.round(d.spec)}</b><strong>Especulación inmobiliaria</strong><span>los nodos locales y la custodia contienen la venta del suelo (actual: ${Math.round(a.spec)}).</span></div>`+
+   macroGO(d,'pro',true)+
+   `<div class="gchain"><b>Por qué se sostiene:</b> el residuo se valoriza cerca de donde se produce, eso baja las palomas y la presión sanitaria (${Math.round(d.dis*100)} %), la fauna nativa recupera hábitat conectado y la comunidad, con espacios propios, frena la especulación. Cada mejora refuerza a la siguiente.${vd.length?'<br><b>Variables usadas:</b><br>'+vd.join('<br>'):'<br>Variables en sus valores base.'}</div>
+   <div class="gb"><button class="pri" id="goVar">Probar otras variables</button><button id="goKeep">Cerrar</button></div>`;
+  $('#go').classList.add('ok');$('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};$('#goKeep').onclick=()=>{$('#go').hidden=true;};$('#goKeep').focus();}
+goCompute();
+function enter(scn){$('#intro').hidden=true;document.body.classList.remove('intro');setScn(scn);setT(0);const a=cv.clientWidth/cv.clientHeight;flyTo(500,900,Math.min(9000,Math.max(2400,3300/a)));}
+$('#goAct').addEventListener('click',()=>enter('act'));$('#goPro').addEventListener('click',()=>enter('pro'));
+$('#facts').innerHTML=`<div><b>${D.stats.buildings.toLocaleString('es-CO')}</b>construcciones</div><div><b>${D.stats.floors_mean.toFixed(1).replace('.',',')}</b>pisos promedio</div><div><b>${D.trees.n.toLocaleString('es-CO')}</b>árboles inventariados</div><div><b>${INT.length}</b>intervenciones del masterplan</div><div><b>20</b>años simulados</div>`;
+
+/* ---------- bucle ---------- */
+function resize(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);}
+addEventListener('resize',resize);
+let last=performance.now();
+let prC=Math.min(devicePixelRatio,MOBILE?1.5:2),prNow=prC,fAcc=0,fN=0;
+function adapt(dt){fAcc+=dt;fN++;if(fN>=45){const avg=fAcc/fN;fAcc=0;fN=0;
+  if(avg>34&&prNow>.8){prNow=Math.max(.75,prNow-.25);R.setPixelRatio(prNow);resize();}
+  else if(avg<19&&prNow<prC){prNow=Math.min(prC,prNow+.25);R.setPixelRatio(prNow);resize();}}}
+function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)calcOff();OFF.x+=(OFF.tx-OFF.x)*Math.min(1,dt*.006);OFF.y+=(OFF.ty-OFF.y)*Math.min(1,dt*.006);if(document.hidden){requestAnimationFrame(frame);return;}adapt(dt);
+  if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
+  if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
+  if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
+  stepFly(now);placeCam();animAgents(now,dt);updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+/* arranque */
+resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
+const FACT=1;
+$('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
+requestAnimationFrame(frame);
+window.__sim={GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+})();
+</script>

@@ -1,0 +1,3 @@
+{"escenario":"Situación actual","semilla":7,"horizonte_anios":20,
+ "variables":{"resC":95,"emisG":1.2,"resD":30,"spec":100,"imm":100},
+ "resultado_esperado":"Game over en el año 11,4: plaga de palomas (6,2), especulación (11,4) y extinción local de la tingua (11,4)"}
