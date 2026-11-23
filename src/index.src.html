@@ -311,7 +311,7 @@ const cx=new Float32Array(MC), cy=new Float32Array(MC);
 mcells.forEach((c,j)=>{cx[j]=g.x0+((c%NX)+.5)*CS; cy[j]=g.y0+(Math.floor(c/NX)+.5)*CS;});
 
 /* ---------- modelo ---------- */
-const VAR0={resC:95,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
+const VAR0={resC:110,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
 const VAR=Object.assign({},VAR0);const VARS={act:Object.assign({},VAR0),pro:Object.assign({},VAR0)};
 const VKEYS={act:['resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0)};
 const CI=[];
@@ -1132,7 +1132,7 @@ function renderInd(){S.fxOpen=S.fxOpen||new Set();
   $$('.card',el).forEach(b=>b.addEventListener('click',()=>{S.layer=S.layer===b.dataset.lay?'estado':b.dataset.lay;lastKey='';applyState(true);legend();renderInd();}));
 }
 const VDEF=[
- ['resC','Residuo orgánico de Corabastos hoy',40,200,5,'t/día','Lo que sale del mercado sin tratar en el año 0 (base 95 t/día; reportes: 95–120).',v=>v+' t/día'],
+ ['resC','Residuo orgánico de Corabastos hoy',40,200,5,'t/día','Residuo orgánico que sale del mercado en el año 0. Base 110 t/día (Corabastos, Agronegocios); otras fuentes: 75–100 t/día.',v=>v+' t/día'],
  ['emisG','Crecimiento de los residuos de Corabastos',0,4,.1,'% anual','Más residuo por tratar cada año (base 1,2%).',v=>v.toFixed(1).replace('.',',')+' % anual'],
  ['maxVal','Residuo que se puede valorizar en origen',40,100,5,'%','Tope de la biomasa que pueden procesar los nodos (base 85%).',v=>v+' %'],
  ['capX','Capacidad de las bio-factorías',50,200,10,'%','Toneladas por día que procesa cada nodo (base 100%).',v=>v+' %'],
@@ -1313,7 +1313,7 @@ const THR=[
  {id:'dis',n:'Plaga de palomas y foco sanitario',f:(d)=>d.dis>=.95,v:d=>Math.round(d.dis*100)+' % de presión sanitaria',w:'El residuo orgánico sin tratar de Corabastos alimenta a las palomas; su presión desplaza a las especies nativas y enferma el entorno.'},
  {id:'tin',n:'Extinción local de la tingua bogotana',f:(d)=>d.N.tingua<3,v:d=>Math.max(0,Math.round(d.N.tingua))+' individuos en el humedal',w:'La carga de residuo y la enfermedad reducen el hábitat del humedal; sin conexión con otros humedales la población no se recupera.'},
  {id:'esp',n:'Expulsión por especulación inmobiliaria',f:(d)=>d.spec>=75,v:d=>Math.round(d.spec)+' / 100 de presión especulativa',w:'Sin nodos locales ni círculos de custodia, el suelo se valoriza y el territorio se vende: los vecinos pierden la capacidad de decidir.'},
- {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=110,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
+ {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=127,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
 const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
 const GO_N=3;let GO=null,GOP=null,MARKS={act:'',pro:''};
 function scanP(){const y={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;THRP.forEach(h=>{if(y[h.id]===undefined&&h.f(d))y[h.id]=t;if(y[h.id]!==undefined)n++;});if(n>=GO_N&&go===null)go=t;}
@@ -1346,7 +1346,7 @@ function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Mat
    ['Ciudad esponja','El suelo y el humedal deben absorber agua y nutrientes.',[
      ['Superficie efectiva del humedal',Math.round(d.AH)+' % (inicio '+Math.round(d0.AH)+' %)',d.AH<25],
      ['Suelo duro / sellado',Math.round(d.zd*100)+' %',d.zd>=.6],
-     ['Residuo orgánico sin tratar',Math.round(d.untreated)+' t/día',d.untreated>=100]]]];
+     ['Residuo orgánico sin tratar',Math.round(d.untreated)+' t/día',d.untreated>=127]]]];
   return `<h3 class="gmh">${ok?'Criterios por macromodelo':'Criterios incumplidos por macromodelo'}</h3><div class="gmm">`+M.map(([n,p,c])=>{const f=c.filter(x=>x[2]).length;
     return `<div class="gm"><div class="gmt"><b>${n}</b><em style="${f?'':'color:var(--mint)'}">${f?f+'/'+c.length+' criterios fallan':'cumple '+c.length+'/'+c.length}</em></div><p>${p}</p>${c.map(([l,v,bad])=>`<div class="gmr${bad?' bad':''}"><span>${bad?'✕':'✓'} ${l}</span><span>${v}</span></div>`).join('')}</div>`;}).join('')+`</div>`;}
 function varDiff(){return VDEF.filter(v=>VKEYS.pro.includes(v[0])&&VARS.pro[v[0]]!==VAR0[v[0]]).map(v=>`${v[1]}: <b>${v[7](VARS.pro[v[0]])}</b> (base ${v[7](VAR0[v[0]])})`);}
@@ -1364,7 +1364,7 @@ function showGOP(){const G=GOP;if(!G)return;$('#go').classList.remove('ok');cons
   $('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;S.goSeen=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};
   $('#goKeep').onclick=()=>{S.goSeen=true;$('#go').hidden=true;};$('#goRe').onclick=()=>{$('#go').hidden=true;setT(0);};$('#goKeep').focus();}
 function showSUS(){const d=at('pro',20),d0=at('pro',0),a=at('act',20),vd=varDiff();
-  const near=THRP.map(h=>{const m={dis:[d.dis*100,95,'%'],tin:[d.N.tingua,3,'ind.'],esp:[d.spec,75,'/100'],res:[d.untreated,110,'t/día'],soc:[d.soc,4.5,'/100']}[h.id];return[h.n,m];});
+  const near=THRP.map(h=>{const m={dis:[d.dis*100,95,'%'],tin:[d.N.tingua,3,'ind.'],esp:[d.spec,75,'/100'],res:[d.untreated,127,'t/día'],soc:[d.soc,4.5,'/100']}[h.id];return[h.n,m];});
   $('#goBox').innerHTML=`<h2 id="goT" style="color:var(--mint)">Sostenible</h2><div class="gs">Año 20 · 2046: con estas variables la propuesta se sostiene en el tiempo.</div><p style="margin:0 0 6px;font-size:13px;color:var(--ink2)">No se cruzó ningún grupo de 3 umbrales críticos. Comparado con la situación actual al año 20:</p>`+
    `<div class="gc"><b style="color:var(--mint)">${Math.round(d.val*100)} %</b><strong>Residuo valorizado en origen</strong><span>${Math.round(d.untreated)} t/día sin tratar frente a ${Math.round(a.untreated)} en la situación actual.</span></div>`+
    `<div class="gc"><b style="color:var(--mint)">${Math.round(d.N.tingua)}</b><strong>Tinguas en el humedal</strong><span>empezó con ${Math.round(d0.N.tingua)}; en la situación actual quedan ${Math.round(a.N.tingua)}.</span></div>`+
