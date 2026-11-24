@@ -29,3 +29,7 @@ Las variables de cada escenario están en la pestaña **Variables** (valores bas
 python3 -c "s=open('src/index.src.html').read();open('index.html','w').write(s.replace('__DATA__',open('data/data.json').read()))"
 ```
 `src/build.py` (Python 3.11, numpy, shapely, opencv-python) genera `data.json` a partir de las capas GeoJSON del grupo (edificios, vías, parques, ríos, arbolado) y del plano del masterplan; las rutas de entrada están al inicio del archivo.
+
+## Tráfico en tiempo real (TomTom)
+Versión web: https://tatisromg36.github.io/SIMULADOR-KENNEDY/
+En la leyenda, sección «Tráfico en tiempo real», pega una clave de TomTom (developer.tomtom.com) y pulsa Activar. Cada 3 minutos se consultan 14 tramos (accesos de carga y avenidas) con Flow Segment Data; la velocidad de autos y camiones, el mapa de ruido y las líneas de color sobre las vías siguen esos datos. La clave se guarda solo en el navegador de quien la escribe. Restríngela en TomTom al dominio tatisromg36.github.io.

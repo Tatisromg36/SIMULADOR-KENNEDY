@@ -208,7 +208,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 #go .gm p{margin:3px 0 6px;font-size:12px;color:var(--ink2)}#go .gmr{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line);color:var(--ink2)}
 #go .gmr.bad{color:#ffb4a0}#go .gmr span:last-child{text-align:right;white-space:nowrap}#go .gbox{width:min(980px,100%)}
 .tag.gate{pointer-events:auto;cursor:pointer;min-width:15px;text-align:center;font-style:normal}.tag.gate:focus-visible{outline:2px solid var(--mint)}.tag.gate.open{z-index:2;font-size:10px;padding:2px 6px}.tag.gate.ped{background:#fff3e0;font-weight:600;font-size:8px}.tag.gate{background:#ff9f1c;color:#1a1033;font-weight:700;padding:1px 4px;border-radius:3px;text-shadow:none;font-size:9px;line-height:1.2}.tag.acc{font-size:9px}.yr .clk{display:block;font-size:11px;opacity:.85;white-space:nowrap}.yr .clk b{font-variant-numeric:tabular-nums}#go.ok{background:radial-gradient(90% 80% at 50% 40%,rgba(8,70,50,.86),rgba(12,6,34,.95))}#go.ok .gbox{border-color:rgba(88,199,155,.6);box-shadow:0 0 60px rgba(88,199,155,.25)}details.fx{margin:-4px 0 8px;padding:0 12px 2px;font-size:12px;color:var(--ink2)}details.fx summary{cursor:pointer;color:var(--mint);font-weight:600;padding:4px 0;list-style:none}details.fx summary::before{content:'ƒ  ';font-style:italic}details.fx[open] summary{margin-bottom:4px}
-.fxf{font:600 12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;overflow-x:auto}.fxv{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:4px 0;color:var(--ink);overflow-wrap:anywhere}details.fx p{margin:4px 0;line-height:1.45}details.fx .fxs{opacity:.7;font-size:11px}#envT{display:flex;flex-direction:column;gap:3px;font-size:11.5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}#envT label{display:flex;gap:6px;align-items:center;cursor:pointer}#envT .nbar{height:7px;border-radius:4px;background:linear-gradient(90deg,rgba(89,217,89,.1),#f2d940,#fa7326,#d91a40)}#envT .row{display:flex;justify-content:space-between;font-size:10px;opacity:.8}.dotb{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4a9cff;box-shadow:0 0 6px #4a9cff}#envT small{opacity:.75}</style>
+.fxf{font:600 12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;overflow-x:auto}.fxv{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:4px 0;color:var(--ink);overflow-wrap:anywhere}details.fx p{margin:4px 0;line-height:1.45}details.fx .fxs{opacity:.7;font-size:11px}#envT{display:flex;flex-direction:column;gap:3px;font-size:11.5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}#envT label{display:flex;gap:6px;align-items:center;cursor:pointer}#envT .nbar{height:7px;border-radius:4px;background:linear-gradient(90deg,rgba(89,217,89,.1),#f2d940,#fa7326,#d91a40)}#envT .row{display:flex;justify-content:space-between;font-size:10px;opacity:.8}.dotb{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4a9cff;box-shadow:0 0 6px #4a9cff}#envT small{opacity:.75}#envT .live{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px}#envT .lrow{display:flex;gap:4px}#envT .lrow input{flex:1;min-width:0;font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:inherit}#envT .lrow button{font-size:11px;padding:4px 8px;border-radius:4px;border:1px solid var(--mint);background:var(--mint-d);color:inherit;cursor:pointer}</style>
 
 <div id="stage"><canvas id="gl" aria-label="Maqueta isométrica de Kennedy"></canvas><div id="pins"></div><div id="callout"></div></div>
 
@@ -245,7 +245,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
   <div class="tabbody" id="b-fi" hidden><div id="ficha"><p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p></div></div>
 </aside>
 
-<div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><small id="envS"></small></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
+<div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><small id="envS"></small><div class="live"><b>Tráfico en tiempo real (TomTom)</b><div class="lrow"><input id="liveK" type="password" placeholder="Pega tu clave de TomTom" autocomplete="off"><button id="liveB">Activar</button></div><small id="liveS">Desactivado. Funciona en la versión de GitHub Pages.</small></div></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
 
 <div id="evt" hidden></div>
 <div id="vig"></div><div id="thr" hidden></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
@@ -909,6 +909,38 @@ const lineAt=(id,u)=>{const P=D.lines[id];const L=[0];for(let i=1;i<P.length;i++
    2) fase precisa: "rayo" hacia adelante en su carril (distancia a lo largo y desfase lateral).
    3) respuesta: en vez de chocar, frena con una distancia de seguridad (como el car-following de los juegos de tráfico)
       y acelera de nuevo cuando el carril se despeja. Cada sentido circula por su carril (desplazado a la derecha). */
+/* ---------- tráfico en tiempo real (TomTom Flow Segment Data) ----------
+   Solo funciona donde la página puede salir a internet (p. ej. GitHub Pages); en claude.ai la conexión está bloqueada.
+   Puntos: los accesos de carga y tramos de avenida repartidos en el área. Cada 3 min: velocidad actual / flujo libre. */
+const LL0=[-74.1585,4.6315,111320*Math.cos(4.6315*Math.PI/180),110574];
+const LIVE={on:false,key:'',pts:[],timer:0,last:null,lines:null,err:''};
+(function(){const P=[];ENT.forEach(e=>P.push({x:e.x,y:e.y,n:e.name||e.id}));
+  const segs=[];[2,1].forEach(c=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;
+    for(let k=0;k<ln.length;k++){const n=ln[k];for(let i=1;i<n;i++){const x=(co[(o+i)*2]+co[(o+i-1)*2])/4,y=(co[(o+i)*2+1]+co[(o+i-1)*2+1])/4;if(inM(x,y))segs.push({x,y,c});}o+=n;}});
+  for(const q of segs){if(P.length>=14)break;if(P.every(p=>Math.hypot(p.x-q.x,p.y-q.y)>700))P.push({x:q.x,y:q.y,n:q.c===2?'Avenida principal':'Avenida'});}
+  LIVE.pts=P.map(p=>({...p,lat:LL0[1]+p.y/LL0[3],lon:LL0[0]+p.x/LL0[2],cur:null,free:null,r:null,coords:null}));})();
+function liveApply(){const ok=LIVE.pts.filter(p=>p.r!=null);if(!ok.length)return;const mean=ok.reduce((a,p)=>a+p.r,0)/ok.length;
+  const near=(x,y,lim)=>{let b=null,d0=lim;ok.forEach(p=>{const d=Math.hypot(p.x-x,p.y-y);if(d<d0){d0=d;b=p;}});return b;};
+  NETM.forEach(p=>{const q=near(p.mx,p.my,900);p.lr=clamp(q?q.r:mean,.15,1.1);});
+  ENT.forEach(e=>{const q=near(e.x,e.y,500);if(q){e.ratio=q.r;e.traf={cur:q.cur,free:q.free};e.w=1.6-q.r;}});
+  if(ENV.RW&&!ENV.RW0)ENV.RW0=ENV.RW.slice();if(ENV.RW0){for(let c=0;c<ENV.RW.length;c++){const x=g.x0+((c%NX)+.5)*CS,y=g.y0+(Math.floor(c/NX)+.5)*CS,q=near(x,y,600);ENV.RW[c]=ENV.RW0[c]*(q?1+1.5*(1-q.r):1);}ENV.cdf=null;}
+  liveDraw();}
+function liveDraw(){if(LIVE.lines)sc.remove(LIVE.lines);LIVE.lines=new THREE.Group();
+  LIVE.pts.forEach(p=>{if(!p.coords||p.coords.length<2)return;const col=p.r>.8?0x35e07a:p.r>.5?0xffc23a:0xff3b4e;
+    const pts=p.coords.map(([lat,lon])=>{const x=(lon-LL0[0])*LL0[2],y=(lat-LL0[1])*LL0[3];return new THREE.Vector3(x,gh(x,-y)+3,-y);});
+    const m=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:col,depthTest:false,transparent:true,opacity:.95}));m.renderOrder=45;LIVE.lines.add(m);});
+  sc.add(LIVE.lines);}
+async function livePoll(){const msg=$('#liveS');let n=0;LIVE.err='';
+  await Promise.all(LIVE.pts.map(async p=>{try{const u='https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/12/json?point='+p.lat.toFixed(5)+','+p.lon.toFixed(5)+'&unit=KMPH&key='+encodeURIComponent(LIVE.key);
+      const r=await fetch(u);if(!r.ok){LIVE.err='TomTom respondió '+r.status+(r.status===403?' (clave no válida o dominio no permitido)':'');return;}
+      const d=(await r.json()).flowSegmentData;p.cur=d.currentSpeed;p.free=d.freeFlowSpeed||d.currentSpeed||1;p.r=Math.min(1.1,p.cur/p.free);
+      p.coords=((d.coordinates||{}).coordinate||[]).map(c=>[c.latitude,c.longitude]);n++;}
+    catch(e){LIVE.err=location.hostname.includes('claude')?'claude.ai no permite conexiones externas: abre la versión de GitHub Pages':'Sin conexión con TomTom';}}));
+  if(n){LIVE.last=new Date();liveApply();}
+  const ok=LIVE.pts.filter(p=>p.r!=null),m=ok.length?Math.round(100*ok.reduce((a,p)=>a+p.r,0)/ok.length):0;
+  if(msg)msg.textContent=n?`En vivo · ${n}/${LIVE.pts.length} tramos · fluidez media ${m} % · ${LIVE.last.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}`:(LIVE.err||'Sin datos');}
+function liveStart(key){LIVE.key=key.trim();if(!LIVE.key)return;LIVE.on=true;try{localStorage.setItem('ttKey',LIVE.key);}catch(e){}clearInterval(LIVE.timer);livePoll();LIVE.timer=setInterval(livePoll,180000);}
+function liveStop(){LIVE.on=false;clearInterval(LIVE.timer);if(LIVE.lines){sc.remove(LIVE.lines);LIVE.lines=null;}NETM.forEach(p=>{p.lr=0;});if(ENV.RW0){ENV.RW.set(ENV.RW0);ENV.cdf=null;}$('#liveS').textContent='Desactivado';}
 const VCOL={near:0,cell:40,stop:0};
 /* ---------- semáforos ----------
    Ubicación: capa oficial «Red Semafórica de Bogotá D.C.» (SDM). Los cruces de avenidas solo dan el eje de cada intersección.
@@ -1084,7 +1116,7 @@ function animAgents(time,dt){
        place(T,T.mesh,i,x,y,hd,sz*2.7);}
      T.mesh.instanceMatrix.needsUpdate=true;if(cc)T.mesh.instanceColor.needsUpdate=true;}
    [['car',NETM,nC,42,2],...(ENT.length?[]:[['truck',NETC,nT,30,2.7]])].forEach(([k,pl,n,sp,zs])=>{const V2=VH[k];V2.mesh.count=n;for(let i=n;i<V2.n;i++)V2.on[i]=0;
-     for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*V2.br[i]*(p.c===2?1.25:p.c===0?.7:1)*dtt;
+     for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*V2.br[i]*(LIVE.on&&pl[V2.pi[i]].lr?pl[V2.pi[i]].lr:1)*(p.c===2?1.25:p.c===0?.7:1)*dtt;
        if(V2.s[i]<0||V2.s[i]>p.len){V2.d[i]*=-1;V2.s[i]=clamp(V2.s[i],0,p.len);if(R()<.35){V2.pi[i]=Math.floor(R()*pl.length);V2.s[i]=R()*pl[V2.pi[i]].len;}}
        const q=pl[V2.pi[i]];let j=1;while(j<q.L.length-1&&q.L[j]<V2.s[i])j++;const f=(V2.s[i]-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
        const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*V2.d[i],(q.x[j]-q.x[j-1])*V2.d[i]);
@@ -1488,6 +1520,7 @@ function showSUS(){const d=at('pro',20),d0=at('pro',0),a=at('act',20),vd=varDiff
    `<div class="gchain"><b>Por qué se sostiene:</b> el residuo se valoriza cerca de donde se produce, eso baja las palomas y la presión sanitaria (${Math.round(d.dis*100)} %), la fauna nativa recupera hábitat conectado y la comunidad, con espacios propios, frena la especulación. Cada mejora refuerza a la siguiente.${vd.length?'<br><b>Variables usadas:</b><br>'+vd.join('<br>'):'<br>Variables en sus valores base.'}</div>
    <div class="gb"><button class="pri" id="goVar">Probar otras variables</button><button id="goKeep">Cerrar</button></div>`;
   $('#go').classList.add('ok');$('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};$('#goKeep').onclick=()=>{$('#go').hidden=true;};$('#goKeep').focus();}
+{const k=$('#liveK'),b=$('#liveB');try{const sv=localStorage.getItem('ttKey');if(sv)k.value=sv;}catch(e){}b.addEventListener('click',()=>{if(LIVE.on){liveStop();b.textContent='Activar';}else{liveStart(k.value);b.textContent='Detener';}});}
 {const n=$('#tgN'),a=$('#tgA');if(n)n.addEventListener('change',()=>{ENV.on.n=n.checked;});if(a)a.addEventListener('change',()=>{ENV.on.a=a.checked;});}
 goCompute();
 function enter(scn){$('#intro').hidden=true;document.body.classList.remove('intro');setScn(scn);setT(0);const a=cv.clientWidth/cv.clientHeight;flyTo(500,900,Math.min(9000,Math.max(2400,3300/a)));}
@@ -1512,6 +1545,6 @@ resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP(
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
