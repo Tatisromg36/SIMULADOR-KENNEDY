@@ -786,7 +786,16 @@ const NET=[];
   for(let k=0;k<ln.length;k++){const n=ln[k];if(n>=2){const x=new Float32Array(n),y=new Float32Array(n),L=new Float32Array(n);
     for(let i=0;i<n;i++){x[i]=co[(o+i)*2]/2;y[i]=co[(o+i)*2+1]/2;if(i)L[i]=L[i-1]+Math.hypot(x[i]-x[i-1],y[i]-y[i-1]);}
     if(L[n-1]>110&&Array.from(x).every((xx,ii)=>inM(xx,y[ii])))NET.push({x,y,L,len:L[n-1],c,mx:x[n>>1],my:y[n>>1]});}o+=n;}});
-const NETM=NET.filter(p=>p.c>=1),NETC=NET.filter(p=>p.c>=1&&Math.hypot(p.mx-D.cora[0],p.my-D.cora[1])<2000);
+const NETM=NET.filter(p=>p.c>=1);
+/* conexiones entre tramos: al final de un tramo el auto sigue por un tramo conectado (sin dar media vuelta) */
+(function(){const H=new Map(),C=20,key=(x,y)=>Math.round(x/C)+','+Math.round(y/C),ends=[];
+  NETM.forEach((p,i)=>{const n=p.x.length-1;[[0,p.x[0],p.y[0],Math.atan2(p.y[1]-p.y[0],p.x[1]-p.x[0])],[1,p.x[n],p.y[n],Math.atan2(p.y[n-1]-p.y[n],p.x[n-1]-p.x[n])]].forEach(([e,x,y,a])=>{const o={i,e,x,y,a};ends.push(o);const k=key(x,y);if(!H.has(k))H.set(k,[]);H.get(k).push(o);});p.nx=[[],[]];});
+  ends.forEach(o=>{const cx=Math.round(o.x/C),cy=Math.round(o.y/C);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=H.get((cx+a)+','+(cy+b));if(!l)continue;
+    l.forEach(q=>{if(q.i===o.i)return;if(Math.hypot(q.x-o.x,q.y-o.y)>18)return;NETM[o.i].nx[o.e].push(q);});}});
+  NETM.EDGE=ends.filter(o=>!NETM[o.i].nx[o.e].length);})();
+function nextPath(p,e,hd){/* e: extremo por el que sale (0 inicio, 1 fin); hd: rumbo actual */const c=p.nx[e];if(!c.length)return null;
+  let best=null,bs=-9;c.forEach(q=>{const out=q.a,sc2=Math.cos(out-hd)+(NETM[q.i].c===2?.3:0)+Math.random()*.5;if(sc2>bs){bs=sc2;best=q;}});return bs>-.2?best:null;}
+const NETC=NET.filter(p=>p.c>=1&&Math.hypot(p.mx-D.cora[0],p.my-D.cora[1])<2000);
 /* accesos de carga: red de avenidas (clase 1 y 2), entradas en el borde del polígono y rutas hasta Corabastos */
 const ENT=[],GATES=[];
 const mkPath=(pts,cost)=>{const x=new Float32Array(pts.length),y=new Float32Array(pts.length),L=new Float32Array(pts.length);pts.forEach((p,j)=>{x[j]=p[0];y[j]=p[1];if(j)L[j]=L[j-1]+Math.hypot(x[j]-x[j-1],y[j]-y[j-1]);});return{x,y,L,len:L[L.length-1],cost};};
@@ -1122,7 +1131,11 @@ function animAgents(time,dt){
      T.mesh.instanceMatrix.needsUpdate=true;if(cc)T.mesh.instanceColor.needsUpdate=true;}
    [["car",NETM,nC,42,2.6],...(ENT.length?[]:[['truck',NETC,nT,30,2.7]])].forEach(([k,pl,n,sp,zs])=>{const V2=VH[k];V2.mesh.count=n;for(let i=n;i<V2.n;i++)V2.on[i]=0;
      for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*V2.br[i]*(LIVE.on&&pl[V2.pi[i]].lr?pl[V2.pi[i]].lr:1)*(p.c===2?1.25:p.c===0?.7:1)*dtt;
-       if(V2.s[i]<0||V2.s[i]>p.len){V2.d[i]*=-1;V2.s[i]=clamp(V2.s[i],0,p.len);if(R()<.35){V2.pi[i]=k==='car'?pickPath(R):Math.floor(R()*pl.length);V2.s[i]=R()*pl[V2.pi[i]].len;}}
+       if(V2.s[i]<0||V2.s[i]>p.len){if(k==='car'){const e=V2.s[i]>p.len?1:0,over=e?V2.s[i]-p.len:-V2.s[i],hd=Math.atan2(V2.hy[i],V2.hx[i]),q=nextPath(p,e,hd);
+           if(q){V2.pi[i]=NETM.indexOf?q.i:q.i;const np=NETM[q.i];if(q.e===0){V2.d[i]=1;V2.s[i]=Math.min(over,np.len);}else{V2.d[i]=-1;V2.s[i]=Math.max(0,np.len-over);}}
+           else{/* vía sin salida o borde del área: el auto sale y entra otro por un borde */const E=NETM.EDGE.length?NETM.EDGE[Math.floor(R()*NETM.EDGE.length)]:null;
+             if(E){V2.pi[i]=E.i;V2.d[i]=E.e===0?1:-1;V2.s[i]=E.e===0?0:NETM[E.i].len;}else{V2.pi[i]=pickPath(R);V2.s[i]=0;V2.d[i]=1;}V2.br[i]=1;}}
+         else{V2.d[i]*=-1;V2.s[i]=clamp(V2.s[i],0,p.len);}}
        const q=pl[V2.pi[i]];let j=1;while(j<q.L.length-1&&q.L[j]<V2.s[i])j++;const f=(V2.s[i]-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
        const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*V2.d[i],(q.x[j]-q.x[j-1])*V2.d[i]);
        place(V2,V2.mesh,i,x,y,hd,sz*zs);}
