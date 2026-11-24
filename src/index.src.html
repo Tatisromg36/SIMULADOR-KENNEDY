@@ -208,7 +208,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 #go .gm p{margin:3px 0 6px;font-size:12px;color:var(--ink2)}#go .gmr{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line);color:var(--ink2)}
 #go .gmr.bad{color:#ffb4a0}#go .gmr span:last-child{text-align:right;white-space:nowrap}#go .gbox{width:min(980px,100%)}
 .tag.gate{pointer-events:auto;cursor:pointer;min-width:15px;text-align:center;font-style:normal}.tag.gate:focus-visible{outline:2px solid var(--mint)}.tag.gate.open{z-index:2;font-size:10px;padding:2px 6px}.tag.gate.ped{background:#fff3e0;font-weight:600;font-size:8px}.tag.gate{background:#ff9f1c;color:#1a1033;font-weight:700;padding:1px 4px;border-radius:3px;text-shadow:none;font-size:9px;line-height:1.2}.tag.acc{font-size:9px}.yr .clk{display:block;font-size:11px;opacity:.85;white-space:nowrap}.yr .clk b{font-variant-numeric:tabular-nums}#go.ok{background:radial-gradient(90% 80% at 50% 40%,rgba(8,70,50,.86),rgba(12,6,34,.95))}#go.ok .gbox{border-color:rgba(88,199,155,.6);box-shadow:0 0 60px rgba(88,199,155,.25)}details.fx{margin:-4px 0 8px;padding:0 12px 2px;font-size:12px;color:var(--ink2)}details.fx summary{cursor:pointer;color:var(--mint);font-weight:600;padding:4px 0;list-style:none}details.fx summary::before{content:'ƒ  ';font-style:italic}details.fx[open] summary{margin-bottom:4px}
-.fxf{font:600 12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;overflow-x:auto}.fxv{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:4px 0;color:var(--ink);overflow-wrap:anywhere}details.fx p{margin:4px 0;line-height:1.45}details.fx .fxs{opacity:.7;font-size:11px}</style>
+.fxf{font:600 12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;overflow-x:auto}.fxv{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:4px 0;color:var(--ink);overflow-wrap:anywhere}details.fx p{margin:4px 0;line-height:1.45}details.fx .fxs{opacity:.7;font-size:11px}#envT{display:flex;flex-direction:column;gap:3px;font-size:11.5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}#envT label{display:flex;gap:6px;align-items:center;cursor:pointer}#envT .nbar{height:7px;border-radius:4px;background:linear-gradient(90deg,rgba(89,217,89,.1),#f2d940,#fa7326,#d91a40)}#envT .row{display:flex;justify-content:space-between;font-size:10px;opacity:.8}.dotb{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4a9cff;box-shadow:0 0 6px #4a9cff}#envT small{opacity:.75}</style>
 
 <div id="stage"><canvas id="gl" aria-label="Maqueta isométrica de Kennedy"></canvas><div id="pins"></div><div id="callout"></div></div>
 
@@ -245,7 +245,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
   <div class="tabbody" id="b-fi" hidden><div id="ficha"><p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p></div></div>
 </aside>
 
-<div id="legend"><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
+<div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><small id="envS"></small></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
 
 <div id="evt" hidden></div>
 <div id="vig"></div><div id="thr" hidden></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
@@ -381,6 +381,11 @@ function drivers(scn,t){
   const Dn=clamp((o.food-3)/42), Cn=clamp((o.conn-16)/70), Sn=clamp((o.soc-6)/72);
   o.sroi= scn==='pro'? -0.5+6.4*(0.40*Dn+0.30*Cn+0.30*Sn) : -0.6-0.03*t;
   o.untreated=E-B;
+  /* tráfico → ruido y aire: camiones (ligados al residuo y a la descentralización) pesan 3 veces un auto */
+  { const pr=scn==='pro', trk=clamp(E/130)*(1-.8*(pr?clamp(val/0.85):0)), car=pr?.85:1;
+    o.TI=3*trk+car;
+    o.noise=56+10*Math.log10(1+4*o.TI)-(pr?3*sC:0);
+    o.pm=12+5.5*o.TI-(pr?6*sC:0); }
   // relaciones del diagrama causal
   const pro=scn==='pro';
   o.cot=pro?meanProg(x=>x.type==='plaza'||x.type==='ecocirc',t):0;
@@ -439,6 +444,8 @@ const IND=[
  {k:'food',g:'Metabolismo',n:'Descentralización alimentaria',s:'Flujo de alimento que pasa por nodos locales',u:'%',lay:'food',fmt:v=>v.toFixed(0)},
  {k:'spec',g:'Comunidad y economía',n:'Presión especulativa',s:'Índice 0 a 100 · menor es mejor',u:'',lay:'spec',fmt:v=>v.toFixed(0),lower:true},
  {k:'soc',g:'Comunidad y economía',n:'Capital social',s:'Participación en asambleas y círculos',u:'',lay:'soc',fmt:v=>v.toFixed(0)},
+ {k:'noise',g:'Ambiente',n:'Contaminación auditiva',s:'Ruido vial · norma residencial diurna 65 dB(A)',u:' dB',lay:'all',fmt:v=>v.toFixed(0),lower:true},
+ {k:'pm',g:'Ambiente',n:'Calidad del aire',s:'PM2.5 por tráfico · norma anual 25 µg/m³',u:' µg/m³',lay:'all',fmt:v=>v.toFixed(0),lower:true},
  {k:'sroi',g:'Comunidad y economía',n:'Retorno social de la inversión',s:'SROI · meta mayor a 3,5×',u:'×',lay:'all',fmt:v=>v.toFixed(1).replace('.',',')},
 ];
 const other=()=>S.scn==='pro'?'act':'pro';
@@ -897,6 +904,67 @@ const VH={car:{n:70,mesh:null},truck:{n:34,mesh:null}};const TC_IN=new THREE.Col
    for(let i=0;i<VH[k].n;i++){VH[k].pi[i]=Math.floor(rnd()*p.length);VH[k].s[i]=rnd()*(k==='truck'&&ENT.length?ENT[VH[k].pi[i]].route.len:p[VH[k].pi[i]].len);VH[k].ph[i]=rnd()<.5?0:2;VH[k].d[i]=rnd()<.5?1:-1;VH[k].v[i]=.6+rnd()*.8;}});}
 const AXY=new THREE.Vector3(0,1,0);const PT=new THREE.Matrix4(),PQ=new THREE.Quaternion(),PP=new THREE.Vector3(),PS=new THREE.Vector3();
 const lineAt=(id,u)=>{const P=D.lines[id];const L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));let d=u*L[L.length-1],i=1;while(i<P.length-1&&L[i]<d)i++;const f=(d-L[i-1])/(L[i]-L[i-1]||1);return[lerp(P[i-1][0],P[i][0],f),lerp(P[i-1][1],P[i][1],f)];};
+/* ---------- colisión estilo videojuego ----------
+   1) fase amplia: rejilla espacial (spatial hash) de 40 m; cada vehículo solo revisa las celdas vecinas.
+   2) fase precisa: "rayo" hacia adelante en su carril (distancia a lo largo y desfase lateral).
+   3) respuesta: en vez de chocar, frena con una distancia de seguridad (como el car-following de los juegos de tráfico)
+      y acelera de nuevo cuando el carril se despeja. Cada sentido circula por su carril (desplazado a la derecha). */
+const VCOL={near:0,cell:40};
+function vehBrake(sz){const H=new Map(),C=VCOL.cell,items=[];
+  for(const k of ['car','truck']){const W=VH[k];if(!W.cx)continue;const L=sz*(k==='truck'?2.7:2)*.9;
+    for(let i=0;i<W.n;i++){W.tb[i]=1;if(!W.on[i])continue;const it={W,i,x:W.cx[i],y:W.cy[i],hx:W.hx[i],hy:W.hy[i],L};items.push(it);
+      const key=Math.floor(it.x/C)+','+Math.floor(it.y/C);let l=H.get(key);if(!l)H.set(key,l=[]);l.push(it);}}
+  let near=0;
+  for(const a of items){let f=1;const LA=a.L*2.5+sz*2,cr=Math.ceil(LA/C),ix=Math.floor(a.x/C),iy=Math.floor(a.y/C);
+    for(let u=-cr;u<=cr;u++)for(let v=-cr;v<=cr;v++){const l=H.get((ix+u)+','+(iy+v));if(!l)continue;
+      for(const b of l){if(b===a)continue;const dx=b.x-a.x,dy=b.y-a.y,al=dx*a.hx+dy*a.hy;if(al<=0||al>LA)continue;
+        if(Math.abs(dx*a.hy-dy*a.hx)>sz*1.1)continue;if(a.hx*b.hx+a.hy*b.hy<.3)continue;
+        const gap=al-(a.L+b.L)/2;f=Math.min(f,clamp((gap-sz*.4)/(a.L*1.2)));}}
+    a.W.tb[a.i]=f;if(f<.5)near++;}
+  return near;}
+/* ---------- ruido (mapa de calor) y aire (partículas azules) a partir del tráfico ---------- */
+const ENV={em:new Float32Array(NX*NY),heat:null,ctx:null,tex:null,last:0,P:null,np:2200,pi:0,life:null,vel:null,on:{n:true,a:true}};
+function envField(){if(ENV.RW)return;const RW=new Float32Array(NX*NY),TK=new Float32Array(NX*NY);
+  const add=(A,x0,y0,x1,y1,w)=>{const L=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(L/25));for(let k=0;k<n;k++){const x=x0+(x1-x0)*(k+.5)/n,y=y0+(y1-y0)*(k+.5)/n,ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);if(ix>=0&&iy>=0&&ix<NX&&iy<NY)A[iy*NX+ix]+=w*L/n/CS;}};
+  [[0,.25],[1,1.4],[2,3]].forEach(([c,w])=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;for(let k=0;k<ln.length;k++){const n=ln[k];for(let i=1;i<n;i++)add(RW,co[(o+i-1)*2]/2,co[(o+i-1)*2+1]/2,co[(o+i)*2]/2,co[(o+i)*2+1]/2,w);o+=n;}});
+  const seen=new Set();ENT.forEach(e=>e.rg.forEach(q=>{if(!q||seen.has(q))return;seen.add(q);for(let i=1;i<q.x.length;i++)add(TK,q.x[i-1],q.y[i-1],q.x[i],q.y[i],1/Math.max(1,ENT.length*.6));}));
+  ENV.RW=RW;ENV.TK=TK;}
+function envInit(){if(ENV.heat)return;envField();const c=document.createElement('canvas');c.width=NX;c.height=NY;ENV.ctx=c.getContext('2d');ENV.img=ENV.ctx.createImageData(NX,NY);
+  ENV.tex=new THREE.CanvasTexture(c);ENV.tex.magFilter=THREE.LinearFilter;ENV.tex.minFilter=THREE.LinearFilter;
+  const pg=new THREE.PlaneGeometry(NX*CS,NY*CS);pg.rotateX(-Math.PI/2);
+  ENV.heat=new THREE.Mesh(pg,new THREE.MeshBasicMaterial({map:ENV.tex,transparent:true,depthWrite:false,opacity:.72}));
+  ENV.heat.position.set(g.x0+NX*CS/2,15.2,-(g.y0+NY*CS/2));ENV.heat.renderOrder=3;sc.add(ENV.heat);
+  // la textura va de norte (fila 0) a sur
+  const N=ENV.np,pos=new Float32Array(N*3).fill(-9999),col=new Float32Array(N*3);ENV.life=new Float32Array(N);ENV.vel=new Float32Array(N*3);
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const dc=document.createElement('canvas');dc.width=dc.height=32;const dx=dc.getContext('2d'),gr=dx.createRadialGradient(16,16,0,16,16,16);gr.addColorStop(0,'rgba(190,225,255,1)');gr.addColorStop(.45,'rgba(70,150,255,.95)');gr.addColorStop(1,'rgba(40,110,255,0)');dx.fillStyle=gr;dx.fillRect(0,0,32,32);
+  ENV.P=new THREE.Points(geo,new THREE.PointsMaterial({size:9,sizeAttenuation:false,map:new THREE.CanvasTexture(dc),transparent:true,depthWrite:false,depthTest:false,opacity:.9}));
+  ENV.P.frustumCulled=false;ENV.P.renderOrder=30;sc.add(ENV.P);}
+const NOISE_RAMP=[[0,0,0,0],[.35,.85,.35,.0],[.95,.85,.25,.55],[.98,.45,.15,.75],[.85,.1,.25,.88]];
+function envUpdate(dt,st,sz){envInit();const em=ENV.em,dec=Math.exp(-dt/6),air=clamp(st.pm/30,0,2),pro=S.scn==='pro',trk=clamp(st.E/130)*(1-.8*(pro?clamp(st.val/0.85):0)),carR=pro?.85:1,green=pro?st.sC:0;
+  for(let i=0;i<em.length;i++)em[i]*=dec;
+  const pos=ENV.P.geometry.attributes.position.array,col=ENV.P.geometry.attributes.color.array;
+  for(const k of ['car','truck']){const W=VH[k];if(!W.cx)continue;const w=k==='truck'?4:1,ep=k==='truck'?5:1;
+    for(let i=0;i<W.n;i++){if(!W.on[i])continue;const x=W.cx[i],y=W.cy[i],ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);
+      const idle=1+1.5*(1-W.br[i]);if(ix>=0&&iy>=0&&ix<NX&&iy<NY)em[iy*NX+ix]+=w*idle*dt;
+      if(ENV.on.a){let n=ep*idle*air*dt*2.2;while(n>0){if(Math.random()<n){const j=ENV.pi=(ENV.pi+1)%ENV.np;pos[j*3]=x+(Math.random()-.5)*sz;pos[j*3+1]=gh(x,-y)+2+Math.random()*2;pos[j*3+2]=-y+(Math.random()-.5)*sz;
+        ENV.vel[j*3]=1.5+Math.random()*2;ENV.vel[j*3+1]=2.5+Math.random()*2.5;ENV.vel[j*3+2]=-.5+Math.random();ENV.life[j]=1;}n-=1;}}}}
+  if(ENV.on.a){if(!ENV.cdf){const w=new Float32Array(NX*NY);let t=0;for(let c=0;c<w.length;c++){t+=MASK[c]?ENV.RW[c]+3*ENV.TK[c]:0;w[c]=t;}ENV.cdf=w;}
+    const cdf=ENV.cdf,T=cdf[cdf.length-1];let n=dt*70*air*(carR+trk*1.5)/2;
+    while(n>0){if(Math.random()<n){let r=Math.random()*T,lo=0,hi=cdf.length-1;while(lo<hi){const m=(lo+hi)>>1;if(cdf[m]<r)lo=m+1;else hi=m;}
+      const x=g.x0+((lo%NX)+Math.random())*CS,y=g.y0+(Math.floor(lo/NX)+Math.random())*CS,j=ENV.pi=(ENV.pi+1)%ENV.np;
+      pos[j*3]=x;pos[j*3+1]=gh(x,-y)+3+Math.random()*6;pos[j*3+2]=-y;ENV.vel[j*3]=1+Math.random()*2;ENV.vel[j*3+1]=1.5+Math.random()*2;ENV.vel[j*3+2]=-.5+Math.random();ENV.life[j]=1;}n-=1;}}
+  for(let j=0;j<ENV.np;j++){if(ENV.life[j]<=0){pos[j*3+1]=-9999;continue;}ENV.life[j]-=dt/7;
+    pos[j*3]+=ENV.vel[j*3]*dt;pos[j*3+1]+=ENV.vel[j*3+1]*dt;pos[j*3+2]+=ENV.vel[j*3+2]*dt;}
+  ENV.P.geometry.attributes.position.needsUpdate=ENV.P.geometry.attributes.color.needsUpdate=true;ENV.P.visible=ENV.on.a;
+  ENV.heat.visible=ENV.on.n;const now=performance.now();if(!ENV.on.n||now-ENV.last<250)return;ENV.last=now;
+  const d=ENV.img.data,off=st.noise-68;
+  for(let iy=0;iy<NY;iy++)for(let ix=0;ix<NX;ix++){const c=iy*NX+ix;let v=em[c];
+      for(const [a,b,wt] of [[1,0,.5],[-1,0,.5],[0,1,.5],[0,-1,.5],[1,1,.25],[-1,1,.25],[1,-1,.25],[-1,-1,.25]]){const u=ix+a,w=iy+b;if(u>=0&&w>=0&&u<NX&&w<NY)v+=em[w*NX+u]*wt;}
+      v=v*.15+(ENV.RW[c]*carR+3*ENV.TK[c]*trk)*(1-.25*green);const dB=47+10*Math.log10(1+60*v)+off*.3,t=MASK[c]?clamp((dB-55)/22):0;
+      const k=t*(NOISE_RAMP.length-1),i0=Math.min(NOISE_RAMP.length-2,Math.floor(k)),f=k-i0,A=NOISE_RAMP[i0],B2=NOISE_RAMP[i0+1];
+      const p=((NY-1-iy)*NX+ix)*4;d[p]=255*lerp(A[0],B2[0],f);d[p+1]=255*lerp(A[1],B2[1],f);d[p+2]=255*lerp(A[2],B2[2],f);d[p+3]=255*lerp(A[3],B2[3],f);}
+  ENV.ctx.putImageData(ENV.img,0,0);ENV.tex.needsUpdate=true;const es=$('#envS');if(es)es.textContent=`Año ${Math.round(S.t)}: ${Math.round(st.noise)} dB(A) · PM2.5 ${Math.round(st.pm)} µg/m³ · ${VCOL.near} vehículos frenando`;}
 function animAgents(time,dt){
   const st=at(S.scn,S.t),upp=2*V.H/cv.clientHeight,sz=clamp(upp*5.5,4,12);
   const wob=REDUCE?0:1;CLOCK.h=(CLOCK.h+Math.min(dt,60)/1000*24/CLOCK.day)%24;{const ce=$('#clk');if(ce){const hh=Math.floor(CLOCK.h),mm=Math.floor((CLOCK.h-hh)*60);const t=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');if(ce.textContent!==t)ce.textContent=t;}}animBins(dt,st,sz);animCora(dt,st);
@@ -951,6 +1019,10 @@ function animAgents(time,dt){
     F.mesh.instanceMatrix.needsUpdate=true;}
   // autos y camiones de residuo en las vías
   {const divv=pro?clamp(st.val/0.85):0;
+   ['car','truck'].forEach(k=>{const W=VH[k];if(!W.cx){W.cx=new Float32Array(W.n);W.cy=new Float32Array(W.n);W.hx=new Float32Array(W.n);W.hy=new Float32Array(W.n);W.on=new Uint8Array(W.n);W.br=new Float32Array(W.n).fill(1);W.tb=new Float32Array(W.n).fill(1);}});
+   VCOL.near=vehBrake(sz);
+   ['car','truck'].forEach(k=>{const W=VH[k];for(let i=0;i<W.n;i++){const a=W.tb[i]<W.br[i]?9:2.2;W.br[i]+=(W.tb[i]-W.br[i])*Math.min(1,dtt*a);}});
+   const lane=sz*.55,place=(W,m,i,x,y,hd,s)=>{const hx=Math.cos(hd),hy=Math.sin(hd),X=x+hy*lane,Y=y-hx*lane;W.cx[i]=X;W.cy[i]=Y;W.hx[i]=hx;W.hy[i]=hy;W.on[i]=1;set(m,i,X,gh(X,-Y)+1.4,-Y,s,hd);};
    const nC=NETM.length?Math.round(VH.car.n*(pro?.85:1)):0,nT=NETC.length?Math.max(pro?3:0,Math.round(VH.truck.n*clamp(st.E/130)*(1-.8*divv))):0;
    if(ENT.length&&GATES.length){const T=VH.truck;
      const hr=CLOCK.h,prof=(hr>=2&&hr<3)?.15:(hr>=20||hr<2)?1:(hr>=3&&hr<6)?.75:(hr>=6&&hr<10)?.35:.12;  // llegadas: noche y madrugada
@@ -959,26 +1031,27 @@ function animAgents(time,dt){
      const pickG=(e,k)=>{const ok=GATES.map((g,gi)=>gi).filter(gi=>(GATES[gi].kind===k||GATES[gi].kind==='both')&&e.rg[gi]);ok.sort((a,b)=>e.rg[a].cost-e.rg[b].cost);return R()<.75?ok[0]:ok[Math.floor(R()*ok.length)];};
      if(!T.gi){T.gi=new Int8Array(T.n).fill(-1);T.go=new Int8Array(T.n);T.dk=new Int8Array(T.n);for(let i=0;i<T.n;i++){T.ph[i]=5;T.wt[i]=R()*2;}}
      const newTrip=i=>{const e=ENT[T.pi[i]];T.gi[i]=pickG(e,'in');T.go[i]=pickG(e,'out');const gI=GATES[T.gi[i]].inner,gO=GATES[T.go[i]].inner;const ok=gI.map((p,k)=>k).filter(k=>gI[k]&&gO[k]);T.dk[i]=ok.length?ok[Math.floor(R()*ok.length)]:-1;T.s[i]=0;T.ph[i]=0;};
-     for(let i=0;i<T.n;i++){if(i>=nT2){continue;}
-       if(T.ph[i]===5){T.wt[i]-=dtt;if(T.wt[i]<=0&&R()<prof*dtt*1.5){T.pi[i]=pickE();newTrip(i);cc=true;T.mesh.setColorAt(i,TC_IN);}else{set(T.mesh,i,0,-500,0,.01,0);continue;}}
-       const e=ENT[T.pi[i]],sp2=34*T.v[i]*clamp(e.ratio,.15,1.1);let q,dr=1;
+     for(let i=0;i<T.n;i++){if(i>=nT2){T.on[i]=0;continue;}
+       if(T.ph[i]===5){T.wt[i]-=dtt;if(T.wt[i]<=0&&R()<prof*dtt*1.5){T.pi[i]=pickE();newTrip(i);cc=true;T.mesh.setColorAt(i,TC_IN);}else{T.on[i]=0;set(T.mesh,i,0,-500,0,.01,0);continue;}}
+       const e=ENT[T.pi[i]],sp2=34*T.v[i]*clamp(e.ratio,.15,1.1)*T.br[i];let q,dr=1;
        const qIn=T.dk[i]>=0?GATES[T.gi[i]].inner[T.dk[i]]:null,qOut=T.dk[i]>=0?GATES[T.go[i]].inner[T.dk[i]]:null;
        if(T.ph[i]===0){q=e.rg[T.gi[i]];T.s[i]+=sp2*dtt;if(T.s[i]>=q.len){T.s[i]=0;T.ph[i]=qIn?1:2;T.wt[i]=3+R()*5;}}
        else if(T.ph[i]===1){q=qIn;T.s[i]+=sp2*.4*dtt;if(T.s[i]>=q.len){T.s[i]=q.len;T.ph[i]=2;T.wt[i]=3+R()*5;}}
        else if(T.ph[i]===2){q=qIn||e.rg[T.gi[i]];T.s[i]=q.len;T.wt[i]-=dtt;if(T.wt[i]<=0){T.ph[i]=qOut?3:4;T.s[i]=qOut?qOut.len:e.rg[T.go[i]].len;cc=true;T.mesh.setColorAt(i,TC_OUT);}}
        else if(T.ph[i]===3){q=qOut;dr=-1;T.s[i]-=sp2*.4*dtt;if(T.s[i]<=0){T.ph[i]=4;T.s[i]=e.rg[T.go[i]].len;}}
-       else{q=e.rg[T.go[i]];dr=-1;T.s[i]-=sp2*dtt;if(T.s[i]<=0){T.ph[i]=5;T.wt[i]=2+R()*6;set(T.mesh,i,0,-500,0,.01,0);continue;}}
+       else{q=e.rg[T.go[i]];dr=-1;T.s[i]-=sp2*dtt;if(T.s[i]<=0){T.ph[i]=5;T.wt[i]=2+R()*6;T.on[i]=0;set(T.mesh,i,0,-500,0,.01,0);continue;}}
        const sv=clamp(T.s[i],0,q.len);let j=1;while(j<q.L.length-1&&q.L[j]<sv)j++;const f=(sv-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
        const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*dr,(q.x[j]-q.x[j-1])*dr);
-       set(T.mesh,i,x,gh(x,-y)+1.4,-y,sz*2.7,hd);}
+       place(T,T.mesh,i,x,y,hd,sz*2.7);}
      T.mesh.instanceMatrix.needsUpdate=true;if(cc)T.mesh.instanceColor.needsUpdate=true;}
-   [['car',NETM,nC,42,2],...(ENT.length?[]:[['truck',NETC,nT,30,2.7]])].forEach(([k,pl,n,sp,zs])=>{const V2=VH[k];V2.mesh.count=n;
-     for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*(p.c===2?1.25:p.c===0?.7:1)*dtt;
+   [['car',NETM,nC,42,2],...(ENT.length?[]:[['truck',NETC,nT,30,2.7]])].forEach(([k,pl,n,sp,zs])=>{const V2=VH[k];V2.mesh.count=n;for(let i=n;i<V2.n;i++)V2.on[i]=0;
+     for(let i=0;i<n;i++){const p=pl[V2.pi[i]];if(!p)continue;V2.s[i]+=V2.d[i]*sp*V2.v[i]*V2.br[i]*(p.c===2?1.25:p.c===0?.7:1)*dtt;
        if(V2.s[i]<0||V2.s[i]>p.len){V2.d[i]*=-1;V2.s[i]=clamp(V2.s[i],0,p.len);if(R()<.35){V2.pi[i]=Math.floor(R()*pl.length);V2.s[i]=R()*pl[V2.pi[i]].len;}}
        const q=pl[V2.pi[i]];let j=1;while(j<q.L.length-1&&q.L[j]<V2.s[i])j++;const f=(V2.s[i]-q.L[j-1])/((q.L[j]-q.L[j-1])||1);
        const x=q.x[j-1]+(q.x[j]-q.x[j-1])*f,y=q.y[j-1]+(q.y[j]-q.y[j-1])*f,hd=Math.atan2((q.y[j]-q.y[j-1])*V2.d[i],(q.x[j]-q.x[j-1])*V2.d[i]);
-       set(V2.mesh,i,x,gh(x,-y)+1.4,-y,sz*zs,hd);}
-     V2.mesh.instanceMatrix.needsUpdate=true;});}
+       place(V2,V2.mesh,i,x,y,hd,sz*zs);}
+     V2.mesh.instanceMatrix.needsUpdate=true;});
+   envUpdate(dtt,st,sz);}
 }
 
 /* ---------- colores del suelo ---------- */
@@ -1100,6 +1173,8 @@ function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años
    spec:P?[`Especulación = máx(20; tendencia − 60 × ${SAT('S')})`,`tendencia = 62 + 1,15 × t × presión% = ${nf(st.specBase,0)} → ${nf(st.specBase,0)} − 60 × ${nf(st.sS,2)} = <b>${nf(st.spec,0)}</b>`,`${SAT('S')} lo aportan vivienda cooperativa, renovación y custodia del suelo. Menor es mejor.`]
           :[`Especulación = mín(95; 62 + 1,15 × t × presión%)`,`= <b>${nf(st.spec,0)}</b>`,`Sin custodia del suelo, la presión crece cada año según la variable de presión inmobiliaria externa.`],
    soc:[`Capital social = mín(100; 6 + 72 × ${SAT('O')} × participación%)`,`= 6 + 72 × ${nf(st.sO,2)} × ${VAR.soc} % = <b>${nf(st.soc,0)}</b>`,`${SAT('O')} lo aportan los espacios comunitarios (plazas, vivienda, renovación, centro). 6 es la línea base.`],
+   noise:[`Ruido = 56 + 10 × log10(1 + 4 × TI)${P?' − 3 × '+SAT('C'):''}`,`TI = 3 × camiones + autos = ${nf(st.TI,2)} → <b>${nf(st.noise,0)} dB(A)</b>`,`TI es el índice de tráfico: los camiones (que dependen del residuo de Corabastos${P?' y bajan con la valorización en origen':''}) pesan 3 veces un auto. ${P?'Los corredores verdes amortiguan el ruido. ':''}La norma residencial diurna en Colombia es 65 dB(A) (Res. 0627 de 2006). En el mapa, el calor sigue a los vehículos reales y crece donde frenan y se acumulan.`],
+   pm:[`PM2.5 = 12 + 5,5 × TI${P?' − 6 × '+SAT('C'):''}`,`TI = ${nf(st.TI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`12 µg/m³ es el fondo urbano sin tráfico local (supuesto). Cada vehículo emite partículas azules; un camión frenado o en fila emite más. La norma anual colombiana es 25 µg/m³ (Res. 2254 de 2017).`],
    sroi:P?[`SROI = −0,5 + 6,4 × (0,40·D + 0,30·C + 0,30·So)`,`D = ${nf(clamp((st.food-3)/42),2)} · C = ${nf(clamp((st.conn-16)/70),2)} · So = ${nf(clamp((st.soc-6)/72),2)} → <b>${nf(st.sroi,1)}×</b>`,`D, C y So son descentralización, conectividad y capital social normalizados de 0 a 1 sobre su rango. Los pesos se fijaron para que la meta de 3,5× se alcance con los espacios candidatos.`]
           :[`SROI = −0,6 − 0,03 × t`,`= <b>${nf(st.sroi,1)}×</b>`,`Sin inversión social el retorno es negativo y empeora con los costos del deterioro.`]};
   const f=F[k];if(!f)return'';return `<div class="fxf">${f[0]}</div><div class="fxv">${f[1]}</div><p>${f[2]}</p><p class="fxs">${yr}. Pesos y coeficientes: supuestos del modelo, a calibrar.</p>`;}
@@ -1374,6 +1449,7 @@ function showSUS(){const d=at('pro',20),d0=at('pro',0),a=at('act',20),vd=varDiff
    `<div class="gchain"><b>Por qué se sostiene:</b> el residuo se valoriza cerca de donde se produce, eso baja las palomas y la presión sanitaria (${Math.round(d.dis*100)} %), la fauna nativa recupera hábitat conectado y la comunidad, con espacios propios, frena la especulación. Cada mejora refuerza a la siguiente.${vd.length?'<br><b>Variables usadas:</b><br>'+vd.join('<br>'):'<br>Variables en sus valores base.'}</div>
    <div class="gb"><button class="pri" id="goVar">Probar otras variables</button><button id="goKeep">Cerrar</button></div>`;
   $('#go').classList.add('ok');$('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};$('#goKeep').onclick=()=>{$('#go').hidden=true;};$('#goKeep').focus();}
+{const n=$('#tgN'),a=$('#tgA');if(n)n.addEventListener('change',()=>{ENV.on.n=n.checked;});if(a)a.addEventListener('change',()=>{ENV.on.a=a.checked;});}
 goCompute();
 function enter(scn){$('#intro').hidden=true;document.body.classList.remove('intro');setScn(scn);setT(0);const a=cv.clientWidth/cv.clientHeight;flyTo(500,900,Math.min(9000,Math.max(2400,3300/a)));}
 $('#goAct').addEventListener('click',()=>enter('act'));$('#goPro').addEventListener('click',()=>enter('pro'));
@@ -1397,6 +1473,6 @@ resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP(
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
