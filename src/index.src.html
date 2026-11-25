@@ -389,7 +389,11 @@ function drivers(scn,t){
        fondo = estación Kennedy (de fondo) 21,4–25,1 µg/m³ → 23,3; incremento por tráfico = Carvajal-Sevillana (tráfico, Kennedy) − Kennedy = 11,1 µg/m³ (2019).
        Camiones: los pesados diésel pre-Euro son <2 % de la flota y emiten ~25 % del PM → cada camión ≈ 16 autos en PM.
        Mezcla del año 0 cerca de Corabastos: 92,5 % autos, 7,5 % camiones. */
-    const EI=car*.925+(trk/.846)*.075*16;o.EI=EI;o.pm=23.3+11.1*EI/2.125-(pr?6*sC:0); }
+    const EI=car*.925+(trk/.846)*.075*16;o.EI=EI;o.pm=23.3+11.1*EI/2.125-(pr?6*sC:0);
+    o.trk=trk; o.verde=100*clamp(.12+(pr?.55*sC+.15*sH:0));                                     // cobertura verde que capta partículas (ciudad esponja)
+    o.noiseW=o.noise-8-(pr?6*clamp(sC+sH):0);                                                   // ruido en el borde del humedal (más lejos de las vías + ecotonos)
+    const airF=clamp((o.pm-15)/25);o.soc*=1-.25*airF;                                            // aire contaminado → menos uso del espacio público
+    o.salud=pr?clamp((35-o.pm)/20):0; o.sroi+=.6*o.salud; }                                       // menos PM2.5 → ahorro en salud
   // relaciones del diagrama causal
   const pro=scn==='pro';
   o.cot=pro?meanProg(x=>x.type==='plaza'||x.type==='ecocirc',t):0;
@@ -417,11 +421,12 @@ function simSpecies(scn,drv){
     const qs0= scn==='pro'? clamp(0.55*d.sC+0.25*d.val/0.7+0.20*d.sH) : clamp(0.12-0.006*y);
     const qs=qs0*(1-.18*dis);                                                          // enfermedades → fauna nativa (−)
     const awf=.5+.5*clamp(d.AH/100/.6);
+    const nzf=1-.35*clamp((d.noiseW-50)/20);d.nzf=nzf;                                   // ruido → aves evitan la zona (−)
     const en=100*qs+35, g=clamp((en-70)/30);          // energía como proxy de calidad de hábitat
     const step=(n,K,r,imm,gate)=>{K=Math.max(K,0.4);let v=n+ (r*(gate?g:1))*n*(1-n/K); if(n>K) v=n-0.3*(n-K); if(qs>0.3) v+=imm*VAR.imm/100; return clamp(v,0,K>n?Math.max(K,n):n);};
     const last=k=>N[k][y-1];
-    N.tingua.push(Math.min(CAPS.tingua,step(last('tingua'),CAPS.tingua*clamp(qs*1.25)*awf,0.45,0.6,true)));
-    N.hum.push(Math.min(CAPS.hum,step(last('hum'),CAPS.hum*clamp(qs*1.2),0.5,2,true)));
+    N.tingua.push(Math.min(CAPS.tingua,step(last('tingua'),CAPS.tingua*clamp(qs*1.25)*awf*nzf,0.45,0.6,true)));
+    N.hum.push(Math.min(CAPS.hum,step(last('hum'),CAPS.hum*clamp(qs*1.2)*nzf,0.5,2,true)));
     N.falcon.push(Math.min(CAPS.falcon,step(last('falcon'),CAPS.falcon*clamp(qs*1.1),0.3,0.25,true)));
     const kp=CAPS.pigeon*(0.25+0.75*(1-(scn==='pro'?d.val/0.85:0)))*(0.6+0.4*clamp(rD/30,0,2.2));
     N.pigeon.push(Math.min(CAPS.pigeon,step(last('pigeon'),kp,0.4,0,false)));
@@ -1280,7 +1285,6 @@ function pickAt(px,py){const r=cv.getBoundingClientRect();let best=null,bd=1e9;
 function setTab(t){S.tab=t;$$('.tabs button[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));['ind','mp','fi','var','rel'].forEach(k=>$('#b-'+k).hidden=k!==t);if(t==='rel')renderRel();}
 $$('.tabs button[data-tab]').forEach(b=>b.addEventListener('click',()=>{setTab(b.dataset.tab);$('#panel').classList.remove('min');}));
 const fmtYear=t=>2026+Math.floor(t);
-const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
 function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años`;
   const SAT=x=>`<b>S<sub>${x}</sub></b>`,satNote=`${'<i>S</i>'} = parte de la necesidad del territorio (mapa de 100 m) que cubren las intervenciones: cada espacio aporta según su distancia (campana de influencia) y la inversión.`;
   const F={
@@ -1294,8 +1298,8 @@ function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años
    spec:P?[`Especulación = máx(20; tendencia − 60 × ${SAT('S')})`,`tendencia = 62 + 1,15 × t × presión% = ${nf(st.specBase,0)} → ${nf(st.specBase,0)} − 60 × ${nf(st.sS,2)} = <b>${nf(st.spec,0)}</b>`,`${SAT('S')} lo aportan vivienda cooperativa, renovación y custodia del suelo. Menor es mejor.`]
           :[`Especulación = mín(95; 62 + 1,15 × t × presión%)`,`= <b>${nf(st.spec,0)}</b>`,`Sin custodia del suelo, la presión crece cada año según la variable de presión inmobiliaria externa.`],
    soc:[`Capital social = mín(100; 6 + 72 × ${SAT('O')} × participación%)`,`= 6 + 72 × ${nf(st.sO,2)} × ${VAR.soc} % = <b>${nf(st.soc,0)}</b>`,`${SAT('O')} lo aportan los espacios comunitarios (plazas, vivienda, renovación, centro). 6 es la línea base.`],
-   noise:[`Ruido = 56 + 10 × log10(1 + 4 × TI)${P?' − 3 × '+SAT('C'):''}`,`TI = 3 × camiones + autos = ${nf(st.TI,2)} → <b>${nf(st.noise,0)} dB(A)</b>`,`TI es el índice de tráfico: los camiones (que dependen del residuo de Corabastos${P?' y bajan con la valorización en origen':''}) pesan 3 veces un auto. ${P?'Los corredores verdes amortiguan el ruido. ':''}La norma residencial diurna en Colombia es 65 dB(A) (Res. 0627 de 2006). En el mapa, el calor sigue a los vehículos reales y crece donde frenan y se acumulan.`],
-   pm:[`PM2.5 = 23,3 + 11,1 × EI ÷ 2,125${P?' − 6 × '+SAT('C'):''}`,`EI = 0,925 × autos + 0,075 × 16 × camiones = ${nf(st.EI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`Fuente: Greenpeace, «Hacia un aire limpio en Bogotá» (datos RMCAB 2019–2020). 23,3 µg/m³ = fondo de la estación Kennedy; 11,1 µg/m³ = lo que suma el tráfico (estación Carvajal-Sevillana, en Kennedy, menos estación Kennedy). Un camión pesado diésel emite como 16 autos en material particulado (menos del 2 % de la flota produce ~25 % del PM). Los camiones dependen del residuo de Corabastos${P?'; las bio-factorías en origen los reducen':''}. Norma anual: 25 µg/m³ (Res. 2254 de 2017); guía OMS 2021: 5 µg/m³.`],
+   noise:[`Ruido = 56 + 10 × log10(1 + 4 × TI)${P?' − 3 × '+SAT('C'):''}`,`TI = 3 × camiones + autos = ${nf(st.TI,2)} → <b>${nf(st.noise,0)} dB(A)</b>`,`TI es el índice de tráfico: los camiones (que dependen del residuo de Corabastos${P?' y bajan con la valorización en origen':''}) pesan 3 veces un auto. ${P?'Los corredores verdes amortiguan el ruido. ':''}La norma residencial diurna en Colombia es 65 dB(A) (Res. 0627 de 2006). En el borde del humedal el ruido es 8 dB menor${P?' y los ecotonos lo bajan más':''}: por encima de 50 dB(A) la población máxima de tingua y colibríes baja hasta 35 %. En el mapa, el calor sigue a los vehículos reales y crece donde frenan y se acumulan.`],
+   pm:[`PM2.5 = 23,3 + 11,1 × EI ÷ 2,125${P?' − 6 × '+SAT('C'):''}`,`EI = 0,925 × autos + 0,075 × 16 × camiones = ${nf(st.EI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`Fuente: Greenpeace, «Hacia un aire limpio en Bogotá» (datos RMCAB 2019–2020). 23,3 µg/m³ = fondo de la estación Kennedy; 11,1 µg/m³ = lo que suma el tráfico (estación Carvajal-Sevillana, en Kennedy, menos estación Kennedy). Un camión pesado diésel emite como 16 autos en material particulado (menos del 2 % de la flota produce ~25 % del PM). Los camiones dependen del residuo de Corabastos${P?'; las bio-factorías en origen los reducen':''}. Norma anual: 25 µg/m³ (Res. 2254 de 2017); guía OMS 2021: 5 µg/m³. Efectos: por encima de 15 µg/m³ baja el capital social hasta 25 % (menos uso del espacio público)${P?' y cada µg/m³ menos suma ahorro en salud al SROI':''}; si supera 25 µg/m³ cuenta como umbral crítico.`],
    sroi:P?[`SROI = −0,5 + 6,4 × (0,40·D + 0,30·C + 0,30·So)`,`D = ${nf(clamp((st.food-3)/42),2)} · C = ${nf(clamp((st.conn-16)/70),2)} · So = ${nf(clamp((st.soc-6)/72),2)} → <b>${nf(st.sroi,1)}×</b>`,`D, C y So son descentralización, conectividad y capital social normalizados de 0 a 1 sobre su rango. Los pesos se fijaron para que la meta de 3,5× se alcance con los espacios candidatos.`]
           :[`SROI = −0,6 − 0,03 × t`,`= <b>${nf(st.sroi,1)}×</b>`,`Sin inversión social el retorno es negativo y empeora con los costos del deterioro.`]};
   const f=F[k];if(!f)return'';return `<div class="fxf">${f[0]}</div><div class="fxv">${f[1]}</div><p>${f[2]}</p><p class="fxs">${yr}. Pesos y coeficientes: supuestos del modelo, a calibrar.</p>`;}
@@ -1393,15 +1397,21 @@ const NODES=[
  {id:'cen',l:['Centralización','del abastecimiento'],x:215,y:520,k:'ex',v:a=>100-clamp((a.food-3)/42)*100,d:'Dependencia del abastecimiento en un solo punto, Corabastos.',sp:[]},
  {id:'pla',l:['Plazas de mercado','satélites'],x:430,y:520,k:'sp',v:a=>meanProg(x=>x.type==='plaza',S.t)*(S.scn==='pro'?100:0),d:'Nodos de abastecimiento descentralizados.',sp:['plaza_cora','plaza_osorio','plaza_bav']},
  {id:'dep',l:['Dependencia','del exterior'],x:600,y:585,k:'ex',v:a=>a.dep,d:'Alimento y recursos que vienen de afuera del territorio.',sp:[]},
+ {id:'cam',l:['Camiones','y congestión'],x:470,y:108,k:'ex',v:a=>clamp(a.trk)*100,d:'Camiones de carga y residuo que entran a Corabastos por la Av. Ciudad de Cali; hacen fila en puertas y semáforos.',sp:['k_cora']},
+ {id:'rui',l:['Ruido'],x:1085,y:150,k:'fl',v:a=>clamp((a.noise-50)/25)*100,d:'Ruido vial en dB(A). Ahuyenta a las aves y afecta a los vecinos. Norma residencial diurna 65 dB(A).',sp:[]},
+ {id:'air',l:['PM2.5'],x:1085,y:330,k:'fl',v:a=>clamp((a.pm-5)/35)*100,d:'Material particulado fino. Fondo de la estación Kennedy más el aporte del tráfico (Carvajal-Sevillana). Un camión ≈ 16 autos.',sp:[]},
+ {id:'ver',l:['Cobertura verde'],x:1085,y:500,k:'sp',v:a=>a.verde,d:'Corredores, ecotonos y arbolado que capturan partículas y amortiguan el ruido.',sp:['cra86','calle6','ecotono_s']},
  {id:'ci',l:['Centro de investigación,','transformación y acopio'],x:225,y:610,k:'sp',v:a=>a.centroP*100,d:'Centro agrícola de investigación, transformación y acopio.',sp:['centro_inv']}];
 const NID={};NODES.forEach(n=>NID[n.id]=n);
 const EDGES=[['res','pal',1],['pal','enf',1],['enf','fau',-1],['res','bio',1],['bio','res',-1],['par','bio',1],['bio','abo',1],['abo','huer',1],['huer','ali',1],['bio','ene',1],['ene','fac',-1],
  ['ali','com',1],['par','cot',1],['cot','cnv',1],['cnv','hum',1],['hum','fau',1],['cot','cop',1],['cop','esp',-1],['cop','dsp',-1],['esp','dsp',1],['esp','zon',1],['zon','hum',-1],
- ['pue','zon',-1],['pue','con',1],['con','fau',1],['ci','ali',1],['ci','dep',-1],['ci','pla',1],['pla','cen',-1]];
+ ['pue','zon',-1],['pue','con',1],['con','fau',1],['ci','ali',1],['ci','dep',-1],['ci','pla',1],['pla','cen',-1],
+ ['res','cam',1],['bio','cam',-1],['cam','rui',1],['cam','air',1],['rui','fau',-1],['air','par',-1],['ver','air',-1],['ver','rui',-1],['con','ver',1]];
 const LOOPS=[['B1','Residuos ⇄ biodigestores','más residuo alimenta a los biodigestores y estos lo reducen.'],
  ['R1','Residuos → palomas → enfermedades','el residuo expuesto atrae palomas, sube la enfermedad y cae la fauna nativa.'],
  ['R2','Participación → centros → suelo duro → humedal','la comunidad opera los centros, se libera suelo y crece el humedal y su fauna.'],
- ['B2','Cooperativa → especulación → zonas duras','la vivienda cooperativa frena la especulación, las zonas duras y el desplazamiento.']];
+ ['B2','Cooperativa → especulación → zonas duras','la vivienda cooperativa frena la especulación, las zonas duras y el desplazamiento.'],
+ ['B3','Biodigestores → camiones → ruido y aire','valorizar en origen saca camiones de las vías: baja el ruido que ahuyenta a la fauna y el PM2.5 que aleja a la gente del espacio público.']];
 let relSel=null;
 const NW=150,NH=46;
 function edgePath(a,b,sg){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
@@ -1409,7 +1419,7 @@ function edgePath(a,b,sg){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1,ux=
   const p0=cut(a,1),p1=cut(b,-1),off=(a.id<b.id?1:-1)*.16*L,mx=(p0[0]+p1[0])/2-uy*off,my=(p0[1]+p1[1])/2+ux*off;
   return {d:`M${p0[0].toFixed(1)} ${p0[1].toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${p1[0].toFixed(1)} ${p1[1].toFixed(1)}`,lx:.25*p0[0]+.5*mx+.25*p1[0],ly:.25*p0[1]+.5*my+.25*p1[1]};}
 function relSVG(){const a=at(S.scn,S.t),sel=relSel;const rel=new Set();if(sel)EDGES.forEach(([f,t])=>{if(f===sel||t===sel){rel.add(f);rel.add(t);}});
-  let h=`<svg viewBox="0 0 1010 650" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama causal dinámico entre espacios, condiciones existentes y agentes"><defs>
+  let h=`<svg viewBox="0 0 1170 650" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama causal dinámico entre espacios, condiciones existentes y agentes"><defs>
    <marker id="mP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7ee7b0"/></marker>
    <marker id="mN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffa24a"/></marker></defs>`;
   EDGES.forEach(([f,t,sg])=>{const A=NID[f],B=NID[t],e=edgePath(A,B,sg),on=sel&&(f===sel||t===sel),dim=sel&&!on;
@@ -1505,11 +1515,13 @@ function checkEvents(prev,now){if(S.scn!=='pro'||now<=prev)return;
 }
 /* ---------- umbrales críticos y GAME OVER (situación actual) ---------- */
 const THR=[
+ {id:'aire',n:'Aire no apto para la salud',f:(d)=>d.pm>25,v:d=>nf(d.pm,1)+' µg/m³ de PM2.5 (norma 25)',w:'Los camiones que mueven el residuo y el alimento de Corabastos, sumados al tráfico y a la congestión, superan la norma anual de PM2.5 (Res. 2254). Fuente de base: RMCAB, estaciones Kennedy y Carvajal-Sevillana.'},
  {id:'dis',n:'Plaga de palomas y foco sanitario',f:(d)=>d.dis>=.95,v:d=>Math.round(d.dis*100)+' % de presión sanitaria',w:'El residuo orgánico sin tratar de Corabastos alimenta a las palomas; su presión desplaza a las especies nativas y enferma el entorno.'},
  {id:'tin',n:'Extinción local de la tingua bogotana',f:(d)=>d.N.tingua<3,v:d=>Math.max(0,Math.round(d.N.tingua))+' individuos en el humedal',w:'La carga de residuo y la enfermedad reducen el hábitat del humedal; sin conexión con otros humedales la población no se recupera.'},
  {id:'esp',n:'Expulsión por especulación inmobiliaria',f:(d)=>d.spec>=75,v:d=>Math.round(d.spec)+' / 100 de presión especulativa',w:'Sin nodos locales ni círculos de custodia, el suelo se valoriza y el territorio se vende: los vecinos pierden la capacidad de decidir.'},
  {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=127,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
 const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
+const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
 const GO_N=3;let GO=null,GOP=null,MARKS={act:'',pro:''};
 function scanP(){const y={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;THRP.forEach(h=>{if(y[h.id]===undefined&&h.f(d))y[h.id]=t;if(y[h.id]!==undefined)n++;});if(n>=GO_N&&go===null)go=t;}
   GOP=go===null?null:{t:go,crit:THRP.filter(h=>y[h.id]!==undefined&&y[h.id]<=go+1e-6).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y)};
@@ -1529,19 +1541,23 @@ function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Mat
    ['Animal Aided Design','El diseño debe sostener el ciclo de vida de las especies objetivo.',[
      ['Tingua bogotana (especie objetivo)',Math.round(N.tingua)+' ind. ('+pc(N.tingua,N0.tingua)+')',N.tingua<3],
      ['Colibríes y halcón peregrino',Math.round(N.hum)+' colibríes · '+Math.round(N.falcon)+' halcones',N.hum<12||N.falcon<2],
-     ['Presión de palomas sobre nidos y alimento',Math.round(d.dis*100)+' %',d.dis>=.95]]],
+     ['Presión de palomas sobre nidos y alimento',Math.round(d.dis*100)+' %',d.dis>=.95],
+     ['Ruido junto a refugios y humedal',Math.round(d.noiseW)+' dB(A) (umbral 55)',d.noiseW>55]]],
    ['Ciudades biofílicas','La gente necesita contacto cotidiano con naturaleza conectada.',[
      ['Conectividad ecosistémica',Math.round(d.conn)+' / 100 (inicio '+Math.round(d0.conn)+')',d.conn<15],
-     ['Alimento local (nodos de cercanía)',Math.round(d.food)+' %',d.food<5]]],
+     ['Alimento local (nodos de cercanía)',Math.round(d.food)+' %',d.food<5],
+     ['Aire respirable en el espacio público',nf(d.pm,1)+' µg/m³ PM2.5 (norma 25)',d.pm>25]]],
    ['Cohabitabilidad multiespecie','Humanos y no humanos comparten el territorio sin desplazarse.',[
      ['Índice de cohabitabilidad',Math.round(d.cohab)+' / 100 (inicio '+Math.round(d0.cohab)+')',d.cohab<15],
      ...(scn==='pro'?[['Capital social',d.soc.toFixed(1).replace('.',',')+' / 100',d.soc<=4.5]]:[]),
      ['Desplazamiento de vecinos',Math.round(d.despl*100)+' %',d.despl>=.7],
-     ['Especulación inmobiliaria',Math.round(d.spec)+' / 100',d.spec>=75]]],
+     ['Especulación inmobiliaria',Math.round(d.spec)+' / 100',d.spec>=75],
+     ['Ruido en zonas residenciales',Math.round(d.noise)+' dB(A) (norma diurna 65)',d.noise>65]]],
    ['Ciudad esponja','El suelo y el humedal deben absorber agua y nutrientes.',[
      ['Superficie efectiva del humedal',Math.round(d.AH)+' % (inicio '+Math.round(d0.AH)+' %)',d.AH<25],
      ['Suelo duro / sellado',Math.round(d.zd*100)+' %',d.zd>=.6],
-     ['Residuo orgánico sin tratar',Math.round(d.untreated)+' t/día',d.untreated>=127]]]];
+     ['Residuo orgánico sin tratar',Math.round(d.untreated)+' t/día',d.untreated>=127],
+     ['Cobertura verde que capta partículas',Math.round(d.verde)+' % (meta 40)',d.verde<40]]]];
   return `<h3 class="gmh">${ok?'Criterios por macromodelo':'Criterios incumplidos por macromodelo'}</h3><div class="gmm">`+M.map(([n,p,c])=>{const f=c.filter(x=>x[2]).length;
     return `<div class="gm"><div class="gmt"><b>${n}</b><em style="${f?'':'color:var(--mint)'}">${f?f+'/'+c.length+' criterios fallan':'cumple '+c.length+'/'+c.length}</em></div><p>${p}</p>${c.map(([l,v,bad])=>`<div class="gmr${bad?' bad':''}"><span>${bad?'✕':'✓'} ${l}</span><span>${v}</span></div>`).join('')}</div>`;}).join('')+`</div>`;}
 function varDiff(){return VDEF.filter(v=>VKEYS.pro.includes(v[0])&&VARS.pro[v[0]]!==VAR0[v[0]]).map(v=>`${v[1]}: <b>${v[7](VARS.pro[v[0]])}</b> (base ${v[7](VAR0[v[0]])})`);}
