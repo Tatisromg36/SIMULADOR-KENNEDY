@@ -1,0 +1,36 @@
+{
+ "id": "P1",
+ "escenario": "Propuesta",
+ "nombre": "Línea base de la propuesta",
+ "hipotesis": "El masterplan con todas las variables en su valor base.",
+ "variables": {
+  "cars": 420,
+  "resC": 110,
+  "resD": 30,
+  "arr": 12.5,
+  "emisG": 1.2,
+  "maxVal": 85,
+  "capX": 100,
+  "inv": 100,
+  "spec": 100,
+  "soc": 100,
+  "imm": 100
+ },
+ "resultado": {
+  "game_over_anio": null,
+  "criterios": [],
+  "anio_20": {
+   "cohabitabilidad": 71.6,
+   "valorizacion_pct": 54.3,
+   "residuo_sin_tratar_t_dia": 62.4,
+   "tingua": 46.0,
+   "palomas": 37.5,
+   "enfermedades_pct": 42.0,
+   "especulacion": 54.0,
+   "capital_social": 28.7,
+   "pm25": 27.5,
+   "ruido_dB": 64.4,
+   "sroi": 3.05
+  }
+ }
+}

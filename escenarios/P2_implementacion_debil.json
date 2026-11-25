@@ -1,0 +1,36 @@
+{
+ "id": "P2",
+ "escenario": "Propuesta",
+ "nombre": "Implementación débil",
+ "hipotesis": "Las bio-factorías se construyen con menos capacidad (60 %), menos inversión (70 %) y tope de valorización de 60 %.",
+ "variables": {
+  "cars": 420,
+  "resC": 110,
+  "resD": 30,
+  "arr": 12.5,
+  "emisG": 1.2,
+  "maxVal": 60,
+  "capX": 60,
+  "inv": 70,
+  "spec": 100,
+  "soc": 100,
+  "imm": 100
+ },
+ "resultado": {
+  "game_over_anio": null,
+  "criterios": [],
+  "anio_20": {
+   "cohabitabilidad": 46.2,
+   "valorizacion_pct": 31.3,
+   "residuo_sin_tratar_t_dia": 93.6,
+   "tingua": 28.6,
+   "palomas": 60.8,
+   "enfermedades_pct": 64.2,
+   "especulacion": 62.1,
+   "capital_social": 22.5,
+   "pm25": 29.8,
+   "ruido_dB": 65.4,
+   "sroi": 2.18
+  }
+ }
+}

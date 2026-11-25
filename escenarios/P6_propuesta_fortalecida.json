@@ -1,0 +1,36 @@
+{
+ "id": "P6",
+ "escenario": "Propuesta",
+ "nombre": "Propuesta fortalecida",
+ "hipotesis": "Masterplan fortalecido: más capacidad (150 %), inversión (130 %), participación (150 %), tope de valorización 95 %, 250 autos y arrojo 5 %.",
+ "variables": {
+  "cars": 250,
+  "resC": 110,
+  "resD": 30,
+  "arr": 5,
+  "emisG": 1.2,
+  "maxVal": 95,
+  "capX": 150,
+  "inv": 130,
+  "spec": 100,
+  "soc": 150,
+  "imm": 100
+ },
+ "resultado": {
+  "game_over_anio": null,
+  "criterios": [],
+  "anio_20": {
+   "cohabitabilidad": 93.4,
+   "valorizacion_pct": 83.8,
+   "residuo_sin_tratar_t_dia": 22.1,
+   "tingua": 59.5,
+   "palomas": 14.4,
+   "enfermedades_pct": 18.7,
+   "especulacion": 48.2,
+   "capital_social": 49.2,
+   "pm25": 23.6,
+   "ruido_dB": 62.0,
+   "sroi": 3.95
+  }
+ }
+}

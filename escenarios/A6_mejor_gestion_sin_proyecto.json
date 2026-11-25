@@ -1,0 +1,40 @@
+{
+ "id": "A6",
+ "escenario": "Situación actual",
+ "nombre": "Mejor gestión sin proyecto",
+ "hipotesis": "Gestión mejorada sin masterplan: menos arrojo (3 %), menos residuo domiciliario, menos autos y crecimiento lento del residuo.",
+ "variables": {
+  "cars": 300,
+  "resC": 110,
+  "resD": 15,
+  "arr": 3,
+  "emisG": 0.5,
+  "maxVal": 85,
+  "capX": 100,
+  "inv": 100,
+  "spec": 100,
+  "soc": 100,
+  "imm": 150
+ },
+ "resultado": {
+  "game_over_anio": 11.4,
+  "criterios": [
+   "aire no apto (PM2.5 > 25)",
+   "tingua < 3 individuos",
+   "especulación ≥ 75"
+  ],
+  "anio_20": {
+   "cohabitabilidad": 5.1,
+   "valorizacion_pct": 0,
+   "residuo_sin_tratar_t_dia": 121.0,
+   "tingua": 0.7,
+   "palomas": 81.3,
+   "enfermedades_pct": 86.0,
+   "especulacion": 85,
+   "capital_social": 2.4,
+   "pm25": 33.6,
+   "ruido_dB": 67.2,
+   "sroi": -1.2
+  }
+ }
+}
