@@ -313,7 +313,7 @@ mcells.forEach((c,j)=>{cx[j]=g.x0+((c%NX)+.5)*CS; cy[j]=g.y0+(Math.floor(c/NX)+.
 /* ---------- modelo ---------- */
 const VAR0={resC:110,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
 const VAR=Object.assign({},VAR0);const VARS={act:Object.assign({},VAR0),pro:Object.assign({},VAR0)};
-const VKEYS={act:['resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0)};
+const VKEYS={act:['resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0).filter(k=>k!=='exec')};
 const CI=[];
 const KEYS=['ew','food','conn','cohab','spec','soc'];
 const KNAME={ew:'Residuos',food:'Alimentos',conn:'Conectividad',cohab:'Cohabitabilidad',spec:'Especulación',soc:'Capital social'};
@@ -337,10 +337,10 @@ const INT=D.inter; INT.forEach((o,i)=>{o.i=i;});
 const byId={}; INT.forEach(o=>byId[o.id]=o);
 const cap=o=>(cap0(o))*VAR.capX/100;
 const cap0=o=>o.capv||(o.id==='plaza_cora'?CAP.cora:o.id==='plaza_osorio'?CAP.osorio:o.id==='plaza_bav'?CAP.bav:o.id==='ecocirc'?CAP.eco:o.id==='centro_inv'?CAP.centro:0);
-/* la propuesta existe completa desde el año 0; lo que evoluciona es su funcionamiento (madurez) */
+/* la propuesta existe y funciona completa desde el año 0 */
 const MAT=o=>(Math.max(2,o.e-o.s)+1)/(VAR.exec/100);
-const prog=(o,t)=>sm(clamp(t/MAT(o)));
-const yrs=o=>'madura en '+Math.round(MAT(o))+' años';
+const prog=(o,t)=>1;/* sin maduración: cada espacio funciona al 100 % desde el año 0 */
+const yrs=o=>'En funcionamiento desde el año 0';
 // influencia estática por intervención e indicador
 function samples(pts,step=50){const out=[];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.max(2,Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])/step));for(let k=0;k<n;k++)out.push([lerp(a[0],b[0],k/n),lerp(a[1],b[1],k/n)]);}out.push(pts[pts.length-1]);return out;}
 function prep(o){
@@ -385,7 +385,11 @@ function drivers(scn,t){
   { const pr=scn==='pro', trk=clamp(E/130)*(1-.8*(pr?clamp(val/0.85):0)), car=pr?.85:1;
     o.TI=3*trk+car;
     o.noise=56+10*Math.log10(1+4*o.TI)-(pr?3*sC:0);
-    o.pm=12+5.5*o.TI-(pr?6*sC:0); }
+    /* Greenpeace (2021), con datos de la RMCAB y Pachón et al. (2018):
+       fondo = estación Kennedy (de fondo) 21,4–25,1 µg/m³ → 23,3; incremento por tráfico = Carvajal-Sevillana (tráfico, Kennedy) − Kennedy = 11,1 µg/m³ (2019).
+       Camiones: los pesados diésel pre-Euro son <2 % de la flota y emiten ~25 % del PM → cada camión ≈ 16 autos en PM.
+       Mezcla del año 0 cerca de Corabastos: 92,5 % autos, 7,5 % camiones. */
+    const EI=car*.925+(trk/.846)*.075*16;o.EI=EI;o.pm=23.3+11.1*EI/2.125-(pr?6*sC:0); }
   // relaciones del diagrama causal
   const pro=scn==='pro';
   o.cot=pro?meanProg(x=>x.type==='plaza'||x.type==='ecocirc',t):0;
@@ -445,7 +449,7 @@ const IND=[
  {k:'spec',g:'Comunidad y economía',n:'Presión especulativa',s:'Índice 0 a 100 · menor es mejor',u:'',lay:'spec',fmt:v=>v.toFixed(0),lower:true},
  {k:'soc',g:'Comunidad y economía',n:'Capital social',s:'Participación en asambleas y círculos',u:'',lay:'soc',fmt:v=>v.toFixed(0)},
  {k:'noise',g:'Ambiente',n:'Contaminación auditiva',s:'Ruido vial · norma residencial diurna 65 dB(A)',u:' dB',lay:'all',fmt:v=>v.toFixed(0),lower:true},
- {k:'pm',g:'Ambiente',n:'Calidad del aire',s:'PM2.5 por tráfico · norma anual 25 µg/m³',u:' µg/m³',lay:'all',fmt:v=>v.toFixed(0),lower:true},
+ {k:'pm',g:'Ambiente',n:'Calidad del aire',s:'PM2.5 · RMCAB Kennedy y Carvajal · norma 25 µg/m³',u:' µg/m³',lay:'all',fmt:v=>v.toFixed(0),lower:true},
  {k:'sroi',g:'Comunidad y economía',n:'Retorno social de la inversión',s:'SROI · meta mayor a 3,5×',u:'×',lay:'all',fmt:v=>v.toFixed(1).replace('.',',')},
 ];
 const other=()=>S.scn==='pro'?'act':'pro';
@@ -1053,10 +1057,10 @@ const NOISE_RAMP=[[0,0,0,0],[.35,.85,.35,.0],[.95,.85,.25,.55],[.98,.45,.15,.75]
 function envUpdate(dt,st,sz){envInit();const em=ENV.em,dec=Math.exp(-dt/6),air=clamp(st.pm/30,0,2),pro=S.scn==='pro',trk=clamp(st.E/130)*(1-.8*(pro?clamp(st.val/0.85):0)),carR=pro?.85:1,green=pro?st.sC:0;
   for(let i=0;i<em.length;i++)em[i]*=dec;
   const pos=ENV.P.geometry.attributes.position.array,col=ENV.P.geometry.attributes.color.array;
-  for(const k of ['car','truck']){const W=VH[k];if(!W.cx)continue;const w=k==='truck'?4:1,ep=k==='truck'?5:1;
+  for(const k of ['car','truck']){const W=VH[k];if(!W.cx)continue;const w=k==='truck'?4:1,ep=k==='truck'?16:1;
     for(let i=0;i<W.n;i++){if(!W.on[i])continue;const x=W.cx[i],y=W.cy[i],ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);
       const idle=1+1.5*(1-W.br[i]);if(ix>=0&&iy>=0&&ix<NX&&iy<NY)em[iy*NX+ix]+=w*idle*dt;
-      if(ENV.on.a){let n=ep*idle*air*dt*.9;while(n>0){if(Math.random()<n){const j=ENV.pi=(ENV.pi+1)%ENV.np;pos[j*3]=x+(Math.random()-.5)*sz;pos[j*3+1]=gh(x,-y)+2+Math.random()*2;pos[j*3+2]=-y+(Math.random()-.5)*sz;
+      if(ENV.on.a){let n=ep*idle*air*dt*.45;while(n>0){if(Math.random()<n){const j=ENV.pi=(ENV.pi+1)%ENV.np;pos[j*3]=x+(Math.random()-.5)*sz;pos[j*3+1]=gh(x,-y)+2+Math.random()*2;pos[j*3+2]=-y+(Math.random()-.5)*sz;
         ENV.vel[j*3]=1.5+Math.random()*2;ENV.vel[j*3+1]=2.5+Math.random()*2.5;ENV.vel[j*3+2]=-.5+Math.random();ENV.life[j]=1;}n-=1;}}}}
   if(ENV.on.a){if(!ENV.cdf){const w=new Float32Array(NX*NY);let t=0;for(let c=0;c<w.length;c++){t+=MASK[c]?ENV.RW[c]+3*ENV.TK[c]:0;w[c]=t;}ENV.cdf=w;}
     const cdf=ENV.cdf,T=cdf[cdf.length-1];let n=dt*70*air*(carR+trk*1.5)/2;
@@ -1278,12 +1282,12 @@ $$('.tabs button[data-tab]').forEach(b=>b.addEventListener('click',()=>{setTab(b
 const fmtYear=t=>2026+Math.floor(t);
 const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
 function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años`;
-  const SAT=x=>`<b>S<sub>${x}</sub></b>`,satNote=`${'<i>S</i>'} = parte de la necesidad del territorio (mapa de 100 m) que cubren las intervenciones: cada espacio aporta según su distancia (campana de influencia), su madurez y la inversión.`;
+  const SAT=x=>`<b>S<sub>${x}</sub></b>`,satNote=`${'<i>S</i>'} = parte de la necesidad del territorio (mapa de 100 m) que cubren las intervenciones: cada espacio aporta según su distancia (campana de influencia) y la inversión.`;
   const F={
    conn:P?[`Conectividad = 16 + 70 × ${SAT('C')}`,`= 16 + 70 × ${nf(st.sC,2)} = <b>${nf(st.conn,0)}</b>`,`16 es la línea base de hoy. ${SAT('C')} lo aportan corredores, puentes y ecotonos. ${satNote}`]
           :[`Conectividad = máx(6; 16 − 0,32 × t)`,`= máx(6; 16 − 0,32 × ${nf(t)}) = <b>${nf(st.conn,0)}</b>`,`Sin intervenciones, la fragmentación avanza 0,32 puntos por año hasta un piso de 6.`],
    cohab:[`Cohabitabilidad = 100 × (0,35·T/60 + 0,20·H/15 + 0,25·C/80 + 0,20·(1 − P/100))`,`T=${nf(st.N.tingua,0)} tinguas · H=${nf(st.N.falcon,0)} halcones · C=${nf(st.N.hum,0)} colibríes · P=${nf(st.N.pigeon,0)} palomas → <b>${nf(st.cohab,0)}</b>`,`Cada especie se divide por su población tope. Las palomas restan: más palomas, menos cohabitabilidad. Las poblaciones salen del modelo de fauna (abajo).`],
-   val:P?[`Valorización = B ÷ E`,`B = ${nf(st.B,0)} t/día valorizadas · E = ${nf(st.E,0)} t/día de residuo → <b>${nf(st.val*100,0)} %</b>`,`E = residuo de Corabastos × (1 + crecimiento × t). B = suma de la capacidad de cada bio-factoría × su madurez × capacidad (%) × (0,8 + 0,4·${SAT('O')}), con tope en el % valorizable de E. Sin tratar = E − B = ${nf(st.untreated,0)} t/día.`]
+   val:P?[`Valorización = B ÷ E`,`B = ${nf(st.B,0)} t/día valorizadas · E = ${nf(st.E,0)} t/día de residuo → <b>${nf(st.val*100,0)} %</b>`,`E = residuo de Corabastos × (1 + crecimiento × t). B = suma de la capacidad de cada bio-factoría × capacidad (%) × (0,8 + 0,4·${SAT('O')}), con tope en el % valorizable de E. Sin tratar = E − B = ${nf(st.untreated,0)} t/día.`]
           :[`Valorización = 0`,`E = ${nf(st.E,0)} t/día, todo sin tratar → <b>0 %</b>`,`En la situación actual no hay bio-factorías: el metabolismo es lineal. E = residuo de Corabastos × (1 + crecimiento × t).`],
    food:P?[`Descentralización = 3 + 42 × ${SAT('F')} + 7 × huertas`,`= 3 + 42 × ${nf(st.sF,2)} + 7 × ${nf(st.huertas,2)} = <b>${nf(st.food,0)} %</b>`,`${SAT('F')} lo aportan plazas satélite, ecocircuitos y el centro. Huertas = mín(1; abono ÷ 25), con abono = 0,55 × B (residuo valorizado que vuelve como compost).`]
           :[`Descentralización = máx(1,5; 3 − 0,05 × t)`,`= <b>${nf(st.food,0)} %</b>`,`Hoy casi todo el alimento pasa por Corabastos; sin nodos locales la concentración aumenta.`],
@@ -1291,7 +1295,7 @@ function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años
           :[`Especulación = mín(95; 62 + 1,15 × t × presión%)`,`= <b>${nf(st.spec,0)}</b>`,`Sin custodia del suelo, la presión crece cada año según la variable de presión inmobiliaria externa.`],
    soc:[`Capital social = mín(100; 6 + 72 × ${SAT('O')} × participación%)`,`= 6 + 72 × ${nf(st.sO,2)} × ${VAR.soc} % = <b>${nf(st.soc,0)}</b>`,`${SAT('O')} lo aportan los espacios comunitarios (plazas, vivienda, renovación, centro). 6 es la línea base.`],
    noise:[`Ruido = 56 + 10 × log10(1 + 4 × TI)${P?' − 3 × '+SAT('C'):''}`,`TI = 3 × camiones + autos = ${nf(st.TI,2)} → <b>${nf(st.noise,0)} dB(A)</b>`,`TI es el índice de tráfico: los camiones (que dependen del residuo de Corabastos${P?' y bajan con la valorización en origen':''}) pesan 3 veces un auto. ${P?'Los corredores verdes amortiguan el ruido. ':''}La norma residencial diurna en Colombia es 65 dB(A) (Res. 0627 de 2006). En el mapa, el calor sigue a los vehículos reales y crece donde frenan y se acumulan.`],
-   pm:[`PM2.5 = 12 + 5,5 × TI${P?' − 6 × '+SAT('C'):''}`,`TI = ${nf(st.TI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`12 µg/m³ es el fondo urbano sin tráfico local (supuesto). Cada vehículo emite partículas azules; un camión frenado o en fila emite más. La norma anual colombiana es 25 µg/m³ (Res. 2254 de 2017).`],
+   pm:[`PM2.5 = 23,3 + 11,1 × EI ÷ 2,125${P?' − 6 × '+SAT('C'):''}`,`EI = 0,925 × autos + 0,075 × 16 × camiones = ${nf(st.EI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`Fuente: Greenpeace, «Hacia un aire limpio en Bogotá» (datos RMCAB 2019–2020). 23,3 µg/m³ = fondo de la estación Kennedy; 11,1 µg/m³ = lo que suma el tráfico (estación Carvajal-Sevillana, en Kennedy, menos estación Kennedy). Un camión pesado diésel emite como 16 autos en material particulado (menos del 2 % de la flota produce ~25 % del PM). Los camiones dependen del residuo de Corabastos${P?'; las bio-factorías en origen los reducen':''}. Norma anual: 25 µg/m³ (Res. 2254 de 2017); guía OMS 2021: 5 µg/m³.`],
    sroi:P?[`SROI = −0,5 + 6,4 × (0,40·D + 0,30·C + 0,30·So)`,`D = ${nf(clamp((st.food-3)/42),2)} · C = ${nf(clamp((st.conn-16)/70),2)} · So = ${nf(clamp((st.soc-6)/72),2)} → <b>${nf(st.sroi,1)}×</b>`,`D, C y So son descentralización, conectividad y capital social normalizados de 0 a 1 sobre su rango. Los pesos se fijaron para que la meta de 3,5× se alcance con los espacios candidatos.`]
           :[`SROI = −0,6 − 0,03 × t`,`= <b>${nf(st.sroi,1)}×</b>`,`Sin inversión social el retorno es negativo y empeora con los costos del deterioro.`]};
   const f=F[k];if(!f)return'';return `<div class="fxf">${f[0]}</div><div class="fxv">${f[1]}</div><p>${f[2]}</p><p class="fxs">${yr}. Pesos y coeficientes: supuestos del modelo, a calibrar.</p>`;}
@@ -1329,7 +1333,6 @@ const VDEF=[
  ['maxVal','Residuo que se puede valorizar en origen',40,100,5,'%','Tope de la biomasa que pueden procesar los nodos (base 85%).',v=>v+' %'],
  ['capX','Capacidad de las bio-factorías',50,200,10,'%','Toneladas por día que procesa cada nodo (base 100%).',v=>v+' %'],
  ['inv','Inversión / alcance de las intervenciones',50,150,5,'%','Qué tanto necesidad resuelve cada espacio construido (base 100%).',v=>v+' %'],
- ['exec','Velocidad de apropiación y maduración',50,200,10,'%','Todo el masterplan existe desde el año 0. Menos de 100% hace que los espacios tarden más en funcionar plenamente.',v=>(v/100).toFixed(1).replace('.',',')+'×'],
  ['spec','Presión inmobiliaria externa',50,200,10,'%','Qué tan rápido sube el precio del suelo sin intervención (base 100%).',v=>v+' %'],
  ['soc','Participación comunitaria',50,200,10,'%','Qué tanto se convierten los espacios en capital social (base 100%).',v=>v+' %'],
  ['resD','Residuo orgánico domiciliario (fuera de Corabastos)',0,80,2,'t/día','Bolsas en esquinas y postes alrededor del mercado. Atrae palomas y aumenta la presión sanitaria (base 30 t/día, supuesto).',v=>v+' t/día'],
@@ -1471,7 +1474,7 @@ function select(id,fly,quiet){
     h=`<h2>${it.what}</h2><div class="st"><span class="chip">Candidato</span><span class="chip">Necesidad ${Math.round(it.score*100)}%</span></div><p>${why}</p><h3>Mejora</h3><div class="fx">${Object.keys(WT[it.o.type]||{}).map(k=>`<span>${KNAME[k]}</span>`).join('')}</div><p class="note">Propuesta derivada del indicador de ${it.ind.toLowerCase()} sobre la capa de edificios. No está en el plano del masterplan. Actívala en la pestaña Masterplan para sumarla al escenario.</p>`;}
   else{co.className='';const f=prog(it,S.t),fx=Object.keys(WT[it.type]||{}).map(k=>KNAME[k]);
     co.innerHTML=`<b>${it.name.split(' · ')[0]}</b><span>${it.name.includes(' · ')?it.name.split(' · ')[1]:DESC[it.type].split(':')[0]}</span>`;
-    h=`<h2>${it.name}</h2><div class="st"><span class="chip">${yrs(it)}</span><span class="chip">${S.scn==='pro'?Math.round(f*100)+'% de madurez':'Solo en propuesta'}</span></div><p>${DESC[it.type]}</p><h3>Mejora</h3><div class="fx">${fx.map(x=>`<span>${x}</span>`).join('')}</div>${cap(it)?`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`:''}<p class="note">Ubicación tomada del plano del masterplan, de forma aproximada.</p>`;}
+    h=`<h2>${it.name}</h2><div class="st"><span class="chip">${yrs(it)}</span><span class="chip">${S.scn==='pro'?'En funcionamiento':'Solo en propuesta'}</span></div><p>${DESC[it.type]}</p><h3>Mejora</h3><div class="fx">${fx.map(x=>`<span>${x}</span>`).join('')}</div>${cap(it)?`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`:''}<p class="note">Ubicación tomada del plano del masterplan, de forma aproximada.</p>`;}
   fi.innerHTML=h;if(!quiet){setTab('fi');$('#panel').classList.remove('min');}
   if(fly)flyTo(it.x,it.y,it.r>0?clamp(it.r*4.2,650,1300):1500);
 }
@@ -1499,7 +1502,7 @@ function showEvent(o,kind){const el=$('#evt');el.hidden=false;el.innerHTML=`<spa
 }
 function checkEvents(prev,now){if(S.scn!=='pro'||now<=prev)return;
   const all=INT.concat(S.adopt?CI:[]);
-  for(const o of all){const ke=MAT(o);if(ke>prev&&ke<=now&&ke<=20){showEvent(o,'alcanza su madurez');return;}}}
+}
 /* ---------- umbrales críticos y GAME OVER (situación actual) ---------- */
 const THR=[
  {id:'dis',n:'Plaga de palomas y foco sanitario',f:(d)=>d.dis>=.95,v:d=>Math.round(d.dis*100)+' % de presión sanitaria',w:'El residuo orgánico sin tratar de Corabastos alimenta a las palomas; su presión desplaza a las especies nativas y enferma el entorno.'},

@@ -1,3 +1,17 @@
-{"escenario":"Propuesta","semilla":7,"horizonte_anios":20,
- "variables":{"resC":110,"emisG":1.2,"resD":30,"maxVal":85,"capX":100,"inv":100,"exec":100,"spec":100,"soc":100,"imm":100},
- "resultado_esperado":"No alcanzado hasta el año 20 (Sostenible): 54 % valorizado, 45 tinguas"}
+{
+ "escenario": "Propuesta",
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "variables": {
+  "resC": 110,
+  "emisG": 1.2,
+  "resD": 30,
+  "maxVal": 85,
+  "capX": 100,
+  "inv": 100,
+  "spec": 100,
+  "soc": 100,
+  "imm": 100
+ },
+ "resultado_esperado": "Sostenible: no alcanzado hasta el año 20. Masterplan en funcionamiento desde el año 0."
+}
