@@ -265,7 +265,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 <div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><label><input type="checkbox" id="tgO"> <i class="dotb" style="background:#ff5fa8"></i> Avistamientos de aves (iNaturalist)</label><small id="avS" style="display:block;margin:-2px 0 6px 22px">cian tingua · rosa colibríes · ámbar halcones · lila paloma · gris otras aves</small><small id="envS"></small><div class="live"><b>Tráfico en tiempo real (TomTom)</b><div class="lrow"><input id="liveK" type="password" placeholder="Pega tu clave de TomTom" autocomplete="off"><button id="liveB">Activar</button></div><small id="liveS">Desactivado. Funciona en la versión de GitHub Pages.</small></div></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
 
 <div id="evt" hidden></div>
-<div id="vig"></div><div id="thr" hidden></div><div id="thrL" class="thrl ok" aria-live="polite"></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
+<div id="vig"></div><div id="thr" hidden></div><div id="thrL" class="thrl ok" aria-live="polite" style="display:none"></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
 <div id="relModal" hidden><div class="rmBox"><button id="rmClose" aria-label="Cerrar">✕</button><div id="rmBody"></div></div></div>
 <div id="time">
   <button id="play" aria-label="Reproducir">▶</button>
@@ -1497,7 +1497,7 @@ const PARES=[['1','Línea base','Todo en valores base',{}],['2','Corabastos crec
 const PRUEBAS=[['P-a','Implementación débil','Capacidad 60 %, inversión 70 %, tope 60 %',{capX:60,inv:70,maxVal:60}],['P-b','Comunidad que no se apropia','Participación 50 %, especulación 160 %',{soc:50,spec:160}],['P-c','Propuesta fortalecida','Capacidad 150 %, inversión 130 %, participación 150 %, tope 95 %, 250 autos, arrojo 5 %',{capX:150,inv:130,soc:150,maxVal:95,cars:250,arr:5}],['P-d','Estrés externo','Residuo 140 t/día y 3 %/año, especulación 200 %',{resC:140,emisG:3,spec:200}]];
 function applyPar(id){const p=PARES.find(q=>q[0]===id),q=PRUEBAS.find(x=>x[0]===id);
   if(p){VARS.act=Object.assign({},VAR0,p[3]);VARS.pro=Object.assign({},VAR0,p[3]);}else if(q){VARS.act=Object.assign({},VAR0);VARS.pro=Object.assign({},VAR0,q[3]);}else{VARS.act=Object.assign({},VAR0);VARS.pro=Object.assign({},VAR0);}
-  S.par=id||null;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){const x=p||q;tg.hidden=!x;tg.textContent=x?(p?'Par '+x[0]+' · ':'Prueba · ')+x[1]:'';}
+  S.par=id||null;S.seenT=undefined;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){const x=p||q;tg.hidden=!x;tg.textContent=x?(p?'Par '+x[0]+' · ':'Prueba · ')+x[1]:'';}
   recompute();renderVar();}
 let rcT=0;function scheduleRecompute(){clearTimeout(rcT);rcT=setTimeout(recompute,90);}
 function recompute(){buildSeries();goCompute();thrBadge();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
@@ -1620,16 +1620,16 @@ function select(id,fly,quiet){
   fi.innerHTML=h;if(!quiet){setTab('fi');$('#panel').classList.remove('min');}
   if(fly)flyTo(it.x,it.y,it.r>0?clamp(it.r*4.2,650,1300):1500);
 }
-function phaseLabel(){const t=S.t;return S.scn==='act'?('Tendencial'+(GO?' · '+THR.filter(h=>h.y!==null&&h.y<=t).length+'/'+THR.length+' umbrales':'')):(t<5?'Corto plazo':t<12?'Mediano plazo':'Largo plazo')+(GOP?' · '+GOP.crit.filter(h=>h.y<=t).length+'/'+THRP.length+' umbrales':' · sostenible');}
+function phaseLabel(){const t=S.t,lim=thrSeen(),n=thrCross().filter(h=>h.y<=lim+1e-6).length;return (S.scn==='act'?'Tendencial':(t<5?'Corto plazo':t<12?'Mediano plazo':'Largo plazo'))+(lim>=0?' · '+n+'/'+GO_N+' umbrales':'');}
 function setT(t,fromUser){const prevT=S.t;const G=S.scn==='pro'?GOP:GO;if(G&&!S.goSeen&&t>=G.t&&prevT<G.t+1e-6){t=G.t;S.playing=false;$('#play').textContent='▶';setTimeout(()=>showGO(S.scn),60);}
   else if(S.scn==='pro'&&!GOP&&!S.susSeen&&t>=19.999&&prevT<19.999&&S.playing){S.susSeen=true;setTimeout(showSUS,60);}S.t=clamp(t,0,20);goTick(prevT);if(S.playing)checkEvents(prevT,S.t);$('#yr').value=S.t;$('#yv').textContent='Año '+Math.round(S.t);$('#yc').textContent=fmtYear(S.t);$('#phase').textContent=phaseLabel();applyState();const nw=performance.now();if(!S.playing||nw-lastUI>220){lastUI=nw;renderInd();renderRel();if(S.tab==='mp')renderMP();}}
 let lastUI=0;
-function setScn(s){S.scn=s;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);
+function setScn(s){S.scn=s;S.seenT=undefined;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);
   lastKey='';applyState(true);legend();renderInd();renderMP();renderVar();renderRel();$('#phase').textContent=phaseLabel();}
 $('#bAct').addEventListener('click',()=>setScn('act'));
 $('#bChg').addEventListener('click',()=>{S.chg=!S.chg;$('#bChg').setAttribute('aria-pressed',S.chg);if(S.chg){S.envPrev=[ENV.on.n,ENV.on.a];ENV.on.n=false;ENV.on.a=false;}else if(S.envPrev){[ENV.on.n,ENV.on.a]=S.envPrev;}{const n=$('#tgN'),q=$('#tgA');if(n)n.checked=ENV.on.n;if(q)q.checked=ENV.on.a;}lastKey='';applyState(true);legend();});$('#bPro').addEventListener('click',()=>setScn('pro'));
 $('#yr').addEventListener('input',e=>{S.playing=false;$('#play').textContent='▶';setT(+e.target.value);});
-$('#play').addEventListener('click',()=>{if(S.t>=20)setT(0);S.playing=!S.playing;$('#play').textContent=S.playing?'❚❚':'▶';$('#play').setAttribute('aria-label',S.playing?'Pausar':'Reproducir');});
+$('#play').addEventListener('click',()=>{if(S.t>=20){S.seenT=undefined;setT(0);}S.playing=!S.playing;if(S.playing){S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,S.t);goTick(-1);$('#phase').textContent=phaseLabel();}$('#play').textContent=S.playing?'❚❚':'▶';$('#play').setAttribute('aria-label',S.playing?'Pausar':'Reproducir');});
 $('#spd').addEventListener('click',()=>{S.speed=S.speed===1?2:S.speed===2?4:1;$('#spd').textContent=S.speed+'×';});
 $('#rotL').addEventListener('click',()=>rot(-1));$('#rotR').addEventListener('click',()=>rot(1));
 $('#zIn').addEventListener('click',()=>{V.H=clamp(V.H/1.4,120,9500);});$('#zOut').addEventListener('click',()=>{V.H=clamp(V.H*1.4,120,9500);});
@@ -1664,14 +1664,17 @@ function goCompute(){scanP();THR.forEach(h=>{h.y=null;});let go=null;
   for(let t=0;t<=20.001;t+=.05){const d=at('act',Math.min(20,t));let n=0;THR.forEach(h=>{if(h.f(d)){if(h.y===null)h.y=t;}if(h.y!==null)n++;});if(n>=GO_N&&go===null)go=t;}
   GO=go===null?null:{t:go,crit:THR.filter(h=>h.y!==null&&h.y<=go+1e-6).sort((a,b)=>a.y-b.y)};
   MARKS.act=THR.filter(h=>h.y!==null).map(h=>`<i style="left:${h.y/20*100}%" title="${h.n}"></i>`).join('')+(GO?`<i class="big" style="left:${GO.t/20*100}%" title="Game over"></i>`:'');
-  const m=$('#goMarks');if(m)m.innerHTML=MARKS[S.scn]||'';const G=S.scn==='pro'?GOP:GO;
+  const m=$('#goMarks');if(m)m.dataset.s='';const G=S.scn==='pro'?GOP:GO;
   document.body.classList.toggle('collapse',!!(G&&S.t>=G.t));}
 let thrT=0;
-function thrBadge(){const e=$('#thrL');if(!e)return;const t=S.t,P=S.scn==='pro',L=(P?PCROSS:THR.filter(h=>h.y!==null)).filter(h=>h.y<=t+1e-6).sort((a,b)=>a.y-b.y),n=L.length;
+/* los umbrales solo se muestran a medida que la simulación corre: hasta el año más lejano alcanzado con play */
+function thrSeen(){return S.seenT===undefined?-1:Math.min(S.t,S.seenT);}
+function thrCross(){return S.scn==='pro'?PCROSS:THR.filter(h=>h.y!==null);}
+function thrBadge(){const e=$('#thrL');if(!e)return;const lim=thrSeen();e.style.display=lim<0?'none':'';if(lim<0)return;const t=lim,P=S.scn==='pro',L=(P?PCROSS:THR.filter(h=>h.y!==null)).filter(h=>h.y<=t+1e-6).sort((a,b)=>a.y-b.y),n=L.length;
   const st=n>=GO_N?'gameover':n===2?'colapso':n===1?'alerta':'ok';const k=st+n+L.map(h=>h.id).join()+Math.round(t);if(e.dataset.k===k)return;e.dataset.k=k;e.className='thrl '+st;
   e.innerHTML=n?`<b>${n>=GO_N?'Game over':n===2?'Colapso localizado':'Alerta'} · ${n}/${GO_N} umbrales</b>`+L.map(h=>`<span>⚠ ${h.n} <em>año ${(Math.round(h.y*10)/10).toString().replace('.',',')}</em></span>`).join(''):'<b>Sin umbrales cruzados</b>';}
-function goTick(prev){thrBadge();const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;if(gm.dataset.s!==S.scn+(P?MARKS.pro:MARKS.act).length){gm.innerHTML=MARKS[S.scn]||'';gm.dataset.s=S.scn+(P?MARKS.pro:MARKS.act).length;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
-  if(prev<0||t<=prev||!S.playing)return;const h=P?PCROSS.find(h=>h.y>prev&&h.y<=t):THR.find(h=>h.y!==null&&h.y>prev&&h.y<=t);
+function goTick(prev){if(S.playing)S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,S.t);thrBadge();const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;const lim=thrSeen(),L=thrCross().filter(h=>h.y<=lim+1e-6),ms=L.map(h=>`<i style="left:${h.y/20*100}%" title="${h.n}"></i>`).join('')+(G&&lim>=G.t-1e-6?`<i class="big" style="left:${G.t/20*100}%" title="Game over"></i>`:''),k=S.scn+ms.length;if(gm.dataset.s!==k){gm.innerHTML=ms;gm.dataset.s=k;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
+  if(prev<0||t<=prev||!S.playing)return;const hit=h=>h.y!==null&&h.y<=t&&(h.y>prev||(prev<=1e-6&&h.y<=1e-6)),h=P?PCROSS.find(hit):THR.find(hit);
   if(h&&(!G||h.y<=G.t)){const e=$('#thr');e.textContent='⚠ Umbral crítico: '+h.n;e.hidden=false;clearTimeout(thrT);thrT=setTimeout(()=>{e.hidden=true;},4200);}}
 function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Math.round((a/b-1)*100)+' %';
   const M=[
