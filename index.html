@@ -34,7 +34,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pin.g-crit{background:var(--pink);color:#fff}
 .tag{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;font:italic 400 12px/1 var(--ui);
   color:rgba(255,255,255,.72);text-shadow:0 1px 3px rgba(10,8,40,.9);white-space:nowrap;letter-spacing:.02em}
-.tag.wf{font:700 11.5px/1.2 var(--ui);font-style:normal;padding:4px 8px;border-radius:3px;color:#1a1238;text-shadow:none;transition:opacity .2s}
+.tag.wf{font:700 10px/1.2 var(--ui);font-style:normal;width:12px;height:12px;padding:0;border-radius:50%;color:#1a1238;text-shadow:none;transition:opacity .2s;pointer-events:auto;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(10,8,40,.6);overflow:hidden;white-space:nowrap}
+.tag.wf.open{width:auto;height:auto;padding:3px 7px;border-radius:3px;z-index:3;border-width:1px}.tag.wf:focus-visible{outline:2px solid var(--mint)}
 .tag.wf.in{background:#ffd166}.tag.wf.rel{background:#ff8a1c}.tag.wf.hum{background:#a8682a;color:#fff}.tag.wf.val{background:#58e0a0}.tag.wf.dom{background:#e8e6f5}
 .wfb{display:block!important}.wfbar{display:flex;height:14px;border-radius:3px;overflow:hidden;margin:10px 0 8px;background:rgba(255,255,255,.08)}.wfbar i{display:block;height:100%;transition:width .3s}
 .wfl{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2)}.wfl i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}.wfl b{color:var(--ink)}
@@ -997,7 +998,9 @@ function animWF(dt,st){wfInit();const pro=S.scn==='pro',b=wfBal(st),px=clamp(2*V
       _cm.compose(_cp.set(x-dy/l*o,gh(x,-y)+k*.8+(f.key==='val'?Math.sin(q.s*Math.PI)*px*25:0),-(y+dx/l*o)),_cq.identity(),_cs.set(k,k,k));f.m.setMatrixAt(i,_cm);}
     f.m.instanceMatrix.needsUpdate=true;}}
 /* etiquetas con t/día sobre el mapa */
-function wfLabels(st){if(!WF.lab.length&&typeof pinsEl!=='undefined'){const add=(id,x,y,cls)=>{const e=document.createElement('div');e.className='tag wf '+cls;pinsEl.appendChild(e);WF.lab.push({id,e,x,y});};
+function wfLabels(st){if(!WF.lab.length&&typeof pinsEl!=='undefined'){const add=(id,x,y,cls)=>{const e=document.createElement('div');e.className='tag wf '+cls;e.setAttribute('role','button');e.tabIndex=0;pinsEl.appendChild(e);const l={id,e,x,y,t:''};WF.lab.push(l);
+      const tg=ev=>{ev.stopPropagation();ev.preventDefault();e.classList.toggle('open');e.textContent=e.classList.contains('open')?l.t:'';};
+      e.addEventListener('pointerdown',ev=>ev.stopPropagation());e.addEventListener('click',tg);e.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' ')tg(ev);});};
     const g=id=>GATES.find(q=>q.id===id);const p1=g('P1'),p7=g('P7'),p2=g('P2'),es=ENT.find(e=>e.id==='Cali S')||ENT[0];
     if(p1)add('in1',p1.x+170,p1.y+40,'in');
     if(es)add('rel',es.x+40,es.y+120,'rel');
@@ -1006,8 +1009,8 @@ function wfLabels(st){if(!WF.lab.length&&typeof pinsEl!=='undefined'){const add=
     const ci=INT.find(o=>o.id==='centro_inv');if(ci)add('val',ci.x,ci.y-90,'val');}
   if(!WF.lab.length)return;const b=wfBal(st),r=v=>Math.round(v),pro=S.scn==='pro',now=performance.now();
   if(!WF.lt||now-WF.lt>400){WF.lt=now;const T={in1:`Entra por las puertas 1 y 7 · ${r(b.cora)} t/día`,rel:`Al relleno Doña Juana · ${r(b.rel)} t/día`,hum:`Al humedal La Vaca · ${(Math.round(b.hum*10)/10).toString().replace('.',',')} t/día`,dom:`Residuo domiciliario · ${r(b.dom)} t/día`,val:`A valorización · ${r(b.val)} t/día`};
-    WF.lab.forEach(l=>{const t=T[l.id];if(l.e.textContent!==t)l.e.textContent=t;l.hide=(l.id==='val'&&!pro);});}
-  WF.lab.forEach(l=>{const [x,y]=proj(l.x,l.y,30);l.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;l.e.style.opacity=!l.hide&&S.wf!==false&&V.H<7000?1:0;});}
+    WF.lab.forEach(l=>{const t=T[l.id];l.t=t;if(l.e.title!==t){l.e.title=t;l.e.setAttribute('aria-label',t);}const want=l.e.classList.contains('open')?t:'';if(l.e.textContent!==want)l.e.textContent=want;l.hide=(l.id==='val'&&!pro);});}
+  WF.lab.forEach(l=>{const [x,y]=proj(l.x,l.y,30);l.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;const vis=!l.hide&&V.H<7000;l.e.style.opacity=vis?1:0;l.e.style.pointerEvents=vis?'auto':'none';});}
 /* barra de balance en el panel */
 function wfBar(st){const b=wfBal(st),T=b.val+b.rel+b.hum||1,r=v=>Math.round(v),pc=v=>(100*v/T).toFixed(1);
   return `<div class="card wfb"><span class="nm">¿A dónde va el residuo orgánico?<small>Entran ${r(b.ent)} t/día: ${r(b.cora)} de Corabastos y ${r(b.dom)} de los hogares</small></span>
