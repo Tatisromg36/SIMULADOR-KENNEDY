@@ -209,6 +209,10 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 #go .gchain{font-size:13px;color:var(--ink2);margin:12px 0;padding:10px 12px;background:rgba(255,255,255,.06);border-radius:6px}
 #go .gb{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}#go .gb button{padding:11px 16px;border-radius:5px;border:1px solid var(--line);background:rgba(255,255,255,.08);font-weight:600}#go .gb .pri{background:var(--mint-d);border-color:var(--mint)}
 #vig{position:fixed;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,40,90,.38));opacity:0;transition:opacity .8s}body.collapse #vig{opacity:1}
+#thrL{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 92px);z-index:24;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;justify-content:center;max-width:min(760px,60vw);padding:6px 12px;border-radius:4px;font-size:12px;background:rgba(24,20,68,.9);border:1px solid var(--line);pointer-events:none}
+#thrL b{font-weight:800}#thrL span{color:var(--ink)}#thrL em{font-style:normal;color:var(--ink2);margin-left:3px}
+#thrL.ok{color:var(--mint)}#thrL.alerta{border-color:var(--amber)}#thrL.alerta b{color:var(--amber)}#thrL.colapso{border-color:#ff7a59}#thrL.colapso b{color:#ff7a59}#thrL.gameover{border-color:var(--pink);background:rgba(80,10,40,.94)}#thrL.gameover b{color:var(--pink)}
+@media (max-width:700px){#thrL{max-width:92vw;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 120px);font-size:11px}}
 #thr{position:fixed;top:max(76px,calc(env(safe-area-inset-top,0px) + 70px));left:50%;transform:translateX(-50%);z-index:25;background:rgba(80,10,40,.94);border:1px solid var(--pink);border-radius:6px;padding:9px 14px;font-size:13px;max-width:min(520px,92vw);text-align:center}
 .rng{position:relative}#goMarks{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
 #goMarks i{position:absolute;top:2px;width:3px;height:14px;margin-left:-1px;background:#ff7a59;border-radius:2px;opacity:.85}#goMarks i.big{background:var(--pink);width:5px;height:20px;top:-1px}
@@ -261,7 +265,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 <div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><label><input type="checkbox" id="tgO"> <i class="dotb" style="background:#ff5fa8"></i> Avistamientos de aves (iNaturalist)</label><small id="avS" style="display:block;margin:-2px 0 6px 22px">cian tingua · rosa colibríes · ámbar halcones · lila paloma · gris otras aves</small><small id="envS"></small><div class="live"><b>Tráfico en tiempo real (TomTom)</b><div class="lrow"><input id="liveK" type="password" placeholder="Pega tu clave de TomTom" autocomplete="off"><button id="liveB">Activar</button></div><small id="liveS">Desactivado. Funciona en la versión de GitHub Pages.</small></div></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
 
 <div id="evt" hidden></div>
-<div id="vig"></div><div id="thr" hidden></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
+<div id="vig"></div><div id="thr" hidden></div><div id="thrL" class="thrl ok" aria-live="polite"></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
 <div id="relModal" hidden><div class="rmBox"><button id="rmClose" aria-label="Cerrar">✕</button><div id="rmBody"></div></div></div>
 <div id="time">
   <button id="play" aria-label="Reproducir">▶</button>
@@ -1291,21 +1295,15 @@ let lastPaint=-1,lastKey='';
 function paint(force){
   const key=S.scn+S.layer+(S.chg?'c':''); if(!force&&Math.abs(S.t-lastPaint)<.02&&key===lastKey)return; lastPaint=S.t;lastKey=key;
   const c=new THREE.Color();
-  if(S.chg){/* capa de cambio: necesidad sin cubrir en la situación actual − en la propuesta, mismo año y mismas variables */
-    const d=new Float32Array(MC);let mx=1e-6;
-    KEYS.forEach(k=>{const ra=remaining(k,S.t,'act'),rp=remaining(k,S.t,'pro');for(let j=0;j<MC;j++){const n=NEED[k][j];d[j]+=(clamp(n*(1+0.01*S.t))*ra[j]-n*rp[j])/KEYS.length;}});
-    for(let j=0;j<MC;j++)mx=Math.max(mx,Math.abs(d[j]));
-    const cN=new THREE.Color(0x4a4470),cG=new THREE.Color(0x2fe39a),cR=new THREE.Color(0xff4d5e);
-    for(let j=0;j<MC;j++){const v=d[j]/mx;c.copy(cN).lerp(v>=0?cG:cR,Math.min(1,Math.pow(Math.abs(v),.6)*1.1));tops.setColorAt(mcells[j],c);}
-    tops.instanceColor.needsUpdate=true;return;}
+  const LY=S.chg?'estado':S.layer;/* «Ver cambio»: el suelo muestra sano / contaminado del escenario activo */
   let vals=new Float32Array(MC);
-  const ks=S.layer==='all'?KEYS:S.layer==='estado'?['ew']:[S.layer];
+  const ks=LY==='all'?KEYS:LY==='estado'?['ew']:[LY];
   ks.forEach(k=>{const r=remaining(k,S.t,S.scn);for(let j=0;j<MC;j++){let nv=NEED[k][j];
-    if(S.scn==='act')nv=clamp(nv*(S.layer==='estado'?(0.6+0.04*Math.min(S.t,18)):(1+0.01*S.t)));
-    else if(S.layer==='estado')nv=clamp(nv*(0.6+0.04*Math.min(S.t,18)));
+    if(S.scn==='act')nv=clamp(nv*(LY==='estado'?(0.6+0.04*Math.min(S.t,18)):(1+0.01*S.t)));
+    else if(LY==='estado')nv=clamp(nv*(0.6+0.04*Math.min(S.t,18)));
     vals[j]+=nv*r[j]/ks.length;}});
-  const rp=S.layer==='estado'?RAMP_CONT:RAMP_NEED;
-  for(let j=0;j<MC;j++){const v=S.layer==='estado'?vals[j]*1.15:vals[j]*1.05;const col=ramp(rp,v);c.setRGB(col[0],col[1],col[2]);tops.setColorAt(mcells[j],c);}
+  const rp=LY==='estado'?RAMP_CONT:RAMP_NEED;
+  for(let j=0;j<MC;j++){const v=LY==='estado'?vals[j]*1.15:vals[j]*1.05;const col=ramp(rp,v);c.setRGB(col[0],col[1],col[2]);tops.setColorAt(mcells[j],c);}
   if(MK.gj){const gc=new THREE.Color(0x9b9ba2),k=S.scn==='pro'?clamp(MK.P<0?0:MK.P):0;
     MK.gj.forEach(j=>{tops.getColorAt(mcells[j],c);c.lerp(gc,1-k);tops.setColorAt(mcells[j],c);});}
   tops.instanceColor.needsUpdate=true;
@@ -1323,7 +1321,7 @@ const svgI=(c,p)=>`<svg viewBox="0 0 24 18" width="22" height="17" fill="${c}" a
 function lgAgents(){$('#lgA').innerHTML=`<div style="font-weight:700;margin-bottom:4px">Agentes del modelo</div>`+
   `<div class="ag">${svgI('#8d8aa8','<rect x="11" y="1" width="2" height="16"/><rect x="8" y="1" width="8" height="2" fill="#fff0b0"/><circle cx="6" cy="14" r="3.5" fill="#9bd03a"/><circle cx="17" cy="14" r="3" fill="#c9822f"/>')}<span><b>Residuo domiciliario</b><small>bolsas en esquinas y postes; atraen palomas</small></span></div>`+`<div class="ag">${svgI('#d9953a','<rect x="3" y="9" width="8" height="6"/><rect x="9" y="6" width="6" height="9" fill="#8a5a2b"/><circle cx="20" cy="8" r="2.2"/>')}<span><b>Residuo de Corabastos</b><small>pilas en las puertas 5 y 6; fluye al humedal</small></span></div>`+`<div class="ag">${svgI('#58b36f','<circle cx="12" cy="7" r="5.5"/><rect x="11" y="11" width="2" height="6"/>')}<span><b>Arbolado urbano</b><small>inventario real, por altura</small></span></div>`+
   AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+`<div style="height:8px"></div>`;}
-function legend(){lgAgents();if(S.chg){$('#lgT').textContent='Cambio con la propuesta · necesidad que cubre el masterplan';$('#lgBar').style.background='linear-gradient(90deg,#ff4d5e,#4a4470,#2fe39a)';$('#lgL').textContent='Empeora';$('#lgR').textContent='Mejora';return;}const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
+function legend(){lgAgents();if(S.chg){$('#lgT').textContent='Ver cambio · estado del suelo ('+(S.scn==='pro'?'propuesta':'situación actual')+')';$('#lgBar').style.background='linear-gradient(90deg,#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f)';$('#lgL').textContent='Sano';$('#lgR').textContent='Contaminado';return;}const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
   const st=need?'#58c79b,#8fd0a8,#e9b0c8,#ff4fa0,#e0147a':'#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f';
   $('#lgBar').style.background=`linear-gradient(90deg,${st})`;$('#lgL').textContent=need?'Cubierta':'Sano';$('#lgR').textContent=need?'Falta espacio':'Contaminado';}
 
@@ -1502,7 +1500,7 @@ function applyPar(id){const p=PARES.find(q=>q[0]===id),q=PRUEBAS.find(x=>x[0]===
   S.par=id||null;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){const x=p||q;tg.hidden=!x;tg.textContent=x?(p?'Par '+x[0]+' · ':'Prueba · ')+x[1]:'';}
   recompute();renderVar();}
 let rcT=0;function scheduleRecompute(){clearTimeout(rcT);rcT=setTimeout(recompute,90);}
-function recompute(){buildSeries();goCompute();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
+function recompute(){buildSeries();goCompute();thrBadge();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
   const tg=$('#b-var');if(tg&&!tg.hidden){}}
 /* ---------- diagrama causal dinámico ---------- */
 const RK={sp:['Espacio propuesto','#c2276f'],ex:['Condición existente','#a96a1c'],ag:['Agente / especie / comunidad','#0f8f84'],fl:['Flujo o indicador','#4b4aa8']};
@@ -1657,8 +1655,9 @@ const THR=[
  {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=127,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
 const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
 const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
-const GO_N=3;let GO=null,GOP=null,MARKS={act:'',pro:''};
+const GO_N=3;let GO=null,GOP=null,PCROSS=[],MARKS={act:'',pro:''};
 function scanP(){const y={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;THRP.forEach(h=>{if(y[h.id]===undefined&&h.f(d))y[h.id]=t;if(y[h.id]!==undefined)n++;});if(n>=GO_N&&go===null)go=t;}
+  PCROSS=THRP.filter(h=>y[h.id]!==undefined).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y);
   GOP=go===null?null:{t:go,crit:THRP.filter(h=>y[h.id]!==undefined&&y[h.id]<=go+1e-6).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y)};
   MARKS.pro=THRP.filter(h=>y[h.id]!==undefined).map(h=>`<i style="left:${y[h.id]/20*100}%" title="${h.n}"></i>`).join('')+(GOP?`<i class="big" style="left:${GOP.t/20*100}%" title="Game over"></i>`:'');}
 function goCompute(){scanP();THR.forEach(h=>{h.y=null;});let go=null;
@@ -1668,8 +1667,11 @@ function goCompute(){scanP();THR.forEach(h=>{h.y=null;});let go=null;
   const m=$('#goMarks');if(m)m.innerHTML=MARKS[S.scn]||'';const G=S.scn==='pro'?GOP:GO;
   document.body.classList.toggle('collapse',!!(G&&S.t>=G.t));}
 let thrT=0;
-function goTick(prev){const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;if(gm.dataset.s!==S.scn+(P?MARKS.pro:MARKS.act).length){gm.innerHTML=MARKS[S.scn]||'';gm.dataset.s=S.scn+(P?MARKS.pro:MARKS.act).length;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
-  if(prev<0||t<=prev||!S.playing)return;const h=P?(GOP?GOP.crit.find(h=>h.y>prev&&h.y<=t):null):THR.find(h=>h.y!==null&&h.y>prev&&h.y<=t);
+function thrBadge(){const e=$('#thrL');if(!e)return;const t=S.t,P=S.scn==='pro',L=(P?PCROSS:THR.filter(h=>h.y!==null)).filter(h=>h.y<=t+1e-6).sort((a,b)=>a.y-b.y),n=L.length;
+  const st=n>=GO_N?'gameover':n===2?'colapso':n===1?'alerta':'ok';const k=st+n+L.map(h=>h.id).join()+Math.round(t);if(e.dataset.k===k)return;e.dataset.k=k;e.className='thrl '+st;
+  e.innerHTML=n?`<b>${n>=GO_N?'Game over':n===2?'Colapso localizado':'Alerta'} · ${n}/${GO_N} umbrales</b>`+L.map(h=>`<span>⚠ ${h.n} <em>año ${(Math.round(h.y*10)/10).toString().replace('.',',')}</em></span>`).join(''):'<b>Sin umbrales cruzados</b>';}
+function goTick(prev){thrBadge();const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;if(gm.dataset.s!==S.scn+(P?MARKS.pro:MARKS.act).length){gm.innerHTML=MARKS[S.scn]||'';gm.dataset.s=S.scn+(P?MARKS.pro:MARKS.act).length;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
+  if(prev<0||t<=prev||!S.playing)return;const h=P?PCROSS.find(h=>h.y>prev&&h.y<=t):THR.find(h=>h.y!==null&&h.y>prev&&h.y<=t);
   if(h&&(!G||h.y<=G.t)){const e=$('#thr');e.textContent='⚠ Umbral crítico: '+h.n;e.hidden=false;clearTimeout(thrT);thrT=setTimeout(()=>{e.hidden=true;},4200);}}
 function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Math.round((a/b-1)*100)+' %';
   const M=[
