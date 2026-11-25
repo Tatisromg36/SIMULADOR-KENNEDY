@@ -825,13 +825,33 @@ const RG={X:[],Y:[],adj:[],E:[],border:[]};
   for(let i=0;i<X.length;i++){if(!adj[i].length)continue;if(out.has(i)||(adj[i].length===1&&[[120,0],[-120,0],[0,120],[0,-120]].some(([dx,dy])=>!inM(X[i]+dx,Y[i]+dy))))RG.border.push(i);}
   let t=0;RG.cw=new Float64Array(E.length);E.forEach((e,i)=>{t+=e.L*(e.c===2?4:e.c===1?2:.08);RG.cw[i]=t;});})();
 const rgOther=(e,u)=>{const E=RG.E[e];return E.a===u?E.b:E.a;};
-function rgNext(u,from,hd){/* desde el nodo u, viniendo por la arista from */const opts=RG.adj[u].filter(e=>e!==from);if(!opts.length)return -1;
+function rgNext(u,from,hd,tx,ty){/* respaldo sin ruta: desde el nodo u, viniendo por la arista from */const opts=RG.adj[u].filter(e=>e!==from);if(!opts.length)return -1;
+  const ht=tx!==undefined?Math.atan2(ty-RG.Y[u],tx-RG.X[u]):hd,near=tx!==undefined&&Math.hypot(tx-RG.X[u],ty-RG.Y[u])<900;
   let best=-1,bs=-1e9;for(const e of opts){const v=rgOther(e,u),a=Math.atan2(RG.Y[v]-RG.Y[u],RG.X[v]-RG.X[u]),E=RG.E[e];
-    const sc2=1.4*Math.cos(a-hd)+(E.c===2?1.4:E.c===1?.9:-1.2)+(LIVE&&LIVE.on&&E.lr?1.2*(1-E.lr):0)+Math.random()*.9;if(Math.cos(a-hd)<-.6)continue;if(sc2>bs){bs=sc2;best=e;}}
+    const sc2=(tx!==undefined?.6*Math.cos(a-hd)+2.2*Math.cos(a-ht):1.4*Math.cos(a-hd))+(E.c===2?1.4:E.c===1?.9:near?-.2:-1.2)+(LIVE&&LIVE.on&&E.lr?1.2*(1-E.lr):0)+Math.random()*.9;if(Math.cos(a-hd)<-.6)continue;if(sc2>bs){bs=sc2;best=e;}}
   return best;}
 function rgSpawn(W,i,atBorder){let e,u;if(atBorder&&RG.border.length){u=RG.border[Math.floor(Math.random()*RG.border.length)];e=RG.adj[u][0];}
   else{const r=Math.random()*RG.cw[RG.cw.length-1];let lo=0,hi=RG.cw.length-1;while(lo<hi){const m=(lo+hi)>>1;if(RG.cw[m]<r)lo=m+1;else hi=m;}e=lo;u=Math.random()<.5?RG.E[e].a:RG.E[e].b;}
-  W.ge[i]=e;W.gu[i]=u;W.s[i]=atBorder?0:Math.random()*RG.E[e].L;W.fd[i]=atBorder?0:1;W.br[i]=atBorder?.6:1;}
+  W.ge[i]=e;W.gu[i]=u;W.s[i]=atBorder?0:Math.random()*RG.E[e].L;W.fd[i]=atBorder?0:1;W.br[i]=atBorder?.6:1;rgTarget(W,i,rgOther(e,u),Math.random()<.75);}
+/* destinos y rutas: cada auto tiene un destino y sigue la ruta más corta por la red vial (A*, las avenidas cuestan menos).
+   75 % va a Corabastos (vías que rodean la central; la mitad da otra vuelta); el resto atraviesa el área hacia otro borde. */
+function rgPrep(){if(RG.comp)return;const N=RG.X.length,comp=new Int32Array(N).fill(-1);let best=-1,bn=0;
+  for(let i=0;i<N;i++){if(comp[i]>=0||!RG.adj[i].length)continue;const st=[i];comp[i]=i;let n=0;while(st.length){const u=st.pop();n++;for(const e of RG.adj[u]){const v=rgOther(e,u);if(comp[v]<0){comp[v]=i;st.push(v);}}}if(n>bn){bn=n;best=i;}}
+  RG.comp=comp;RG.main=best;RG.cora=[];RG.bmain=RG.border.filter(k=>comp[k]===best);
+  for(let k=0;k<N;k++){if(comp[k]!==best)continue;const d=Math.hypot(RG.X[k]-D.cora[0],RG.Y[k]-D.cora[1]);if(d>150&&d<700&&RG.adj[k].some(e=>RG.E[e].c>=1))RG.cora.push(k);}
+  RG.g=new Float64Array(N);RG.pe=new Int32Array(N);RG.seen=new Int32Array(N);RG.stamp=0;}
+const rgCost=E=>E.L*(E.c===2?.7:E.c===1?.85:1.4);
+function rgPath(src,dst){rgPrep();if(RG.comp[src]!==RG.comp[dst])return null;const g=RG.g,pe=RG.pe,seen=RG.seen,st=++RG.stamp,X=RG.X,Y=RG.Y,h=k=>.7*Math.hypot(X[k]-X[dst],Y[k]-Y[dst]);
+  const H=[[h(src),src]];seen[src]=st;g[src]=0;pe[src]=-1;
+  const push=e=>{H.push(e);let i=H.length-1;while(i>0){const q=(i-1)>>1;if(H[q][0]<=H[i][0])break;[H[q],H[i]]=[H[i],H[q]];i=q;}};
+  const pop=()=>{const t=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){let a=2*i+1,b=a+1,m=i;if(a<H.length&&H[a][0]<H[m][0])m=a;if(b<H.length&&H[b][0]<H[m][0])m=b;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m;}}return t;};
+  let it=0;while(H.length&&it++<40000){const [f,u]=pop();if(u===dst)break;if(f-h(u)>g[u]+1e-6)continue;
+    for(const e of RG.adj[u]){const v=rgOther(e,u),ng=g[u]+rgCost(RG.E[e]);if(seen[v]!==st||ng<g[v]){seen[v]=st;g[v]=ng;pe[v]=e;push([ng+h(v),v]);}}}
+  if(seen[dst]!==st)return null;const P=[];let k=dst;while(k!==src){const e=pe[k];P.push(e);k=rgOther(e,k);}return P.reverse();}
+function rgTarget(W,i,from,cora){rgPrep();if(!W.tg){W.tg=new Int32Array(W.n);W.tc=new Uint8Array(W.n);W.path=new Array(W.n);W.pk=new Int32Array(W.n);}
+  let P=null,t=-1;for(let tries=0;tries<4&&!P;tries++){const L=cora&&RG.cora.length?RG.cora:RG.bmain;t=L[Math.floor(Math.random()*L.length)];
+    if(!cora&&Math.hypot(RG.X[t]-RG.X[from],RG.Y[t]-RG.Y[from])<1500)continue;P=rgPath(from,t);}
+  W.tg[i]=t;W.tc[i]=P&&cora?1:0;W.path[i]=P;W.pk[i]=0;}
 /* accesos de carga: red de avenidas (clase 1 y 2), entradas en el borde del polígono y rutas hasta Corabastos */
 const ENT=[],GATES=[];
 const mkPath=(pts,cost)=>{const x=new Float32Array(pts.length),y=new Float32Array(pts.length),L=new Float32Array(pts.length);pts.forEach((p,j)=>{x[j]=p[0];y[j]=p[1];if(j)L[j]=L[j-1]+Math.hypot(x[j]-x[j-1],y[j]-y[j-1]);});return{x,y,L,len:L[L.length-1],cost};};
@@ -1172,7 +1192,11 @@ function animAgents(time,dt){
        if(V2.out[i]){V2.fd[i]-=dtt*1.8;if(V2.fd[i]<=0){V2.out[i]=0;rgSpawn(V2,i,true);e=V2.ge[i];u=V2.gu[i];E=RG.E[e];}}
        else if(V2.fd[i]<1)V2.fd[i]=Math.min(1,V2.fd[i]+dtt*1.8);
        V2.s[i]+=sp*V2.v[i]*V2.br[i]*(LIVE.on&&E.lr?E.lr:1)*(E.c===2?1.25:E.c===0?.6:1)*dtt;
-       let guard=0;while(V2.s[i]>=E.L&&guard++<4){const v=rgOther(e,u),hd=Math.atan2(RG.Y[v]-RG.Y[u],RG.X[v]-RG.X[u]),ne=rgNext(v,e,hd);
+       let guard=0;while(V2.s[i]>=E.L&&guard++<4){const v=rgOther(e,u),hd=Math.atan2(RG.Y[v]-RG.Y[u],RG.X[v]-RG.X[u]);let ne=-1;
+         let P=V2.path[i];if(!P||V2.pk[i]>=P.length){/* llegó a su destino */if(V2.tc[i]){rgTarget(V2,i,v,Math.random()<.5);P=V2.path[i];}/* tras Corabastos: rodea otra vez o sale */
+           else if(RG.border.includes(v)){V2.s[i]=E.L;V2.out[i]=1;break;}else{rgTarget(V2,i,v,false);P=V2.path[i];}}
+         if(P&&V2.pk[i]<P.length){const c=P[V2.pk[i]];if(RG.E[c].a===v||RG.E[c].b===v){ne=c;V2.pk[i]++;}else{rgTarget(V2,i,v,V2.tc[i]===1);P=V2.path[i];if(P&&P.length){ne=P[0];V2.pk[i]=1;}}}
+         if(ne<0)ne=rgNext(v,e,hd);
          if(ne<0){/* sin salida: si es borde del área, sale (se desvanece); si no, da la vuelta */V2.s[i]=E.L;if(RG.border.includes(v)){V2.out[i]=1;}else{V2.gu[i]=v;V2.s[i]=0;}break;}
          V2.s[i]-=E.L;e=ne;u=v;E=RG.E[e];V2.ge[i]=e;V2.gu[i]=u;}
        const v=rgOther(e,u),f=clamp(V2.s[i]/E.L),x=RG.X[u]+(RG.X[v]-RG.X[u])*f,y=RG.Y[u]+(RG.Y[v]-RG.Y[u])*f,hd=Math.atan2(RG.Y[v]-RG.Y[u],RG.X[v]-RG.X[u]);
