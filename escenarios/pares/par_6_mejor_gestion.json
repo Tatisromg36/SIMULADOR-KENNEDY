@@ -1,0 +1,45 @@
+{
+ "par": 6,
+ "nombre": "Mejor gestión",
+ "condicion": {
+  "resD": 15,
+  "arr": 3,
+  "cars": 300,
+  "emisG": 0.5,
+  "imm": 150
+ },
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 300,
+   "resC": 110,
+   "resD": 15,
+   "arr": 3,
+   "emisG": 0.5,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 150
+  },
+  "resultado": "Game over año 11,4: aire, tingua, especulación"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 300,
+   "resC": 110,
+   "resD": 15,
+   "arr": 3,
+   "emisG": 0.5,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 150
+  },
+  "resultado": "Sostenible: cohabitabilidad 75, 48 tinguas, PM2.5 25,6"
+ }
+}

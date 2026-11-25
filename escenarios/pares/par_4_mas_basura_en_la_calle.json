@@ -1,0 +1,42 @@
+{
+ "par": 4,
+ "nombre": "Más basura en la calle",
+ "condicion": {
+  "resD": 60,
+  "arr": 35
+ },
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 60,
+   "arr": 35,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Game over año 8,7: aire, palomas, tingua"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 60,
+   "arr": 35,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Sostenible: cohabitabilidad 60, 38 tinguas, presión sanitaria 49 %"
+ }
+}

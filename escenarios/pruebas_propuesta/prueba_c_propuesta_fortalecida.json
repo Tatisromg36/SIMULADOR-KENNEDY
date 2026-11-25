@@ -1,0 +1,21 @@
+{
+ "prueba": "c",
+ "nombre": "Propuesta fortalecida",
+ "escenario": "Propuesta",
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "variables": {
+  "cars": 250,
+  "resC": 110,
+  "resD": 30,
+  "arr": 5,
+  "emisG": 1.2,
+  "maxVal": 95,
+  "capX": 150,
+  "inv": 130,
+  "spec": 100,
+  "soc": 150,
+  "imm": 100
+ },
+ "resultado": "Sostenible: cohabitabilidad 93, 60 tinguas, PM2.5 23,6 (cumple norma)"
+}

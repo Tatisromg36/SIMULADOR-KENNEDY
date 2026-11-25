@@ -1,0 +1,21 @@
+{
+ "prueba": "a",
+ "nombre": "Implementación débil",
+ "escenario": "Propuesta",
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "variables": {
+  "cars": 420,
+  "resC": 110,
+  "resD": 30,
+  "arr": 12.5,
+  "emisG": 1.2,
+  "maxVal": 60,
+  "capX": 60,
+  "inv": 70,
+  "spec": 100,
+  "soc": 100,
+  "imm": 100
+ },
+ "resultado": "Sostenible frágil: cohabitabilidad 46, 29 tinguas, PM2.5 29,8"
+}

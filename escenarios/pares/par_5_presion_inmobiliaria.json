@@ -1,0 +1,41 @@
+{
+ "par": 5,
+ "nombre": "Presión inmobiliaria",
+ "condicion": {
+  "spec": 200
+ },
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 200,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Game over año 6,1: aire, especulación, palomas"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 200,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Sostenible, pero la especulación llega a 77 y cruza su umbral"
+ }
+}

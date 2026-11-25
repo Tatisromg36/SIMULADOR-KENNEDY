@@ -1,0 +1,39 @@
+{
+ "par": 1,
+ "nombre": "Línea base",
+ "condicion": "valores base",
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Game over año 9,9: aire, palomas, tingua"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 420,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Sostenible: cohabitabilidad 72, 46 tinguas, PM2.5 27,5"
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "par": 3,
+ "nombre": "Más carros",
+ "condicion": {
+  "cars": 800
+ },
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 800,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Game over año 9,6: aire, palomas, tingua"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 800,
+   "resC": 110,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 1.2,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Sostenible: cohabitabilidad 70, 44 tinguas, PM2.5 31,2, ruido 66,5 dB"
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "prueba": "d",
+ "nombre": "Estrés externo",
+ "escenario": "Propuesta",
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "variables": {
+  "cars": 420,
+  "resC": 140,
+  "resD": 30,
+  "arr": 12.5,
+  "emisG": 3,
+  "maxVal": 85,
+  "capX": 100,
+  "inv": 100,
+  "spec": 200,
+  "soc": 100,
+  "imm": 100
+ },
+ "resultado": "Game over año 19,2: aire, residuo, especulación"
+}

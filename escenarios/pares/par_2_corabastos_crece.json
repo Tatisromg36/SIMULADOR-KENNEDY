@@ -1,0 +1,42 @@
+{
+ "par": 2,
+ "nombre": "Corabastos crece",
+ "condicion": {
+  "resC": 140,
+  "emisG": 3
+ },
+ "semilla": 7,
+ "horizonte_anios": 20,
+ "situacion_actual": {
+  "variables": {
+   "cars": 420,
+   "resC": 140,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 3,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Game over año 6,1: aire, residuo, palomas"
+ },
+ "propuesta": {
+  "variables": {
+   "cars": 420,
+   "resC": 140,
+   "resD": 30,
+   "arr": 12.5,
+   "emisG": 3,
+   "maxVal": 85,
+   "capX": 100,
+   "inv": 100,
+   "spec": 100,
+   "soc": 100,
+   "imm": 100
+  },
+  "resultado": "Sostenible con 2 umbrales cruzados (aire y residuo): 150 t/día sin tratar, cohabitabilidad 58, 37 tinguas"
+ }
+}
