@@ -316,9 +316,9 @@ const cx=new Float32Array(MC), cy=new Float32Array(MC);
 mcells.forEach((c,j)=>{cx[j]=g.x0+((c%NX)+.5)*CS; cy[j]=g.y0+(Math.floor(c/NX)+.5)*CS;});
 
 /* ---------- modelo ---------- */
-const VAR0={cars:420,resC:110,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
+const VAR0={cars:420,resC:110,resD:30,arr:12.5,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
 const VAR=Object.assign({},VAR0);const VARS={act:Object.assign({},VAR0),pro:Object.assign({},VAR0)};
-const VKEYS={act:['cars','resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0).filter(k=>k!=='exec')};
+const VKEYS={act:['cars','resC','emisG','resD','arr','spec','imm'],pro:Object.keys(VAR0).filter(k=>k!=='exec')};
 const CI=[];
 const KEYS=['ew','food','conn','cohab','spec','soc'];
 const KNAME={ew:'Residuos',food:'Alimentos',conn:'Conectividad',cohab:'Cohabitabilidad',spec:'Especulación',soc:'Capital social'};
@@ -425,9 +425,9 @@ function simSpecies(scn,drv){
   for(let y=1;y<=20;y++){
     const d=drv[y-1];
     const rD=VAR.resD*(scn==='pro'?1-clamp(d.val/0.85):1);d.rD=rD;
-    const dis=clamp(.75*N.pigeon[y-1]/CAPS.pigeon+.25*(d.untreated+rD)/(d.E+VAR.resD+1e-6));d.dis=dis;     // palomas → enfermedades
+    const aF=.6+.4*VAR.arr/12.5,dis=clamp(.75*N.pigeon[y-1]/CAPS.pigeon+.25*clamp((d.untreated+rD)/(d.E+VAR.resD+1e-6)*aF));d.dis=dis;d.aF=aF;     // palomas → enfermedades
     const qs0= scn==='pro'? clamp(0.55*d.sC+0.25*d.val/0.7+0.20*d.sH) : clamp(0.12-0.006*y);
-    const qs=qs0*(1-.18*dis);                                                          // enfermedades → fauna nativa (−)
+    const qs=qs0*(1-.18*dis)*(1-.25*clamp((VAR.arr-12.5)/37.5));   // enfermedades y arrojo que llega al humedal → fauna nativa (−)
     const awf=.5+.5*clamp(d.AH/100/.6);
     const nzf=1-.35*clamp((d.noiseW-50)/20);d.nzf=nzf;                                   // ruido → aves evitan la zona (−)
     const en=100*qs+35, g=clamp((en-70)/30);          // energía como proxy de calidad de hábitat
@@ -949,9 +949,9 @@ const CR={pile:null,flow:null,NP:70,NF:180,src:[],fp:[]};
   [CR.pile,CR.flow].forEach((m,k)=>{m.frustumCulled=false;m.material.depthTest=false;m.renderOrder=25+k;sc.add(m);});})();
 const _cm=new THREE.Matrix4(),_cq=new THREE.Quaternion(),_cp=new THREE.Vector3(),_cs=new THREE.Vector3(),_cy=new THREE.Vector3(0,1,0);
 function animCora(dt,st){if(!CR.pile)return;const px=clamp(2*V.H/cv.clientHeight,.6,3),E=st.E,U=st.untreated,dtt=Math.min(dt,60)/1000;
-  const nP=Math.round(CR.NP*clamp(U/200,0,1));CR.pile.count=nP;
+  const wb=wfBal(st),nP=Math.round(CR.NP*clamp(wb.arro/40,0,1));CR.pile.count=nP;
   for(let i=0;i<nP;i++){const p=CR.pl[i],k=Math.max(14,px*9)*p[2];_cm.compose(_cp.set(p[0],gh(p[0],-p[1]),-p[1]),_cq.setFromAxisAngle(_cy,p[3]),_cs.set(k,k*1.1,k*.8));CR.pile.setMatrixAt(i,_cm);}
-  const nF=Math.round(CR.NF*clamp(U/200,0,1));CR.flow.count=nF;
+  const nF=Math.round(CR.NF*clamp(wb.hum/8,0,1));CR.flow.count=nF;
   for(let i=0;i<nF;i++){const f=CR.fp[i],s0=CR.src[f.k],L=Math.max(60,Math.hypot(s0.wx-s0.x,s0.wy-s0.y));f.s+=dtt*40*f.v/L;if(f.s>=1)f.s-=1;
     const t=f.s,nx=-(s0.wy-s0.y)/L,ny=(s0.wx-s0.x)/L,w=Math.sin(t*Math.PI)*f.o,x=s0.x+(s0.wx-s0.x)*t+nx*w,y=s0.y+(s0.wy-s0.y)*t+ny*w,k=Math.max(8,px*5.5);
     _cm.compose(_cp.set(x,gh(x,-y)+k*.6,-y),_cq.identity(),_cs.set(k,k,k));CR.flow.setMatrixAt(i,_cm);}
@@ -959,11 +959,12 @@ function animCora(dt,st){if(!CR.pile)return;const px=clamp(2*V.H/cv.clientHeight
 /* ---------- de dónde entra y a dónde sale el residuo ----------
    balance diario (t/día): entra el residuo de Corabastos (E) y el domiciliario (resD);
    sale a valorización (B y la parte domiciliaria que se separa), al relleno Doña Juana y al humedal.
-   Supuesto del modelo: del residuo no valorizado, 85 % lo recoge el aseo y va al relleno, 15 % termina en el humedal
-   (arrastre por lluvia, lixiviados y botaderos en la ronda). */
-const WF_HUM=.15;
-function wfBal(st){const dom=VARS[S.scn].resD,rD=st.rD===undefined?dom:st.rD,noV=st.untreated+rD;
-  return{cora:st.E,dom,val:st.B+Math.max(0,dom-rD),rel:(1-WF_HUM)*noV,hum:WF_HUM*noV,ent:st.E+dom};}
+   Del residuo no valorizado, una parte (arr, base 12,5 %) se arroja en la calle: 968 t/día de arrojo frente a 6.769 t/día en Doña Juana (UAESP, 2025-2026).
+   La UAESP recoge el 91 % de lo arrojado (320.374 t en 2025 ≈ 878 t/día) y lo lleva también al relleno; el 9 % restante queda en canales y humedales.
+   Contraste: el Acueducto retiró 732 t de residuo sólido del humedal La Vaca desde 2020 (≈ 0,4 t/día). */
+const WF_REC=.91;
+function wfBal(st){const v=VARS[S.scn],dom=v.resD,rD=st.rD===undefined?dom:st.rD,noV=st.untreated+rD,arr=(v.arr===undefined?12.5:v.arr)/100;
+  return{cora:st.E,dom,val:st.B+Math.max(0,dom-rD),arro:noV*arr,rel:noV*(1-arr*(1-WF_REC)),hum:noV*arr*(1-WF_REC),ent:st.E+dom,arr};}
 const WF={init:false,fl:[],lab:[]};
 function wfInit(){if(WF.init)return;WF.init=true;
   const mk=(pts,col,key,n)=>{const P=mkPath(pts,0),m=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,0),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.95}),n);
@@ -994,15 +995,15 @@ function wfLabels(st){if(!WF.lab.length&&typeof pinsEl!=='undefined'){const add=
     if(BIN.length){const q=BIN.reduce((a,c)=>c.y<a.y?c:a);add('dom',q.x,q.y-90,'dom');}
     const ci=INT.find(o=>o.id==='centro_inv');if(ci)add('val',ci.x,ci.y-90,'val');}
   if(!WF.lab.length)return;const b=wfBal(st),r=v=>Math.round(v),pro=S.scn==='pro',now=performance.now();
-  if(!WF.lt||now-WF.lt>400){WF.lt=now;const T={in1:`Entra por las puertas 1 y 7 · ${r(b.cora)} t/día`,rel:`Al relleno Doña Juana · ${r(b.rel)} t/día`,hum:`Al humedal La Vaca · ${r(b.hum)} t/día`,dom:`Residuo domiciliario · ${r(b.dom)} t/día`,val:`A valorización · ${r(b.val)} t/día`};
+  if(!WF.lt||now-WF.lt>400){WF.lt=now;const T={in1:`Entra por las puertas 1 y 7 · ${r(b.cora)} t/día`,rel:`Al relleno Doña Juana · ${r(b.rel)} t/día`,hum:`Al humedal La Vaca · ${(Math.round(b.hum*10)/10).toString().replace('.',',')} t/día`,dom:`Residuo domiciliario · ${r(b.dom)} t/día`,val:`A valorización · ${r(b.val)} t/día`};
     WF.lab.forEach(l=>{const t=T[l.id];if(l.e.textContent!==t)l.e.textContent=t;l.hide=(l.id==='val'&&!pro);});}
   WF.lab.forEach(l=>{const [x,y]=proj(l.x,l.y,30);l.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;l.e.style.opacity=!l.hide&&S.wf!==false&&V.H<7000?1:0;});}
 /* barra de balance en el panel */
 function wfBar(st){const b=wfBal(st),T=b.val+b.rel+b.hum||1,r=v=>Math.round(v),pc=v=>(100*v/T).toFixed(1);
   return `<div class="card wfb"><span class="nm">¿A dónde va el residuo orgánico?<small>Entran ${r(b.ent)} t/día: ${r(b.cora)} de Corabastos y ${r(b.dom)} de los hogares</small></span>
   <div class="wfbar" role="img" aria-label="Valorización ${r(b.val)}, relleno ${r(b.rel)}, humedal ${r(b.hum)} toneladas por día"><i style="width:${pc(b.val)}%;background:#58e0a0"></i><i style="width:${pc(b.rel)}%;background:#ff8a1c"></i><i style="width:${pc(b.hum)}%;background:#a8682a"></i></div>
-  <div class="wfl"><span><i style="background:#58e0a0"></i>Valorización <b>${r(b.val)}</b> t/día</span><span><i style="background:#ff8a1c"></i>Relleno Doña Juana <b>${r(b.rel)}</b></span><span><i style="background:#a8682a"></i>Humedal <b>${r(b.hum)}</b></span></div>
-  <small class="wfn">Supuesto del modelo: del residuo que no se valoriza, el 85 % lo recoge el aseo y va al relleno, y el 15 % termina en el humedal por arrastre de lluvia, lixiviados y botaderos en la ronda.</small></div>`;}
+  <div class="wfl"><span><i style="background:#58e0a0"></i>Valorización <b>${r(b.val)}</b> t/día</span><span><i style="background:#ff8a1c"></i>Relleno Doña Juana <b>${r(b.rel)}</b></span><span><i style="background:#a8682a"></i>Humedal <b>${(Math.round(b.hum*10)/10).toString().replace('.',',')}</b></span></div>
+  <small class="wfn">Del residuo que no se valoriza (${r(b.rel+b.hum)} t/día), el ${String(+(b.arr*100).toFixed(1)).replace('.',',')} % se arroja en la calle (${r(b.arro)} t/día). La UAESP recoge el 91 % de lo arrojado y lo lleva al relleno; el resto llega a canales y al humedal. Fuentes: UAESP 2025-2026 (968 t/día de arrojo frente a 6.769 t/día en Doña Juana; 320.374 t recogidas en puntos críticos en 2025). Como contraste, el Acueducto ha retirado del humedal La Vaca unas 0,4 t/día desde 2020. No incluye lo que llega disuelto por alcantarillas (lixiviados).</small></div>`;}
 const gateG=new THREE.Group();{const mO=new THREE.MeshBasicMaterial({color:0xff9f1c}),mW=new THREE.MeshBasicMaterial({color:0xfff3e0}),bx3=new THREE.BoxGeometry(1,1,1);
   GATES.forEach(g=>{const a=Math.atan2(g.dock[1]-g.y,g.dock[0]-g.x),gg=new THREE.Group();if(g.kind==='ped')gg.scale.set(.55,.6,.55);gg.position.set(g.x,gh(g.x,-g.y),-g.y);gg.rotation.y=a+Math.PI/2;
     [[-16,mO],[16,mO]].forEach(([o,m])=>{const p=new THREE.Mesh(bx3,m);p.scale.set(4,26,4);p.position.set(o,13,0);gg.add(p);});
@@ -1422,6 +1423,7 @@ const VDEF=[
  ['soc','Participación comunitaria',50,200,10,'%','Qué tanto se convierten los espacios en capital social (base 100%).',v=>v+' %'],
  ['cars','Autos circulando en el área',0,800,20,'autos','Autos simultáneos en las vías del área (base 420). Más autos: más congestión, ruido y PM2.5. En la propuesta circula el 85 % por la descentralización del abastecimiento.',v=>v+' autos'],
  ['resD','Residuo orgánico domiciliario (fuera de Corabastos)',0,80,2,'t/día','Bolsas en esquinas y postes alrededor del mercado. Atrae palomas y aumenta la presión sanitaria (base 30 t/día, supuesto).',v=>v+' t/día'],
+ ['arr','Arrojo clandestino de residuo',0,50,0.5,'%','Parte del residuo no valorizado que se bota en la calle en vez de entregarse al aseo. Base 12,5 %: en Bogotá se arrojan 968 t/día frente a 6.769 t/día que llegan a Doña Juana (UAESP 2025-2026). La UAESP recoge el 91 % de lo arrojado; el resto queda en canales y humedales. Más arrojo: más palomas y enfermedades y peor hábitat para la tingua.',v=>String(v).replace('.',',')+' %'],
  ['imm','Llegada de fauna silvestre',0,300,10,'%','Individuos que llegan de afuera cuando el hábitat es bueno (base 100%).',v=>v+' %']];
 const PRESETS={base:['Base',{}],opt:['Optimista',{resD:15,emisG:.5,maxVal:95,capX:150,inv:125,exec:130,spec:70,soc:140,imm:150}],
   pes:['Pesimista',{resD:55,emisG:3,maxVal:60,capX:70,inv:80,exec:70,spec:160,soc:70,imm:50}],
@@ -1455,7 +1457,7 @@ function recompute(){buildSeries();goCompute();lastKey='';MK.P=-1;applyState(tru
 /* ---------- diagrama causal dinámico ---------- */
 const RK={sp:['Espacio propuesto','#c2276f'],ex:['Condición existente','#a96a1c'],ag:['Agente / especie / comunidad','#0f8f84'],fl:['Flujo o indicador','#4b4aa8']};
 const NODES=[
- {id:'res',l:['Residuos orgánicos'],x:140,y:105,k:'ex',v:a=>a.untreated/a.E*100,d:'Biomasa de Corabastos sin tratar. Hoy llegan 95 a 120 t al día al humedal.',sp:['k_cora']},
+ {id:'res',l:['Residuos orgánicos'],x:140,y:105,k:'ex',v:a=>a.untreated/a.E*100,d:'Biomasa de Corabastos sin tratar. Hoy salen 100 a 120 t al día, casi todas al relleno Doña Juana (Tovar, 2019); la parte que se arroja en la calle alimenta palomas y llega al humedal.',sp:['k_cora']},
  {id:'pal',l:['Palomas'],x:330,y:40,k:'ag',v:a=>a.N.pigeon/CAPS.pigeon*100,d:'Especie sinantrópica: crece donde hay residuo orgánico expuesto.',sp:[]},
  {id:'enf',l:['Enfermedades'],x:530,y:40,k:'fl',v:a=>a.dis*100,d:'Presión sanitaria sobre la fauna silvestre. Sube con las palomas y el residuo sin tratar.',sp:[]},
  {id:'fau',l:['Fauna nativa'],x:735,y:70,k:'ag',v:a=>(a.N.tingua/60+a.N.hum/80+a.N.falcon/15)/3*100,d:'Tingua bogotana, colibríes y halcón. Dependen del hábitat, de la conectividad y de que no haya enfermedad.',sp:[]},
