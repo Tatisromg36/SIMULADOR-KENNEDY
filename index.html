@@ -311,9 +311,9 @@ const cx=new Float32Array(MC), cy=new Float32Array(MC);
 mcells.forEach((c,j)=>{cx[j]=g.x0+((c%NX)+.5)*CS; cy[j]=g.y0+(Math.floor(c/NX)+.5)*CS;});
 
 /* ---------- modelo ---------- */
-const VAR0={resC:110,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
+const VAR0={cars:420,resC:110,resD:30,emisG:1.2,maxVal:85,capX:100,inv:100,exec:100,spec:100,soc:100,imm:100};
 const VAR=Object.assign({},VAR0);const VARS={act:Object.assign({},VAR0),pro:Object.assign({},VAR0)};
-const VKEYS={act:['resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0).filter(k=>k!=='exec')};
+const VKEYS={act:['cars','resC','emisG','resD','spec','imm'],pro:Object.keys(VAR0).filter(k=>k!=='exec')};
 const CI=[];
 const KEYS=['ew','food','conn','cohab','spec','soc'];
 const KNAME={ew:'Residuos',food:'Alimentos',conn:'Conectividad',cohab:'Cohabitabilidad',spec:'Especulación',soc:'Capital social'};
@@ -382,7 +382,7 @@ function drivers(scn,t){
   o.sroi= scn==='pro'? -0.5+6.4*(0.40*Dn+0.30*Cn+0.30*Sn) : -0.6-0.03*t;
   o.untreated=E-B;
   /* tráfico → ruido y aire: camiones (ligados al residuo y a la descentralización) pesan 3 veces un auto */
-  { const pr=scn==='pro', trk=clamp(E/130)*(1-.8*(pr?clamp(val/0.85):0)), car=pr?.85:1;
+  { const pr=scn==='pro', trk=clamp(E/130)*(1-.8*(pr?clamp(val/0.85):0)), car=(VAR.cars/420)*(pr?.85:1);
     o.TI=3*trk+car;
     o.noise=56+10*Math.log10(1+4*o.TI)-(pr?3*sC:0);
     /* Greenpeace (2021), con datos de la RMCAB y Pachón et al. (2018):
@@ -940,7 +940,7 @@ function pickPath(rf){if(PW.dirty||!PW.cw){let t=0;PW.cw=new Float64Array(NETM.l
   const cw=PW.cw,r=rf()*cw[cw.length-1];let lo=0,hi=cw.length-1;while(lo<hi){const m=(lo+hi)>>1;if(cw[m]<r)lo=m+1;else hi=m;}return lo;}
 function demand(){const h=CLOCK.h;return (h>=6&&h<9)||(h>=17&&h<20)?1:(h>=9&&h<17)?.7:(h>=20&&h<23)?.5:.3;}
 const CLOCK={h:18,day:40};/* un día simulado = 40 s */
-const VH={car:{n:420,mesh:null},truck:{n:34,mesh:null}};const TC_IN=new THREE.Color(0xff9f1c),TC_OUT=new THREE.Color(0x8a5a2b);
+const VH={car:{n:800,mesh:null},truck:{n:34,mesh:null}};const TC_IN=new THREE.Color(0xff9f1c),TC_OUT=new THREE.Color(0x8a5a2b);
 {const gB2=new THREE.BoxGeometry(1,1,1);
  const gCar=mergeG([mpart(gB2,0,.32,0,1,.36,.52),mpart(gB2,-.05,.64,0,.52,.3,.46)]);
  const gTr=mergeG([mpart(gB2,-.1,.5,0,1.15,.7,.62),mpart(gB2,.68,.38,0,.4,.5,.58)]);
@@ -1141,7 +1141,7 @@ function animAgents(time,dt){
    VCOL.near=vehBrake(sz);
    idmStep(VH.car,dtt,sz,sz*2*.9);idmStep(VH.truck,dtt,sz,sz*2.7*.9);sigDraw(sz);
    const lane=sz*.55,place=(W,m,i,x,y,hd,s)=>{const hx=Math.cos(hd),hy=Math.sin(hd),X=x+hy*lane,Y=y-hx*lane;W.cx[i]=X;W.cy[i]=Y;W.hx[i]=hx;W.hy[i]=hy;W.on[i]=1;set(m,i,X,gh(X,-Y)+1.4,-Y,s,hd);};
-   const liveM=LIVE.on?(()=>{const ok=LIVE.pts.filter(p=>p.r!=null);return ok.length?.8+.8*(1-ok.reduce((a,p)=>a+p.r,0)/ok.length):1})():1,nC=RG.E.length?VH.car.n:0,nT=NETC.length?Math.max(pro?3:0,Math.round(VH.truck.n*clamp(st.E/130)*(1-.8*divv))):0;
+   const liveM=LIVE.on?(()=>{const ok=LIVE.pts.filter(p=>p.r!=null);return ok.length?.8+.8*(1-ok.reduce((a,p)=>a+p.r,0)/ok.length):1})():1,nC=RG.E.length?Math.min(VH.car.n,Math.round(VARS[S.scn].cars*(pro?.85:1))):0,nT=NETC.length?Math.max(pro?3:0,Math.round(VH.truck.n*clamp(st.E/130)*(1-.8*divv))):0;
    if(ENT.length&&GATES.length){const T=VH.truck;
      const hr=CLOCK.h,prof=(hr>=2&&hr<3)?.15:(hr>=20||hr<2)?1:(hr>=3&&hr<6)?.75:(hr>=6&&hr<10)?.35:.12;  // llegadas: noche y madrugada
      const nT2=Math.max(pro?3:0,Math.round(T.n*clamp(st.E/130)*(1-.8*divv)));T.mesh.count=nT2;let cc=false;
@@ -1163,7 +1163,8 @@ function animAgents(time,dt){
        place(T,T.mesh,i,x,y,hd,sz*2.7);}
      T.mesh.instanceMatrix.needsUpdate=true;if(cc)T.mesh.instanceColor.needsUpdate=true;}
    {const V2=VH.car,k='car',n=nC,sp=42,zs=2.6;V2.mesh.count=n;for(let i=n;i<V2.n;i++)V2.on[i]=0;
-     if(!V2.ge){V2.ge=new Int32Array(V2.n);V2.gu=new Int32Array(V2.n);V2.fd=new Float32Array(V2.n);V2.out=new Uint8Array(V2.n);for(let i=0;i<V2.n;i++)rgSpawn(V2,i,false);}
+     if(!V2.ge){V2.ge=new Int32Array(V2.n);V2.gu=new Int32Array(V2.n);V2.fd=new Float32Array(V2.n);V2.out=new Uint8Array(V2.n);for(let i=0;i<V2.n;i++)rgSpawn(V2,i,false);V2.pn=n;}
+     if(n>V2.pn){for(let i=V2.pn;i<n;i++){rgSpawn(V2,i,true);V2.br[i]=.6;}}V2.pn=n;/* los autos nuevos entran por los bordes */
      for(let i=0;i<n;i++){let e=V2.ge[i],u=V2.gu[i],E=RG.E[e];
        if(V2.out[i]){V2.fd[i]-=dtt*1.8;if(V2.fd[i]<=0){V2.out[i]=0;rgSpawn(V2,i,true);e=V2.ge[i];u=V2.gu[i];E=RG.E[e];}}
        else if(V2.fd[i]<1)V2.fd[i]=Math.min(1,V2.fd[i]+dtt*1.8);
@@ -1339,6 +1340,7 @@ const VDEF=[
  ['inv','Inversión / alcance de las intervenciones',50,150,5,'%','Qué tanto necesidad resuelve cada espacio construido (base 100%).',v=>v+' %'],
  ['spec','Presión inmobiliaria externa',50,200,10,'%','Qué tan rápido sube el precio del suelo sin intervención (base 100%).',v=>v+' %'],
  ['soc','Participación comunitaria',50,200,10,'%','Qué tanto se convierten los espacios en capital social (base 100%).',v=>v+' %'],
+ ['cars','Autos circulando en el área',0,800,20,'autos','Autos simultáneos en las vías del área (base 420). Más autos: más congestión, ruido y PM2.5. En la propuesta circula el 85 % por la descentralización del abastecimiento.',v=>v+' autos'],
  ['resD','Residuo orgánico domiciliario (fuera de Corabastos)',0,80,2,'t/día','Bolsas en esquinas y postes alrededor del mercado. Atrae palomas y aumenta la presión sanitaria (base 30 t/día, supuesto).',v=>v+' t/día'],
  ['imm','Llegada de fauna silvestre',0,300,10,'%','Individuos que llegan de afuera cuando el hábitat es bueno (base 100%).',v=>v+' %']];
 const PRESETS={base:['Base',{}],opt:['Optimista',{resD:15,emisG:.5,maxVal:95,capX:150,inv:125,exec:130,spec:70,soc:140,imm:150}],

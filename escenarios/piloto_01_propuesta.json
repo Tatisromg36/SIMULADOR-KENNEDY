@@ -3,6 +3,7 @@
  "semilla": 7,
  "horizonte_anios": 20,
  "variables": {
+  "cars": 420,
   "resC": 110,
   "emisG": 1.2,
   "resD": 30,
