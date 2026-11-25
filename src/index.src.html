@@ -1107,7 +1107,7 @@ const SDM_SIG=[[2443.5,4486.8,3,"NORMAL","KR 96C X AC 22"],[481.6,2128.7,2,"NORM
   SDM_SIG.forEach(([x,y,nf,op,dir])=>{if(!inM(x,y))return;let ax=0,bd=1e9;old.forEach(o=>{const d=Math.hypot(o.x-x,o.y-y);if(d<bd){bd=d;ax=o.ax;}});
     if(bd>60){/* sin cruce de avenidas cercano: eje de la vía más cercana */let b2=1e9;[0,1,2].forEach(c=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;for(let k=0;k<ln.length;k++){const n=ln[k];for(let i=1;i<n;i++){const mx=(co[(o+i)*2]+co[(o+i-1)*2])/4,my=(co[(o+i)*2+1]+co[(o+i-1)*2+1])/4,d=Math.hypot(mx-x,my-y);if(d<b2){b2=d;ax=Math.atan2(co[(o+i)*2+1]-co[(o+i-1)*2+1],co[(o+i)*2]-co[(o+i-1)*2]);}}o+=n;}});}
     SIG.push({x,y,ax,nf:Math.max(2,Math.min(nf||2,5)),op,dir,off:Math.random()*60,src:'sdm'});});})();
-const sigT=()=>performance.now()/1000;
+const sigT=()=>SIMT/1000;
 function sigState(s2,hd){const P=SIGC.G+SIGC.Y+SIGC.R,C=(s2.nf||2)*P,t=(sigT()+s2.off)%C,ph=Math.abs(Math.cos(hd-s2.ax))>.7?0:1,tt=(t-ph*P+C)%C;
   return tt<SIGC.G?0:tt<SIGC.G+SIGC.Y?1:2;}/* 0 verde 1 amarillo 2 rojo */
 const SM={m:null,l:null};const C_JAM=new THREE.Color(0xff2a55),C_SLOW=new THREE.Color(0xffb02e);const SCOL=[new THREE.Color(0x35e07a),new THREE.Color(0xffc23a),new THREE.Color(0xff3b4e)];
@@ -1211,7 +1211,13 @@ function animAgents(time,dt){
   const lines=pro?[['cra86',f('cra86')],['calle6',f('calle6')]].filter(l=>l[1]>.05):[];
   const fc=pro&&f('puente_c')>.3?[byId.puente_c.x,byId.puente_c.y]:C;
   const pick={
-    pigeon:()=>{if(BIN.length&&R()<clamp((st.rD===undefined?VAR.resD:st.rD)/45,0,.75)){const nv=Math.max(1,Math.round(BIN.length*clamp((st.rD===undefined?VAR.resD:st.rD)/80))),b=BIN[Math.floor(R()*nv)],t=R()*6.283,r=3+R()*10;return[b.x+Math.cos(t)*r,b.y+Math.sin(t)*r];}if(R()<(pro?.5:.75)){const p=avPick(4,40);if(p)return p;}const a=pAn[Math.floor(R()*pAn.length)],r=60+R()*(R()<.3?700:260),t=R()*6.283;return[a[0]+Math.cos(t)*r,a[1]+Math.sin(t)*r];},
+    pigeon:i=>{/* las palomas van a comer donde se acumula residuo: canecas visibles (domiciliario) y montones de las puertas 5 y 6 (arrojo) */
+      const rD=st.rD===undefined?VAR.resD:st.rD,wb=wfBal(st),nv=BIN.length?Math.max(1,Math.round(BIN.length*clamp(rD/80))):0,nP=CR.pl?Math.round(CR.NP*clamp(wb.arro/40,0,1)):0,
+        wB=nv?rD:0,wP=nP?wb.arro*1.5:0,pw=clamp((wB+wP)/45,.15,.9);
+      if(wB+wP>0&&R()<pw){const F=FA.pigeon;F.fw[i]=1;const one=()=>{if(R()<wB/(wB+wP)){const b=BIN[Math.floor(R()*nv)],t=R()*6.283,r=2+R()*7;return[b.x+Math.cos(t)*r,b.y+Math.sin(t)*r];}
+          const q=CR.pl[Math.floor(R()*nP)],t=R()*6.283,r=16+R()*22;/* alrededor del montón, no dentro */return[q[0]+Math.cos(t)*r,q[1]+Math.sin(t)*r];};
+        if(!F.px)return one();/* prefieren el punto de residuo más cercano de unos cuantos */let best=null,bd=1e18;for(let k2=0;k2<6;k2++){const c=one(),dd=(c[0]-F.px[i])**2+(c[1]-F.py[i])**2;if(dd<bd){bd=dd;best=c;}}return best;}
+      FA.pigeon.fw[i]=0;if(R()<(pro?.5:.75)){const p=avPick(4,40);if(p)return p;}const a=pAn[Math.floor(R()*pAn.length)],r=60+R()*(R()<.3?700:260),t=R()*6.283;return[a[0]+Math.cos(t)*r,a[1]+Math.sin(t)*r];},
     tingua:i=>(R()<(pro?.55:.85)&&avPick(1,25))||wetIn(WET[WETH[i%WETH.length]]),
     hum:()=>{if(R()<(pro?.5:.85)){const p=avPick(2,60);if(p)return p;}if(lines.length&&R()<.75){const l=lines[Math.floor(R()*lines.length)],p=lineAt(l[0],R()*l[1]);return[p[0]+(R()-.5)*50,p[1]+(R()-.5)*50];}
       const a=tAnch[Math.floor(R()*tAnch.length)];return[a[0]+(R()-.5)*320,a[1]+(R()-.5)*220];},
@@ -1224,16 +1230,18 @@ function animAgents(time,dt){
   const cnt={pigeon:Math.round(N.pigeon),tingua:Math.round(N.tingua),hum:Math.round(N.hum),falcon:Math.round(N.falcon),
     pers:pro?Math.round(FA.pers.n*clamp(.12+(st.soc||0)/100*.9)):Math.round(FA.pers.n*.14)};
   for(const k in FA){const F=FA[k],n=cnt[k];F.mesh.count=n;
+    if(!F.fw){F.fw=new Uint8Array(F.n);F.dw=new Float32Array(F.n);}
     if(!F.px){F.px=new Float32Array(F.n);F.py=new Float32Array(F.n);F.tx=new Float32Array(F.n);F.ty=new Float32Array(F.n);F.hd=new Float32Array(F.n);
-      for(let i=0;i<F.n;i++){const p=pick[k](i);F.px[i]=p[0];F.py[i]=p[1];const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];F.hd[i]=Math.atan2(q[1]-p[1],q[0]-p[0]);}}
+      for(let i=0;i<F.n;i++){const p=pick[k](i);F.px[i]=p[0];F.py[i]=p[1];if(k==='pigeon'&&F.fw[i]){F.dw[i]=R()*25;F.fw[i]=0;}/* arrancan ya comiendo en el residuo */const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];F.hd[i]=Math.atan2(q[1]-p[1],q[0]-p[0]);}}
     for(let i=0;i<n;i++){let dx=F.tx[i]-F.px[i],dy=F.ty[i]-F.py[i],d=Math.hypot(dx,dy);const v=SPD[k]*(.6+F.seed[i].s*.5)*dtt;
-      if(d<Math.max(v*2,4)){const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];dx=q[0]-F.px[i];dy=q[1]-F.py[i];d=Math.hypot(dx,dy)||1;}
+      if(F.dw[i]>0){/* comiendo en el suelo junto al residuo */F.dw[i]-=dtt;const x=F.px[i]+(dtt?Math.sin(time*.01+i)*.15:0),y=F.py[i];F.px[i]=x;set(F.mesh,i,x,gh(x,-y)+1.2+Math.abs(Math.sin(time*.02+i))*.8*wob,-y,sz*SZ[k],F.hd[i]+Math.sin(time*.004+i)*.6);continue;}
+      if(d<Math.max(v*2,4)){if(k==='pigeon'&&F.fw[i]&&dtt>0){F.dw[i]=12+R()*25;F.fw[i]=0;continue;}const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];dx=q[0]-F.px[i];dy=q[1]-F.py[i];d=Math.hypot(dx,dy)||1;}
       const th=Math.atan2(dy,dx);let dh=th-F.hd[i];dh=Math.atan2(Math.sin(dh),Math.cos(dh));F.hd[i]+=dh*Math.min(1,dtt*4);
       if(k==='tingua'){const nx=F.px[i]+dx/d*v,ny=F.py[i]+dy/d*v;
         if(inPoly(nx,ny,WET[WETH[i%WETH.length]].p)){F.px[i]=nx;F.py[i]=ny;}else{const q=pick[k](i);F.tx[i]=q[0];F.ty[i]=q[1];}}
       else{F.px[i]+=dx/d*v;F.py[i]+=dy/d*v;}
-      const x=F.px[i],y=F.py[i];
-      set(F.mesh,i,x,HGT[k](i,x,y),-y,sz*SZ[k],F.hd[i]);}
+      const x=F.px[i],y=F.py[i];let hh=HGT[k](i,x,y);if(k==='pigeon'&&F.fw[i]){const g0=gh(x,-y)+1.2;hh=g0+(hh-g0)*clamp(d/90);}
+      set(F.mesh,i,x,hh,-y,sz*SZ[k],F.hd[i]);}
     F.mesh.instanceMatrix.needsUpdate=true;}
   // autos y camiones de residuo en las vías
   {const divv=pro?clamp(st.val/0.85):0;
@@ -1736,7 +1744,7 @@ $('#facts').innerHTML=`<div><b>${D.stats.buildings.toLocaleString('es-CO')}</b>c
 /* ---------- bucle ---------- */
 function resize(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);}
 addEventListener('resize',resize);
-let last=performance.now();
+let last=performance.now(),SIMT=0;/* reloj de la simulación: solo avanza con play, para que en pausa todo quede quieto */
 let prC=Math.min(devicePixelRatio,MOBILE?1.5:2),prNow=prC,fAcc=0,fN=0;
 function adapt(dt){fAcc+=dt;fN++;if(fN>=45){const avg=fAcc/fN;fAcc=0;fN=0;
   if(avg>34&&prNow>.8){prNow=Math.max(.75,prNow-.25);R.setPixelRatio(prNow);resize();}
@@ -1745,12 +1753,12 @@ function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)ca
   if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
   if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
   if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
-  stepFly(now);placeCam();animAgents(now,dt);updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
 /* arranque */
 resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={AVO,AVL,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={FAx:()=>FA,AVO,AVL,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
