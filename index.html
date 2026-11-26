@@ -674,7 +674,7 @@ B3.ecotono=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*
   for(let i=0;i<8;i++){const a=rnd()*6.28,d=r*(.62+rnd()*.3);tree(G,Math.cos(a)*d,Math.sin(a)*d,9+rnd()*5);}
   const P=Math.min(r*.32,34),ox=-P*.55;G.add(M(geo.box,PAVE,ox,1.2,0,P*1.1,.8,P*1.1));
   benchArc(G,ox,0,P*.42,.3,1.2);benchArc(G,ox,0,P*.42,2.4,1.2);benchArc(G,ox,0,P*.42,4.5,.9);G.add(M(geo.box,WOOD,ox,2,0,P*.28,1.6,P*.1));
-  pollinator(G,ox+P*1.05,0,4,P*.25);
+  pollinator(G,ox+P*1.05,0,4,P*.25);o.garden=[o.x+ox+P*1.05,o.y,P*.5];
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
 B3.custodia=(o)=>circle(o,0xb0306a);B3.habitat=(o)=>circle(o,0xe0495c);B3.saberes=(o)=>circle(o,0x8a4fd6);
 /* círculo de reunión: muro anular de concreto con arcos, banda interior de madera; alrededor, pradera inundable con cauce y piedras de paso */
@@ -1230,6 +1230,14 @@ function liqInit(){if(LIQ.pts||!RG.E||!RG.E.length)return;const C=D.cora,cand=[]
 function liqUpdate(){liqInit();if(!LIQ.pts)return;const n=S.scn==='pro'&&!MPOFF.has('liq')?Math.min(LIQ.pts.length,Math.round(VARS.pro.liq||0)):0;
   if(n!==LIQ.n){LIQ.n=n;LIQ.tank.count=LIQ.bench.count=LIQ.halo.count=n;LIQ.cell.clear();for(let i=0;i<n;i++){const p=LIQ.pts[i],k=Math.floor(p[0]/60)+','+Math.floor(p[1]/60);if(!LIQ.cell.has(k))LIQ.cell.set(k,[]);LIQ.cell.get(k).push(p);}}}
 const liqNear=(x,y)=>{if(!LIQ.n)return null;const cx=Math.floor(x/60),cy=Math.floor(y/60);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const L=LIQ.cell.get((cx+a)+','+(cy+b));if(L)for(const p of L)if(Math.hypot(p[0]-x,p[1]-y)<45)return p;}return null;};
+/* ---------- abejas en los jardines de polinizadores de los ecotonos (solo propuesta; se detienen en pausa) ---------- */
+const BEE={m:null,L:[]};
+function beeUpdate(T){if(!BEE.m){INT.forEach(o=>{if(o.garden&&!o.out)for(let k=0;k<16;k++)BEE.L.push({o,a:Math.random()*6.28,r:.3+Math.random()*.9,h:3+Math.random()*4,w:.6+Math.random()*1.2,p:Math.random()*6.28});});
+    if(!BEE.L.length)return;BEE.m=new THREE.InstancedMesh(geo.ico,new THREE.MeshBasicMaterial({color:0xffd23a}),BEE.L.length);BEE.m.frustumCulled=false;BEE.m.renderOrder=30;sc.add(BEE.m);}
+  const pro=S.scn==='pro',m=_cm,px=clamp(2*V.H/cv.clientHeight,.4,3),k=Math.max(1.6,px*2.2);let n=0;
+  BEE.L.forEach(b=>{if(!pro||MPOFF.has(b.o.id))return;const g=b.o.garden,t=T/1000*b.w+b.p,R2=g[2]*b.r*(1+.25*Math.sin(t*2.3)),x=g[0]+Math.cos(t+b.a)*R2,y=g[1]+Math.sin(t*1.3+b.a)*R2;
+    m.compose(_cp.set(x,gh(x,-y)+b.h+Math.sin(t*5)*1.2,-y),_cq.identity(),_cs.set(k,k*.8,k));BEE.m.setMatrixAt(n++,m);});
+  BEE.m.count=n;BEE.m.instanceMatrix.needsUpdate=true;}
 /* ---------- zanjas de infiltración: separadores verdes de las avenidas que captan la lluvia (ciudad esponja) ---------- */
 const ZJ={on:null,G:null};
 function zjInit(){if(ZJ.G||!RG.E||!RG.E.length)return;const E=RG.E.filter(e=>e.c===2&&inM((RG.X[e.a]+RG.X[e.b])/2,(RG.Y[e.a]+RG.Y[e.b])/2)&&Math.hypot(RG.X[e.b]-RG.X[e.a],RG.Y[e.b]-RG.Y[e.a])>30);
@@ -1432,7 +1440,7 @@ const AGL=[['pers','Personas','custodios y vecinos','#9b8cff','<circle cx="12" c
 const svgI=(c,p)=>`<svg viewBox="0 0 24 18" width="22" height="17" fill="${c}" aria-hidden="true">${p}</svg>`;
 function lgAgents(){$('#lgA').innerHTML=`<div style="font-weight:700;margin-bottom:4px">Agentes del modelo</div>`+
   `<div class="ag">${svgI('#8d8aa8','<rect x="11" y="1" width="2" height="16"/><rect x="8" y="1" width="8" height="2" fill="#fff0b0"/><circle cx="6" cy="14" r="3.5" fill="#9bd03a"/><circle cx="17" cy="14" r="3" fill="#c9822f"/>')}<span><b>Residuo domiciliario</b><small>bolsas en esquinas y postes; atraen palomas</small></span></div>`+`<div class="ag">${svgI('#d9953a','<rect x="3" y="9" width="8" height="6"/><rect x="9" y="6" width="6" height="9" fill="#8a5a2b"/><circle cx="20" cy="8" r="2.2"/>')}<span><b>Residuo de Corabastos</b><small>pilas en las puertas 5 y 6; fluye al humedal</small></span></div>`+`<div class="ag">${svgI('#58b36f','<circle cx="12" cy="7" r="5.5"/><rect x="11" y="11" width="2" height="6"/>')}<span><b>Arbolado urbano</b><small>inventario real, por altura</small></span></div>`+
-  AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+`<div style="height:8px"></div>`;}
+  AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+(S.scn==='pro'?`<div class="ag">${svgI('#ffd23a','<circle cx="12" cy="12" r="5"/><rect x="7" y="11" width="10" height="2" fill="#2a2320"/><ellipse cx="8" cy="7" rx="4" ry="2.5" fill="#fff"/><ellipse cx="16" cy="7" rx="4" ry="2.5" fill="#fff"/>')}<span><b>Abejas</b><small>polinizadoras; viven en los jardines de los ecotonos</small></span></div>`:'')+`<div style="height:8px"></div>`;}
 function legend(){lgAgents();const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
   const st=need?'#58c79b,#8fd0a8,#e9b0c8,#ff4fa0,#e0147a':'#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f';
   $('#lgBar').style.background=`linear-gradient(90deg,${st})`;$('#lgL').textContent=need?'Cubierta':'Sano';$('#lgR').textContent=need?'Falta espacio':'Contaminado';}
@@ -1723,7 +1731,7 @@ function renderMP(){
 }
 const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabastos antes de que llegue a la calle, la composta o digiere y devuelve alimento de proximidad.',
  parque:'Parque inundable: absorbe la escorrentía, filtra con macrófitas y devuelve la franja de amortiguación al humedal (ciudad esponja).',
- ecotono:'Ecotono: borde de vegetación palustre entre ciudad y humedal. Refugio de la tingua bogotana y filtro de ruido y contaminación.',
+ ecotono:'Ecotono: la franja de transición entre dos ecosistemas, aquí entre la ciudad y el humedal. La idea es generar conectividad ecosistémica: un borde continuo de juncos, arbustos, árboles y flores por el que se mueven la tingua, los colibríes, las abejas y otros polinizadores entre el humedal y los corredores verdes. Se propone como espacio público con áreas verdes donde personas y fauna comparten el lugar: cohabitabilidad multiespecie.',
  corredor:'Corredor verde: arbolado continuo que une humedales. Ruta de colibríes y polinizadores, y espacio peatonal.',
  puente:'Puente verde: cruce vegetado sobre una vía de alto tráfico para que la fauna pase sin riesgo.',
  custodia:'Círculo de custodia multiespecie: asamblea barrial que cuida un tramo de humedal y acuerda reglas de convivencia.',
@@ -1735,7 +1743,7 @@ const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabast
  renov:'Zona de renovación para la cohabitabilidad: techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.'};
 /* ---------- fichas de los espacios propuestos: programa, macromodelos, dinámicas que cambia y efecto medido ---------- */
 const PROG={plaza:'Nave de mercado con bio-factoría (compostaje y biodigestión), cúpula de acopio, muelles de carga y huertas de proximidad.',
- ecotono:'Borde de juncos y árboles entre ciudad y humedal, plaza de encuentro con bancas curvas de madera y jardín de polinizadores en retícula de jardineras.',
+ ecotono:'Borde de juncos, arbustos y árboles nativos hacia el humedal; plaza de encuentro con bancas curvas de madera; jardín de polinizadores en retícula de jardineras con flores para abejas, mariposas y colibríes; senderos que conectan con los corredores verdes.',
  custodia:'Círculo de reunión: muro anular de concreto con arcos y banda de madera; alrededor, pradera inundable con cauce y piedras de paso.',
  habitat:'Círculo de reunión con pradera inundable, refugios, nidos y charcas para especies focales.',
  saberes:'Círculo de reunión con pradera inundable para formación en compostaje, huertas y observación de fauna.',
@@ -1748,12 +1756,12 @@ const PROG={plaza:'Nave de mercado con bio-factoría (compostaje y biodigestión
  renov:'Techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.',
  liq:'Fotobiorreactores de 600 L con microalgas y banca, junto a las avenidas y las puertas de carga de Corabastos.',
  zanja:'Separadores verdes en el centro de las avenidas, con franja de agua para la lluvia y un árbol cada 48 m.'};
-const MACRO={plaza:['Cohabitabilidad multiespecie','Ciudad biofílica'],ecotono:['Animal Aided Design','Ciudad biofílica','Ciudad esponja'],custodia:['Cohabitabilidad multiespecie','Ciudad esponja'],
+const MACRO={plaza:['Cohabitabilidad multiespecie','Ciudad biofílica'],ecotono:['Cohabitabilidad multiespecie','Animal Aided Design','Ciudad biofílica','Ciudad esponja'],custodia:['Cohabitabilidad multiespecie','Ciudad esponja'],
  habitat:['Animal Aided Design','Ciudad esponja'],saberes:['Cohabitabilidad multiespecie','Ciudad esponja'],parque:['Ciudad esponja','Ciudad biofílica'],puente:['Animal Aided Design'],
  corredor:['Animal Aided Design','Ciudad biofílica'],ecocirc:['Cohabitabilidad multiespecie'],centro:['Cohabitabilidad multiespecie','Ciudad biofílica'],
  vivienda:['Cohabitabilidad multiespecie','Ciudad esponja'],renov:['Ciudad biofílica','Cohabitabilidad multiespecie'],liq:['Ciudad biofílica'],zanja:['Ciudad esponja']};
 const CHAIN={plaza:['Residuo de Corabastos → se valoriza en origen ↑','Residuo sin tratar y comida para palomas ↓','Presión sanitaria ↓ → tingua y colibríes ↑','Abono → huertas → alimento local ↑'],
- ecotono:['Borde vegetal entre ciudad y humedal ↑','Ruido en el borde del humedal ↓ → tingua ↑','Flores → colibríes y polinizadores ↑','Verde nuevo → valoriza el suelo (especulación ↑)'],
+ ecotono:['Borde vegetal continuo entre ciudad y humedal → conectividad ecosistémica ↑','Jardín de polinizadores → abejas, mariposas y colibríes ↑ → polinización de huertas y flora del humedal ↑','Barrera de vegetación → ruido en el borde del humedal ↓ → tingua ↑','Espacio público verde → personas y fauna comparten el lugar (cohabitabilidad multiespecie ↑)','Verde nuevo → valoriza el suelo (especulación ↑): necesita custodia y vivienda cooperativa'],
  custodia:['Comunidad organizada → capital social ↑','Custodia del suelo → especulación y desplazamiento ↓','Pradera inundable → retiene la lluvia'],
  habitat:['Refugios y charcas → hábitat de fauna ↑','Conectividad ↑','Comunidad que cuida → capital social ↑'],
  saberes:['Formación en compostaje y huertas → capital social ↑','Separación en la fuente → residuo domiciliario ↓'],
@@ -1813,7 +1821,7 @@ function phaseLabel(){const t=S.t,lim=thrSeen(),n=thrCross().filter(h=>h.y<=lim+
 function setT(t,fromUser){const prevT=S.t;const G=S.scn==='pro'?GOP:GO;if(G&&!S.goSeen&&t>=G.t&&prevT<G.t+1e-6){t=G.t;if(S.playing)S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,G.t);S.playing=false;$('#play').textContent='▶';setTimeout(()=>showGO(S.scn),60);}
   else if(S.scn==='pro'&&!GOP&&!S.susSeen&&t>=19.999&&prevT<19.999&&S.playing){S.susSeen=true;setTimeout(showSUS,60);}S.t=clamp(t,0,20);goTick(prevT);if(S.playing)checkEvents(prevT,S.t);$('#yr').value=S.t;$('#yv').textContent='Año '+Math.round(S.t);$('#yc').textContent=fmtYear(S.t);$('#phase').textContent=phaseLabel();applyState();const nw=performance.now();if(!S.playing||nw-lastUI>220){lastUI=nw;renderInd();renderRel();if(S.tab==='mp')renderMP();}}
 let lastUI=0;
-function setScn(s){S.scn=s;S.seenT=undefined;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);
+function setScn(s){S.scn=s;S.seenT=undefined;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);lgAgents();
   lastKey='';applyState(true);legend();renderInd();renderMP();renderVar();renderRel();$('#phase').textContent=phaseLabel();}
 $('#bAct').addEventListener('click',()=>setScn('act'));$('#bPro').addEventListener('click',()=>setScn('pro'));
 $('#yr').addEventListener('input',e=>{S.playing=false;$('#play').textContent='▶';setT(+e.target.value);});
@@ -1933,7 +1941,7 @@ function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)ca
   if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
   if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
   if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
-  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
 /* arranque */
 resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
 const FACT=1;
