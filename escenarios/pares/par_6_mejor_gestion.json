@@ -24,7 +24,7 @@
    "soc": 100,
    "imm": 150
   },
-  "resultado": "Game over año 11,4: aire, tingua, especulación"
+  "resultado": "Game over año 10,4: aire, especulación, tingua"
  },
  "propuesta": {
   "variables": {
@@ -40,6 +40,6 @@
    "soc": 100,
    "imm": 150
   },
-  "resultado": "Sostenible: cohabitabilidad 75, 48 tinguas, PM2.5 25,6"
+  "resultado": "Sostenible: cohabitabilidad 75, 48 tinguas, especulación 64, PM2.5 25,6"
  }
 }

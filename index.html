@@ -387,14 +387,19 @@ const meanProg=(f,t)=>{const a=INT.filter(f);return a.length?a.reduce((x,o)=>x+p
 function drivers(scn,t){
   const sC=sat('conn',t,scn), sE=sat('ew',t,scn), sF=sat('food',t,scn), sH=sat('cohab',t,scn), sS=sat('spec',t,scn), sO=sat('soc',t,scn);
   const B=biomass(t,scn,sO), E=emis(t), val=B/E;
-  const specBase=62+1.15*t*VAR.spec/100;
+  /* especulación (índice 0–100; 1 punto ≈ 1 % de valorización real acumulada del suelo):
+     tendencia de Kennedy = valorización residencial estratos 2–3 (6,25 % y 6,06 %, IVIUR Catastro 2025) − inflación 5,1 % (DANE 2025) ≈ 1,05 %/año real;
+     metro L1 (opera desde mar-2028, 4 estaciones en Kennedy): +13 % cerca de las estaciones (Rodríguez y Mojica 2009, TransMilenio) × 30 % del área a < 800 m (supuesto);
+     en la propuesta, el verde diseñado (parques, corredores, techos) también valoriza: hasta +26 % junto a parques zonales en Bogotá (Properati) → +13 × cobertura verde (gentrificación verde, Anguelovski et al. 2022). */
+  const metro=3.9*clamp((t-1.2)/2);
+  const specBase=62+1.05*t*VAR.spec/100+metro;
   const o={ sC,sE,sF,sH,sS,sO,B,E,val };
   if(scn==='pro'){
-    o.conn=16+70*sC; o.food=3+42*sF; o.spec=Math.max(20,specBase-60*sS); o.soc=Math.min(100,6+72*sO*VAR.soc/100);
+    o.conn=16+70*sC; o.food=3+42*sF; o.specG=13*sC;o.spec=Math.max(20,specBase+o.specG-60*sS); o.soc=Math.min(100,6+72*sO*VAR.soc/100);
   }else{
     o.conn=Math.max(6,16-0.32*t); o.food=Math.max(1.5,3-0.05*t); o.spec=Math.min(95,specBase); o.soc=Math.max(2,6-0.15*t);
   }
-  o.specBase=specBase;
+  o.specBase=specBase;o.metro=metro;
   const Dn=clamp((o.food-3)/42), Cn=clamp((o.conn-16)/70), Sn=clamp((o.soc-6)/72);
   o.sroi= scn==='pro'? -0.5+6.4*(0.40*Dn+0.30*Cn+0.30*Sn) : -0.6-0.03*t;
   o.untreated=E-B;
@@ -1406,8 +1411,8 @@ function fxHTML(k,st){const P=S.scn==='pro',t=S.t;const yr=`t = ${nf(t,1)} años
           :[`Valorización = 0`,`E = ${nf(st.E,0)} t/día, todo sin tratar → <b>0 %</b>`,`En la situación actual no hay bio-factorías: el metabolismo es lineal. E = residuo de Corabastos × (1 + crecimiento × t).`],
    food:P?[`Descentralización = 3 + 42 × ${SAT('F')} + 7 × huertas`,`= 3 + 42 × ${nf(st.sF,2)} + 7 × ${nf(st.huertas,2)} = <b>${nf(st.food,0)} %</b>`,`${SAT('F')} lo aportan plazas satélite, ecocircuitos y el centro. Huertas = mín(1; abono ÷ 25), con abono = 0,55 × B (residuo valorizado que vuelve como compost).`]
           :[`Descentralización = máx(1,5; 3 − 0,05 × t)`,`= <b>${nf(st.food,0)} %</b>`,`Hoy casi todo el alimento pasa por Corabastos; sin nodos locales la concentración aumenta.`],
-   spec:P?[`Especulación = máx(20; tendencia − 60 × ${SAT('S')})`,`tendencia = 62 + 1,15 × t × presión% = ${nf(st.specBase,0)} → ${nf(st.specBase,0)} − 60 × ${nf(st.sS,2)} = <b>${nf(st.spec,0)}</b>`,`${SAT('S')} lo aportan vivienda cooperativa, renovación y custodia del suelo. Menor es mejor.`]
-          :[`Especulación = mín(95; 62 + 1,15 × t × presión%)`,`= <b>${nf(st.spec,0)}</b>`,`Sin custodia del suelo, la presión crece cada año según la variable de presión inmobiliaria externa.`],
+   spec:P?[`Especulación = máx(20; tendencia + metro + verde − 60 × ${SAT('S')})`,`tendencia 62 + 1,05 × t × presión% y metro +${nf(st.metro,1)} = ${nf(st.specBase,0)}; verde +13 × ${nf(st.sC,2)} = +${nf(st.specG,0)}; custodia −60 × ${nf(st.sS,2)} → <b>${nf(st.spec,0)}</b>`,`Un punto ≈ 1 % de valorización real del suelo. Tendencia: en Kennedy (estratos 2 y 3) el suelo se valoriza 6,1–6,3 % al año (Catastro, IVIUR 2025) frente a una inflación de 5,1 % (DANE 2025). Metro: la línea 1 abre en 2028 con 4 estaciones en Kennedy; cerca de TransMilenio los precios subieron 13–14 % tras la inauguración (Rodríguez y Mojica 2009). Verde: los parques diseñados valorizan hasta 26 % alrededor (Properati, Bogotá) y en 17 de 28 ciudades el verde nuevo trajo gentrificación (Anguelovski et al. 2022). ${SAT('S')} (vivienda cooperativa, renovación y custodia del suelo) es lo que la contiene. Menor es mejor.`]
+          :[`Especulación = mín(95; 62 + 1,05 × t × presión% + metro)`,`metro +${nf(st.metro,1)} → <b>${nf(st.spec,0)}</b>`,`Un punto ≈ 1 % de valorización real del suelo. En Kennedy (estratos 2 y 3) el suelo se valoriza 6,1–6,3 % al año (Catastro, IVIUR 2025) frente a una inflación de 5,1 % (DANE 2025): ≈ 1 % real al año. La línea 1 del metro abre en 2028 con 4 estaciones en Kennedy; cerca de TransMilenio los precios subieron 13–14 % tras la inauguración (Rodríguez y Mojica 2009). Sin custodia del suelo nada contiene la presión. El valor inicial (62) y el umbral de expulsión (75) son supuestos del modelo.`],
    soc:[`Capital social = mín(100; 6 + 72 × ${SAT('O')} × participación%)`,`= 6 + 72 × ${nf(st.sO,2)} × ${VAR.soc} % = <b>${nf(st.soc,0)}</b>`,`${SAT('O')} lo aportan los espacios comunitarios (plazas, vivienda, renovación, centro). 6 es la línea base.`],
    noise:[`Ruido = 10 × log10( 10^5,5 + autos + camiones )${P?' − 4 × '+SAT('C'):''}`,`Fondo urbano 55 dB(A) · autos ${nf(st.Lc,0)} dB(A) · camiones ${nf(st.Lt,0)} dB(A) → <b>${nf(st.noise,0)} dB(A)</b>`,`Los niveles de ruido no se suman, se suman sus energías: por eso dos fuentes de 60 dB dan 63 dB y no 120. Cada fuente se calcula aparte: los autos con la variable de autos circulando y los camiones con el residuo que llega a Corabastos${P?' (que baja con la valorización en origen)':''}. Un camión pesado suena como unos 10 autos. ${P?'Los corredores verdes amortiguan el ruido. ':''}La norma residencial diurna en Colombia es 65 dB(A) (Res. 0627 de 2006). En el borde del humedal el ruido es 8 dB menor${P?' y los ecotonos lo bajan más':''}: por encima de 50 dB(A) la población máxima de tingua y colibríes baja hasta 35 %. En el mapa, el calor sigue a los vehículos reales y crece donde frenan y se acumulan.`],
    pm:[`PM2.5 = 23,3 + 11,1 × EI ÷ 2,125${P?' − 6 × '+SAT('C'):''}`,`EI = 0,925 × autos + 0,075 × 16 × camiones = ${nf(st.EI,2)} → <b>${nf(st.pm,0)} µg/m³</b>`,`Fuente: Greenpeace, «Hacia un aire limpio en Bogotá» (datos RMCAB 2019–2020). 23,3 µg/m³ = fondo de la estación Kennedy; 11,1 µg/m³ = lo que suma el tráfico (estación Carvajal-Sevillana, en Kennedy, menos estación Kennedy). Un camión pesado diésel emite como 16 autos en material particulado (menos del 2 % de la flota produce ~25 % del PM). Los camiones dependen del residuo de Corabastos${P?'; las bio-factorías en origen los reducen':''}. Norma anual: 25 µg/m³ (Res. 2254 de 2017); guía OMS 2021: 5 µg/m³. Efectos: por encima de 15 µg/m³ baja el capital social hasta 25 % (menos uso del espacio público)${P?' y cada µg/m³ menos suma ahorro en salud al SROI':''}; si supera 25 µg/m³ cuenta como umbral crítico.`],
@@ -1448,7 +1453,7 @@ const VDEF=[
  ['maxVal','Residuo que se puede valorizar en origen',40,100,5,'%','Tope de la biomasa que pueden procesar los nodos (base 85%).',v=>v+' %'],
  ['capX','Capacidad de las bio-factorías',50,200,10,'%','Toneladas por día que procesa cada nodo (base 100%).',v=>v+' %'],
  ['inv','Inversión / alcance de las intervenciones',50,150,5,'%','Qué tanto necesidad resuelve cada espacio construido (base 100%).',v=>v+' %'],
- ['spec','Presión inmobiliaria externa',50,200,10,'%','Qué tan rápido sube el precio del suelo sin intervención (base 100%).',v=>v+' %'],
+ ['spec','Presión inmobiliaria externa',50,200,10,'%','Qué tan rápido se valoriza el suelo. Base 100 % = ritmo medido en Kennedy: 6,1–6,3 % al año en estratos 2 y 3 (Catastro 2025), ≈ 1 % real sobre la inflación.',v=>v+' %'],
  ['soc','Participación comunitaria',50,200,10,'%','Qué tanto se convierten los espacios en capital social (base 100%).',v=>v+' %'],
  ['cars','Autos circulando en el área',0,800,20,'autos','Autos simultáneos en las vías del área (base 420). Más autos: más congestión, ruido y PM2.5. En la propuesta circula el 85 % por la descentralización del abastecimiento.',v=>v+' autos'],
  ['resD','Residuo orgánico domiciliario (fuera de Corabastos)',0,80,2,'t/día','Bolsas en esquinas y postes alrededor del mercado. Atrae palomas y aumenta la presión sanitaria (base 30 t/día, supuesto).',v=>v+' t/día'],
@@ -1654,7 +1659,7 @@ const THR=[
  {id:'aire',n:'Aire no apto para la salud',f:(d)=>d.pm>25,v:d=>nf(d.pm,1)+' µg/m³ de PM2.5 (norma 25)',w:'Los camiones que mueven el residuo y el alimento de Corabastos, sumados al tráfico y a la congestión, superan la norma anual de PM2.5 (Res. 2254). Fuente de base: RMCAB, estaciones Kennedy y Carvajal-Sevillana.'},
  {id:'dis',n:'Plaga de palomas y foco sanitario',f:(d)=>d.dis>=.95,v:d=>Math.round(d.dis*100)+' % de presión sanitaria',w:'El residuo orgánico sin tratar de Corabastos alimenta a las palomas; su presión desplaza a las especies nativas y enferma el entorno.'},
  {id:'tin',n:'Extinción local de la tingua bogotana',f:(d)=>d.N.tingua<3,v:d=>(d.N.tingua<5?nf(Math.max(0,d.N.tingua),1):Math.round(d.N.tingua))+' individuos en el humedal',w:'La carga de residuo y la enfermedad reducen el hábitat del humedal; sin conexión con otros humedales la población no se recupera.'},
- {id:'esp',n:'Expulsión por especulación inmobiliaria',f:(d)=>d.spec>=75,v:d=>Math.round(d.spec)+' / 100 de presión especulativa',w:'Sin nodos locales ni círculos de custodia, el suelo se valoriza y el territorio se vende: los vecinos pierden la capacidad de decidir.'},
+ {id:'esp',n:'Expulsión por especulación inmobiliaria',f:(d)=>d.spec>=75,v:d=>Math.round(d.spec)+' / 100 de presión especulativa',w:'El suelo de Kennedy se valoriza más rápido que la inflación y el metro lo acelera; sin vivienda cooperativa ni círculos de custodia, el territorio se vende y los vecinos pierden la capacidad de quedarse y decidir.'},
  {id:'res',n:'Residuo sin tratar fuera de control',f:(d)=>d.untreated>=127,v:d=>Math.round(d.untreated)+' t/día sin tratar',w:'El metabolismo es lineal: todo lo que entra a Corabastos sale como residuo. No existe valorización en origen que absorba el crecimiento.'}];
 const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
 const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
