@@ -34,10 +34,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pin.g-crit{background:var(--pink);color:#fff}
 .tag{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;font:italic 400 12px/1 var(--ui);
   color:rgba(255,255,255,.72);text-shadow:0 1px 3px rgba(10,8,40,.9);white-space:nowrap;letter-spacing:.02em}
-.chgb{border:1px solid var(--line);background:var(--panel);color:var(--ink);font-weight:700;padding:8px 12px;border-radius:3px;min-height:42px;cursor:pointer}.chgb[aria-pressed=true]{background:var(--mint);color:#06281c}
 .partag{align-self:center;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--ink)}
-.tag.chg{font:700 10px/1.25 var(--ui);font-style:normal;width:14px;height:14px;padding:0;border-radius:50%;background:var(--mint);border:2px solid #fff;box-shadow:0 1px 4px rgba(10,8,40,.6);pointer-events:auto;cursor:pointer;overflow:hidden;white-space:nowrap;color:#06281c;text-shadow:none;transition:opacity .2s}
-.tag.chg.open{width:auto;height:auto;padding:5px 9px;border-radius:3px;z-index:4;border-width:1px;white-space:normal;max-width:260px;text-align:left}.tag.chg b{display:block;font-size:11px;margin-bottom:2px}.tag.chg:focus-visible{outline:2px solid #fff}
 .pares{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0 4px}.pares button{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);border-radius:3px;padding:7px 6px;font-weight:700;font-size:12px;cursor:pointer;text-align:left;line-height:1.2}.pares button small{display:block;font-weight:400;color:var(--ink2);font-size:11px}.pares button[aria-pressed=true]{background:var(--mint);color:#06281c}.pares button[aria-pressed=true] small{color:#06281c}
 .tag.wf{font:700 10px/1.2 var(--ui);font-style:normal;width:12px;height:12px;padding:0;border-radius:50%;color:#1a1238;text-shadow:none;transition:opacity .2s;pointer-events:auto;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(10,8,40,.6);overflow:hidden;white-space:nowrap}
 .tag.wf.open{width:auto;height:auto;padding:3px 7px;border-radius:3px;z-index:3;border-width:1px}.tag.wf:focus-visible{outline:2px solid var(--mint)}
@@ -233,7 +230,6 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
     <button id="bAct" class="act" aria-pressed="false">Situación actual</button>
     <button id="bPro" aria-pressed="true">Propuesta</button>
   </div>
-  <button id="bChg" class="chgb" aria-pressed="false" title="Pinta dónde mejora o empeora el territorio con la propuesta y muestra el antes y el después en lugares clave">Ver cambio</button>
   <span id="parTag" class="partag" hidden></span>
   <div class="tools">
     <button id="rotL" aria-label="Rotar a la izquierda" title="Rotar (Q)">⟲</button>
@@ -1297,9 +1293,9 @@ const RAMP_NEED=[hx(0x3fae82),hx(0x8fd0a8),hx(0xe9b0c8),hx(0xff4fa0),hx(0xe0147a
 const CTX=new THREE.Color(0x4c8a80), CIN=new THREE.Color(0x5fbf99);
 let lastPaint=-1,lastKey='';
 function paint(force){
-  const key=S.scn+S.layer+(S.chg?'c':''); if(!force&&Math.abs(S.t-lastPaint)<.02&&key===lastKey)return; lastPaint=S.t;lastKey=key;
+  const key=S.scn+S.layer; if(!force&&Math.abs(S.t-lastPaint)<.02&&key===lastKey)return; lastPaint=S.t;lastKey=key;
   const c=new THREE.Color();
-  const LY=S.chg?'estado':S.layer;/* «Ver cambio»: el suelo muestra sano / contaminado del escenario activo */
+  const LY=S.layer;
   let vals=new Float32Array(MC);
   const ks=LY==='all'?KEYS:LY==='estado'?['ew']:[LY];
   ks.forEach(k=>{const r=remaining(k,S.t,S.scn);for(let j=0;j<MC;j++){let nv=NEED[k][j];
@@ -1325,7 +1321,7 @@ const svgI=(c,p)=>`<svg viewBox="0 0 24 18" width="22" height="17" fill="${c}" a
 function lgAgents(){$('#lgA').innerHTML=`<div style="font-weight:700;margin-bottom:4px">Agentes del modelo</div>`+
   `<div class="ag">${svgI('#8d8aa8','<rect x="11" y="1" width="2" height="16"/><rect x="8" y="1" width="8" height="2" fill="#fff0b0"/><circle cx="6" cy="14" r="3.5" fill="#9bd03a"/><circle cx="17" cy="14" r="3" fill="#c9822f"/>')}<span><b>Residuo domiciliario</b><small>bolsas en esquinas y postes; atraen palomas</small></span></div>`+`<div class="ag">${svgI('#d9953a','<rect x="3" y="9" width="8" height="6"/><rect x="9" y="6" width="6" height="9" fill="#8a5a2b"/><circle cx="20" cy="8" r="2.2"/>')}<span><b>Residuo de Corabastos</b><small>pilas en las puertas 5 y 6; fluye al humedal</small></span></div>`+`<div class="ag">${svgI('#58b36f','<circle cx="12" cy="7" r="5.5"/><rect x="11" y="11" width="2" height="6"/>')}<span><b>Arbolado urbano</b><small>inventario real, por altura</small></span></div>`+
   AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+`<div style="height:8px"></div>`;}
-function legend(){lgAgents();if(S.chg){$('#lgT').textContent='Ver cambio · estado del suelo ('+(S.scn==='pro'?'propuesta':'situación actual')+')';$('#lgBar').style.background='linear-gradient(90deg,#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f)';$('#lgL').textContent='Sano';$('#lgR').textContent='Contaminado';return;}const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
+function legend(){lgAgents();const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
   const st=need?'#58c79b,#8fd0a8,#e9b0c8,#ff4fa0,#e0147a':'#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f';
   $('#lgBar').style.background=`linear-gradient(90deg,${st})`;$('#lgL').textContent=need?'Cubierta':'Sano';$('#lgR').textContent=need?'Falta espacio':'Contaminado';}
 
@@ -1363,26 +1359,11 @@ function updatePins(){
   INT.forEach(o=>show(o,S.scn==='pro'&&!o.out,(o.r?gh(o.x,-o.y):15)+30));
   D.cands.forEach(c=>show(c,S.scn==='pro'&&S.cands&&V.H<4200&&(S.layer==='estado'||S.layer==='all'||S.layer===c.key||(S.layer==='ew'&&c.key==='ew')),26));
   CRIT.forEach(c=>show(c,S.scn==='act',34));
-  {const st=at(S.scn,S.t);wfLabels(st);chgLabels();}
+  {const st=at(S.scn,S.t);wfLabels(st);}
   TAGS.forEach(t=>{const [x,y]=proj(t.x,t.y,10);t.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;t.e.style.opacity=(t.acc?V.H<7000:V.H<3200)?.85:0;});
   const cs=S.sel&&findItem(S.sel);const co=$('#callout');
   if(cs){const [x,y]=proj(cs.x,cs.y,60);co.style.display='block';co.style.transform=`translate(${x}px,${y}px) translate(-14px,-100%) translateY(-34px)`;}else co.style.display='none';
 }
-/* puntos de cambio: antes (actual) → después (propuesta) en lugares clave, mismo año */
-const CHG={lab:[]};
-function chgLabels(){if(!CHG.lab.length){const add=(id,x,y)=>{const e=document.createElement('div');e.className='tag chg';e.setAttribute('role','button');e.tabIndex=0;pinsEl.appendChild(e);const l={id,e,x,y,t:''};CHG.lab.push(l);
-      const tg=ev=>{ev.stopPropagation();ev.preventDefault();e.classList.toggle('open');e.innerHTML=e.classList.contains('open')?l.t:'';};
-      e.addEventListener('pointerdown',ev=>ev.stopPropagation());e.addEventListener('click',tg);e.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' ')tg(ev);});};
-    add('vaca',vacaC[0],vacaC[1]);add('cora',D.cora[0]+150,D.cora[1]+120);add('cra86',byId.cra86.x,byId.cra86.y);add('bav',byId.viv_bav.x,byId.viv_bav.y);add('reno',byId.reno_mp.x,byId.reno_mp.y);}
-  const now=performance.now();if(!CHG.lt||now-CHG.lt>500){CHG.lt=now;const a=at('act',S.t),b=at('pro',S.t),f=(v,d)=>(Math.round(v*Math.pow(10,d||0))/Math.pow(10,d||0)).toString().replace('.',','),A=MK.A0/1e4,
-      ar=(x,y,u,d)=>`${f(x,d)} → ${f(y,d)}${u||''}`;
-    const T={vaca:`<b>Humedal La Vaca</b>Tinguas ${ar(a.N.tingua,b.N.tingua,'',0)}<br>Colibríes ${ar(a.N.hum,b.N.hum,'',0)}<br>Ruido en el borde ${ar(a.noiseW,b.noiseW,' dB')}`,
-      cora:`<b>Corabastos</b>Residuo sin tratar ${ar(a.untreated,b.untreated,' t/día')}<br>Huella ${f(A,1)} → ${f((MK.A0-MK.removed)/1e4,1)} ha · ecotono ${f(MK.removed/1e4,1)} ha<br>PM2.5 ${ar(a.pm,b.pm,' µg/m³')}<br>Presión sanitaria ${ar(a.dis*100,b.dis*100,' %')}`,
-      cra86:`<b>Av. Carrera 86</b>Conectividad ecosistémica ${ar(a.conn,b.conn)}<br>Cobertura verde ${ar(a.verde,b.verde,' %')}`,
-      bav:`<b>Bavaria</b>Especulación ${ar(a.spec,b.spec)}<br>Desplazamiento ${ar(a.dep,b.dep,' %')}`,
-      reno:`<b>María Paz · renovación</b>Cohabitabilidad ${ar(a.cohab,b.cohab)}<br>Capital social ${ar(a.soc,b.soc)}`};
-    CHG.lab.forEach(l=>{const t=T[l.id]+'<br><small>actual → propuesta · año '+Math.round(S.t)+'</small>';l.t=t;l.e.setAttribute('aria-label',t.replace(/<[^>]+>/g,' '));if(l.e.classList.contains('open')&&l.e.innerHTML!==t)l.e.innerHTML=t;});}
-  CHG.lab.forEach(l=>{const [x,y]=proj(l.x,l.y,40);l.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;const vis=!!S.chg&&V.H<7000;l.e.style.opacity=vis?1:0;l.e.style.pointerEvents=vis?'auto':'none';});}
 const findItem=id=>byId[id]||D.cands.find(c=>c.id===id)||CRIT.find(c=>c.id===id);
 /* ---------- cámara y controles ---------- */
 let flying=null;
@@ -1482,7 +1463,7 @@ function ttApply(j){const pts=j.puntos||j.points||[];let n=0;ENT.forEach(e=>{let
     if(best){const cur=best.currentSpeed,fr=best.freeFlowSpeed||cur||1;e.traf={cur,free:fr};e.ratio=Math.min(1,cur/fr);e.w=1.6-e.ratio;n++;}});
   const m=ENT.reduce((a,e)=>a+e.w,0);$('#ttMsg').textContent=n?`Datos aplicados a ${n} de ${ENT.length} accesos. Más congestión = camiones más lentos y más acumulados en ese acceso.`:'Ningún punto del archivo cae a menos de 250 m de un acceso.';entList();}
 function renderVar(){const el=$('#b-var');
-  const P=S.scn==='pro';let h=`<div class="vhd ${P?'vp':'va'}">${P?'Variables de la <b>propuesta</b>':'Variables de la <b>situación actual</b>'}</div><p class="note">${P?'Controlan cómo se construye y funciona el masterplan. No cambian la situación actual.':'Controlan la tendencia sin intervención: residuo, especulación y fauna. No cambian la propuesta.'} Todo se recalcula al instante.</p><h3 style="margin-top:6px">Pares de prueba</h3><p class="note">Cargan las mismas variables en los dos escenarios: solo cambia el masterplan. Elige un par y alterna entre Situación actual y Propuesta.</p><div class="pares">${PARES.map(p=>`<button data-par="${p[0]}" aria-pressed="${S.par===p[0]}" title="${p[2]}">Par ${p[0]} · ${p[1]}<small>${p[2]}</small></button>`).join('')}</div><p class="note" style="margin-top:8px">Pruebas de la propuesta (la situación actual queda en valores base):</p><div class="pares">${PRUEBAS.map(p=>`<button data-par="${p[0]}" aria-pressed="${S.par===p[0]}" title="${p[2]}">${p[1]}<small>${p[2]}</small></button>`).join('')}</div><div class="pares" style="grid-template-columns:1fr"><button data-par="">Volver a valores base</button></div><div class="presets"><button data-pre="base">Restablecer valores base</button></div>`;
+  const P=S.scn==='pro';let h=`<div class="vhd ${P?'vp':'va'}">${P?'Variables de la <b>propuesta</b>':'Variables de la <b>situación actual</b>'}</div><p class="note">${P?'Controlan cómo se construye y funciona el masterplan. No cambian la situación actual.':'Controlan la tendencia sin intervención: residuo, especulación y fauna. No cambian la propuesta.'} Todo se recalcula al instante.</p><h3 style="margin-top:6px">Escenarios</h3><p class="note">Cada escenario carga las mismas variables en la situación actual y en la propuesta: solo cambia el masterplan. Elige uno y alterna entre los dos.</p><div class="pares">${PARES.map(p=>`<button data-par="${p[0]}" aria-pressed="${S.par===p[0]}" title="${p[2]}">Escenario ${p[0]} · ${p[1]}<small>${p[2]}</small></button>`).join('')}</div><div class="pares" style="grid-template-columns:1fr"><button data-par="">Volver a valores base</button></div><div class="presets"><button data-pre="base">Restablecer valores base</button></div>`;
   VDEF.filter(v=>VKEYS[S.scn].includes(v[0])).forEach(([k,n,mn,mx,st,u,desc,fmt])=>{h+=`<div class="vr"><label for="v_${k}">${n}<output id="o_${k}">${fmt(VAR[k])}</output></label><input type="range" id="v_${k}" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${VAR[k]}"><small>${desc}</small></div>`;});
   h+=`<h3>Tráfico de carga (TomTom)</h3><p class="note">Los camiones entran por ${ENT.length} accesos (${ENT.map(e=>e.id).join(', ')}) y siguen la ruta más corta por avenidas hasta Corabastos. Carga el archivo <b>trafico_tomtom.json</b> para que la velocidad y el flujo reflejen el tráfico medido.</p><div class="ent" id="entL"></div><label class="fl"><input type="file" id="ttFile" accept=".json,application/json"> Cargar trafico_tomtom.json</label><p class="note" id="ttMsg">Sin medición en estos accesos todavía: velocidades de referencia (supuesto).</p>`;
   h+=`<h3>Resultado al año 20 · ${S.scn==='pro'?'propuesta':'situación actual'}</h3><div class="cmp" id="cmp"></div><p class="note">Comparado con los valores base. Son supuestos ilustrativos del modelo, por calibrar con datos medidos.</p>`;
@@ -1495,13 +1476,13 @@ function renderCmp(){const c=$('#cmp');if(!c)return;const b=baselineFor()[S.scn]
   const rows=[['Conectividad ecosistémica','conn',v=>v.toFixed(0)],['Cohabitabilidad multiespecie','cohab',v=>v.toFixed(0)],['Residuos valorizados','val',v=>(v*100).toFixed(0)+' %'],['Descentralización alimentaria','food',v=>v.toFixed(0)+' %'],['Presión especulativa','spec',v=>v.toFixed(0)],['Capital social','soc',v=>v.toFixed(0)],['SROI','sroi',v=>v.toFixed(1).replace('.',',')+'×']];
   c.innerHTML=rows.map(([l,k,f])=>{const d=n[k]-b[k],lower=k==='spec',good=lower?d<0:d>0,flat=Math.abs(d)<(k==='val'?.004:k==='sroi'?.04:.4);
     return `<span>${l}</span><b>${f(n[k])}</b><span class="chip ${flat?'':good?'up':'dn'}" style="justify-self:end">${flat?'igual':(d>0?'+':'−')+(k==='val'?(Math.abs(d)*100).toFixed(0)+' pts':k==='sroi'?Math.abs(d).toFixed(1).replace('.',','):Math.abs(d).toFixed(0))}</span>`;}).join('');}
-/* pares de prueba: mismas condiciones en los dos escenarios (solo cambia el masterplan) + pruebas propias de la propuesta */
+/* 6 escenarios: las mismas condiciones en la situación actual y en la propuesta (solo cambia el masterplan) */
 const PARES=[['1','Línea base','Todo en valores base',{}],['2','Corabastos crece','Residuo 140 t/día y 3 %/año',{resC:140,emisG:3}],['3','Más carros','800 autos',{cars:800}],
   ['4','Más basura en la calle','Domiciliario 60 t/día, arrojo 35 %',{resD:60,arr:35}],['5','Presión inmobiliaria','Especulación 200 %',{spec:200}],['6','Mejor gestión','Arrojo 3 %, domiciliario 15, 300 autos, crecimiento 0,5 %, fauna 150 %',{resD:15,arr:3,cars:300,emisG:.5,imm:150}]];
-const PRUEBAS=[['P-a','Implementación débil','Capacidad 60 %, inversión 70 %, tope 60 %',{capX:60,inv:70,maxVal:60}],['P-b','Comunidad que no se apropia','Participación 50 %, especulación 160 %',{soc:50,spec:160}],['P-c','Propuesta fortalecida','Capacidad 150 %, inversión 130 %, participación 150 %, tope 95 %, 250 autos, arrojo 5 %',{capX:150,inv:130,soc:150,maxVal:95,cars:250,arr:5}],['P-d','Estrés externo','Residuo 140 t/día y 3 %/año, especulación 200 %',{resC:140,emisG:3,spec:200}]];
-function applyPar(id){const p=PARES.find(q=>q[0]===id),q=PRUEBAS.find(x=>x[0]===id);
-  if(p){VARS.act=Object.assign({},VAR0,p[3]);VARS.pro=Object.assign({},VAR0,p[3]);}else if(q){VARS.act=Object.assign({},VAR0);VARS.pro=Object.assign({},VAR0,q[3]);}else{VARS.act=Object.assign({},VAR0);VARS.pro=Object.assign({},VAR0);}
-  S.par=id||null;S.seenT=undefined;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){const x=p||q;tg.hidden=!x;tg.textContent=x?(p?'Par '+x[0]+' · ':'Prueba · ')+x[1]:'';}
+
+function applyPar(id){const p=PARES.find(q=>q[0]===id);
+  VARS.act=Object.assign({},VAR0,p?p[3]:{});VARS.pro=Object.assign({},VAR0,p?p[3]:{});
+  S.par=id||null;S.seenT=undefined;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){tg.hidden=!p;tg.textContent=p?'Escenario '+p[0]+' · '+p[1]:'';}
   recompute();renderVar();}
 let rcT=0;function scheduleRecompute(){clearTimeout(rcT);rcT=setTimeout(recompute,90);}
 function recompute(){buildSeries();goCompute();thrBadge();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
@@ -1630,8 +1611,7 @@ function setT(t,fromUser){const prevT=S.t;const G=S.scn==='pro'?GOP:GO;if(G&&!S.
 let lastUI=0;
 function setScn(s){S.scn=s;S.seenT=undefined;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);
   lastKey='';applyState(true);legend();renderInd();renderMP();renderVar();renderRel();$('#phase').textContent=phaseLabel();}
-$('#bAct').addEventListener('click',()=>setScn('act'));
-$('#bChg').addEventListener('click',()=>{S.chg=!S.chg;$('#bChg').setAttribute('aria-pressed',S.chg);if(S.chg){S.envPrev=[ENV.on.n,ENV.on.a];ENV.on.n=false;ENV.on.a=false;}else if(S.envPrev){[ENV.on.n,ENV.on.a]=S.envPrev;}{const n=$('#tgN'),q=$('#tgA');if(n)n.checked=ENV.on.n;if(q)q.checked=ENV.on.a;}lastKey='';applyState(true);legend();});$('#bPro').addEventListener('click',()=>setScn('pro'));
+$('#bAct').addEventListener('click',()=>setScn('act'));$('#bPro').addEventListener('click',()=>setScn('pro'));
 $('#yr').addEventListener('input',e=>{S.playing=false;$('#play').textContent='▶';setT(+e.target.value);});
 $('#play').addEventListener('click',()=>{if(S.t>=20){S.seenT=undefined;setT(0);}S.playing=!S.playing;if(S.playing){S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,S.t);goTick(-1);$('#phase').textContent=phaseLabel();}$('#play').textContent=S.playing?'❚❚':'▶';$('#play').setAttribute('aria-label',S.playing?'Pausar':'Reproducir');});
 $('#spd').addEventListener('click',()=>{S.speed=S.speed===1?2:S.speed===2?4:1;$('#spd').textContent=S.speed+'×';});
