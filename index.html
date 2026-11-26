@@ -1,4 +1,4 @@
-<title>Kennedy Cohabitable</title>
+<meta charset="utf-8"><title>Kennedy Cohabitable</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Fira+Sans+Extra+Condensed:wght@600;800&display=swap">
@@ -268,7 +268,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
   <div class="tabbody" id="b-fi" hidden><div id="ficha"><p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p></div></div>
 </aside>
 
-<div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><small id="envS"></small><label><input type="checkbox" id="tgC" checked> <i class="dotb" style="background:#a3a8b2;border-radius:1px"></i> Concreto nuevo por especulación <small style="opacity:.8">(naranja = en obra)</small></label><small id="spxS"></small><div class="live"><b>Tráfico en tiempo real (TomTom)</b><div class="lrow"><input id="liveK" type="password" placeholder="Pega tu clave de TomTom" autocomplete="off"><button id="liveB">Activar</button></div><small id="liveS">Desactivado. Funciona en la versión de GitHub Pages.</small></div></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
+<div id="legend"><div id="envT"><b>Ambiente (tráfico)</b><label><input type="checkbox" id="tgN" checked> Ruido · mapa de calor</label><div class="nbar"></div><div class="row"><span>55 dB</span><span>65</span><span>77+ dB</span></div><label><input type="checkbox" id="tgA" checked> <i class="dotb"></i> Calidad del aire · partículas azules (PM2.5)</label><small id="envS"></small><label><input type="checkbox" id="tgC" checked> <i class="dotb" style="background:#a3a8b2;border-radius:1px"></i> Concreto nuevo por especulación</label><small id="spxS"></small><label><input type="checkbox" id="tgE" checked> <i class="dotb" style="background:#8fd06b;border-radius:50%"></i> Espacios que surgen por participación comunitaria</label><small id="emS"></small><div class="live"><b>Tráfico en tiempo real (TomTom)</b><div class="lrow"><input id="liveK" type="password" placeholder="Pega tu clave de TomTom" autocomplete="off"><button id="liveB">Activar</button></div><small id="liveS">Desactivado. Funciona en la versión de GitHub Pages.</small></div></div><div id="lgA"></div><div id="lgT" style="font-weight:700"></div><div class="bar" id="lgBar"></div><div class="row"><span id="lgL"></span><span id="lgR"></span></div></div>
 
 <div id="evt" hidden></div>
 <div id="vig"></div><div id="thr" hidden></div><div id="thrL" class="thrl ok" aria-live="polite" style="display:none"></div><div id="go" hidden role="dialog" aria-modal="true" aria-labelledby="goT"><div class="gbox" id="goBox"></div></div>
@@ -1241,7 +1241,8 @@ function spxRoads(){const RS=4,W=Math.ceil(NX*CS/RS),H=Math.ceil(NY*CS/RS),A=new
       for(let q=0;q<=m;q++){const x=ax+(bx-ax)*q/m,y=ay+(by-ay)*q/m,ix=Math.floor((x-g.x0)/RS),iy=Math.floor((y-g.y0)/RS);
         for(let dy=-rc;dy<=rc;dy++)for(let dx=-rc;dx<=rc;dx++){if(dx*dx+dy*dy>rc*rc)continue;const X=ix+dx,Y=iy+dy;if(X>=0&&Y>=0&&X<W&&Y<H)A[Y*W+X]=1;}}}o+=n;}});
   return (x,y)=>{const ix=Math.floor((x-g.x0)/RS),iy=Math.floor((y-g.y0)/RS);return ix<0||iy<0||ix>=W||iy>=H||A[iy*W+ix]===1;};}
-function spxInit(){let sd=7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,onRoad=spxRoads();
+let ROADF=null;const roadF=()=>ROADF||(ROADF=spxRoads());
+function spxInit(){let sd=7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,onRoad=roadF();
   const W=[D.water.vaca,D.water.strip,D.water.lago].concat(D.water.techo,D.water.stream),PK=D.parks.map(q=>q.r);
   const free=(x,y)=>!W.some(p=>polyIn([x,y],p))&&!PK.some(p=>polyIn([x,y],p))&&!polyIn([x,y],D.ronda);
   const cov=j=>L.cov[mcells[j]],nb=j=>{const c=mcells[j];let a=0,n=0;[-1,1,-NX,NX].forEach(d=>{const k=c+d;if(k>=0&&k<NX*NY&&MASK[k]){a+=L.cov[k];n++;}});return n?a/n/255:0;};
@@ -1268,7 +1269,59 @@ function spxUpdate(){if(!SPX.slab)spxInit();const scn=S.scn,sp=at(scn,S.t).spec,
     c.t.forEach(t=>{const h=Math.max(t.h*e,.001);_e.set(0,t.a,0);_q.setFromEuler(_e);
       if(c.lot){_cm.compose(_cp.set(c.x+t.dx,gy+.05,-(c.y+t.dy)),_q,_cs.set(e>0?t.w*1.45:.001,Math.max(2.2*e,.001),e>0?t.d*1.45:.001));SPX.slab.setMatrixAt(ns++,_cm);ha+=t.w*t.d*2.1*e/1e4;}_cm.compose(_cp.set(c.x+t.dx,gy,-(c.y+t.dy)),_q,_cs.set(e>0?t.w:.001,h,e>0?t.d:.001));SPX_C.copy(SPX_G).offsetHSL(0,0,(t.v-.5)*.1);if(e>0&&e<.98)SPX_C.lerp(SPX_O,.75);SPX.tw.setColorAt(nt,SPX_C);SPX.tw.setMatrixAt(nt++,_cm);if(e>.5)tn++;});});SPX.tw.instanceColor.needsUpdate=true;
   SPX.slab.instanceMatrix.needsUpdate=SPX.tw.instanceMatrix.needsUpdate=true;SPX.ha=ha;SPX.n=tn;
-  const el=$('#spxS');if(el)el.textContent=!SPX.on?'':scn==='pro'&&tn===0?`Especulación ${sp.toFixed(0)}: la propuesta la contiene y el concreto no se expande.`:`Especulación ${sp.toFixed(0)} → +${ha.toFixed(1)} ha de plataformas nuevas y ${tn} torres nuevas, sin ocupar vías${scn==='pro'&&INT.some(o=>!o.out&&!MPOFF.has(o.id))?' (el suelo de los espacios encendidos queda protegido)':''}`;}
+  const el=$('#spxS');if(el)el.textContent=!SPX.on?'':scn==='pro'&&tn===0?`Especulación ${sp.toFixed(0)}: la propuesta la contiene y el concreto no se expande.`:`Especulación ${sp.toFixed(0)} → +${ha.toFixed(1)} ha de plataformas nuevas y ${tn} torres nuevas (naranja = en obra), sin ocupar vías${scn==='pro'&&INT.some(o=>!o.out&&!MPOFF.has(o.id))?' (el suelo de los espacios encendidos queda protegido)':''}`;}
+/* ---------- espacios que surgen: la propuesta se esparce si funciona ----------
+   Participación P = capital social del modelo (0-1), que sube con la variable "participación comunitaria".
+   Funcionamiento W = 1 − 0,34 × umbrales que la propuesta cruza durante la simulación (los que ya vienen cruzados de hoy, como el PM2.5 de la ciudad, no cuentan).
+   1) Los 15 espacios candidatos (necesidad calculada con los datos del grid) se activan cuando la comunidad acumula
+      suficiente apropiación: Σ necesidad × (0,4 + P) × W × indicador del tema ≥ umbral.
+   2) Alrededor de cada espacio encendido surgen huertas, jardines y composteras vecinales en un frente que avanza
+      ∫ (0,4 + P) × W dt; más participación = frente más rápido. */
+const EM={on:true,c:[],m:[],key:'',disc:null,box:null,ring:null,n:0,nc:0};
+function emInit(){let sd=11;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,onRoad=roadF();
+  const RS=4,W=Math.ceil(NX*CS/RS),H=Math.ceil(NY*CS/RS),B0=new Uint8Array(W*H);
+  for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2,h=Math.max(bw[i],bd[i])/4+3,x0=Math.floor((x-h-g.x0)/RS),x1=Math.floor((x+h-g.x0)/RS),y0=Math.floor((y-h-g.y0)/RS),y1=Math.floor((y+h-g.y0)/RS);
+    for(let Y=Math.max(0,y0);Y<=Math.min(H-1,y1);Y++)for(let X=Math.max(0,x0);X<=Math.min(W-1,x1);X++)B0[Y*W+X]=1;}
+  const bOcc=(x,y)=>{const X=Math.floor((x-g.x0)/RS),Y=Math.floor((y-g.y0)/RS);return X<0||Y<0||X>=W||Y>=H||B0[Y*W+X]===1;};
+  const Wt=[D.water.vaca,D.water.strip,D.water.lago].concat(D.water.techo,D.water.stream),PK=D.parks.map(q=>q.r),placed=[];
+  const ok=(x,y,rr)=>{for(let a=0;a<6.28;a+=1.05)for(const f of [0,1]){const px=x+Math.cos(a)*rr*f,py=y+Math.sin(a)*rr*f;if(!inM(px,py)||onRoad(px,py)||bOcc(px,py))return false;}
+    return !Wt.some(p=>polyIn([x,y],p))&&!PK.some(p=>polyIn([x,y],p))&&!INT.some(o=>Math.hypot(o.x-x,o.y-y)<Math.max((o.r||0)*1.3,120))&&!polyIn([x,y],D.viv)&&!placed.some(q=>Math.hypot(q[0]-x,q[1]-y)<55);};
+  const parents=INT.filter(o=>!o.out).map(o=>({o,cand:null})).concat(CI.map(o=>({o,cand:o})));
+  const KIND={ecocirc:0,plaza:0,centro:0,parque:1,ecotono:1,corredor:1,puente:1,custodia:2,habitat:1,saberes:2,vivienda:2,renov:2,suelo:2};
+  parents.forEach(P=>{const o=P.o,k=KIND[o.type]??1;let n=0;for(let tr=0;tr<260&&n<9;tr++){const a=r()*6.28,d=110+r()*640,x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d,rr=15+r()*9;
+      if(ok(x,y,rr)){placed.push([x,y]);EM.m.push({x,y,rr,p:P,k:(k+(r()<.35?1:0))%3,th:1.2+8*(d-110)/640+1.6*r(),a:r()*3.14});n++;}}});
+  EM.disc=new THREE.InstancedMesh(geo.cyl,lam(0xffffff),EM.m.length);EM.box=new THREE.InstancedMesh(geo.box,lam(0xffffff),EM.m.length*3);
+  const rg=new THREE.RingGeometry(.72,1,28);rg.rotateX(-Math.PI/2);EM.ring=new THREE.InstancedMesh(rg,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,depthTest:false,side:THREE.DoubleSide}),EM.m.length);EM.ring.renderOrder=20;
+  [EM.disc,EM.box,EM.ring].forEach(m=>{m.frustumCulled=false;sc.add(m);});
+  const DC=[0x8fd06b,0x7ccf8f,0xb5d77a],BC=[0x6b8f3a,0xffb3d1,0x8a5a2b],c=new THREE.Color();
+  EM.m.forEach((q,i)=>{EM.disc.setColorAt(i,c.set(DC[q.k]));for(let j=0;j<3;j++)EM.box.setColorAt(i*3+j,c.set(j===2&&q.k!==1?0x3f9a57:BC[q.k]));});
+  EM.m.forEach((q,i)=>EM.ring.setColorAt(i,c.set(0x7dff9a)));EM.disc.instanceColor.needsUpdate=EM.box.instanceColor.needsUpdate=EM.ring.instanceColor.needsUpdate=true;}
+const EM_G=new THREE.Color(0xd4ff3a),EM_P=new THREE.Color(0xff3d96);
+const EMIND={ew:o=>o.val,food:o=>o.food/60,conn:o=>o.conn/80,cohab:o=>o.cohab/80,spec:o=>1-o.spec/100};
+function emSeries(){/* por año: participación, funcionamiento y frente acumulado; año de activación de cada candidato */
+  const st=[],cand=new Map();let S0=0;const A=new Map();
+  for(let k=0;k<=80;k++){const t=k/4,o=at('pro',t),P=clamp(o.soc/100),Wk=Math.max(0,1-.34*PCROSS.filter(h=>h.y>0&&h.y<=t).length),rate=(.4+P)*Wk;
+    if(k)S0+=rate*.25;st.push({t,P,W:Wk,S:S0});
+    D.cands.forEach(c=>{if(cand.has(c.id))return;const v=(A.get(c.id)||0)+(k?.25*c.score*rate*clamp(EMIND[c.key](o)):0);A.set(c.id,v);if(v>=1+.4*(c.s-6)+(1-c.score))cand.set(c.id,t);});}
+  return {st,cand};}
+function emUpdate(){if(!EM.disc)emInit();const pro=S.scn==='pro',on=EM.on&&pro&&!S.adopt,t=S.t,
+    key=(on?1:0)+'|'+t.toFixed(2)+'|'+[...MPOFF].join(',')+'|'+PCROSS.map(h=>h.id+h.y).join()+'|'+VARS.pro.soc+'|'+S.par+'|'+Math.round(Math.log(V.H)*8);
+  if(key===EM.key)return;EM.key=key;
+  if(!EM.ser||EM.serK!==key.split('|').slice(2).join('|')){EM.ser=emSeries();EM.serK=key.split('|').slice(2).join('|');}
+  const {st,cand}=EM.ser,i=Math.min(80,Math.round(t*4)),cur=st[i],Sat=tt=>st[Math.min(80,Math.max(0,Math.round(tt*4)))].S;
+  let nc=0;CI.forEach(o=>{const T=cand.get(o.id);const e=on&&T!==undefined&&t>=T?sm(clamp((t-T)/1.2)):0;o.em=e;
+    if(!S.adopt){o.G.visible=pro&&e>0;o.G.scale.setScalar(Math.max(e,.001));}if(e>0)nc++;});
+  D.cands.forEach(c=>c.pin.classList.toggle('on',S.adopt||(c.o.em||0)>0));
+  let n=0;EM.m.forEach((q,j)=>{const P=q.p,po=P.o;let base=0,alive=on;
+    if(P.cand){const T=cand.get(po.id);if(T===undefined||t<T)alive=false;else base=Sat(T);}else if(MPOFF.has(po.id))alive=false;
+    const e=alive?sm(clamp((cur.S-base-q.th)/.6)):0,gy=gh(q.x,-q.y),z=-q.y;if(e>.5)n++;
+    _cm.compose(_cp.set(q.x,gy+.08,z),_cq.identity(),_cs.set(e?q.rr*e:.001,e?.9:.001,e?q.rr*e:.001));EM.disc.setMatrixAt(j,_cm);
+    const fr=e>0&&e<.97,px=clamp(2*V.H/cv.clientHeight,.4,12),hr=e>0?Math.max(q.rr*1.25,px*15)*(fr?1.6:1)*Math.max(e,.4):.001;_cm.compose(_cp.set(q.x,gy+.4,z),_cq.identity(),_cs.set(hr,1,hr));EM.ring.setMatrixAt(j,_cm);EM.ring.setColorAt(j,fr?EM_P:EM_G);
+    for(let k2=0;k2<3;k2++){const a=q.a+k2*2.1,d=q.rr*.45,h=(q.k===1?6:3.2)*e,w=q.k===1?3.5:7;_e.set(0,a,0);_q.setFromEuler(_e);
+      _cm.compose(_cp.set(q.x+Math.cos(a)*d,gy+.9,z-Math.sin(a)*d),_q,_cs.set(e?w:.001,Math.max(h,.001),e?(q.k===1?3.5:4):.001));EM.box.setMatrixAt(j*3+k2,_cm);}});
+  [EM.disc,EM.box,EM.ring].forEach(m=>m.instanceMatrix.needsUpdate=true);EM.ring.instanceColor.needsUpdate=true;EM.n=n;EM.nc=nc;
+  const el=$('#emS');if(el)el.textContent=!EM.on?'':!pro?'Solo en la propuesta.':S.adopt?'Los candidatos están adoptados a mano (Masterplan).':
+    `Anillo verde = espacio vecinal; rosado = recién creado. Participación ${Math.round(cur.P*100)} % · propuesta ${cur.W>=1?'funcionando':cur.W>0?'con umbrales cruzados':'colapsada'} → ${nc} de ${CI.length} espacios candidatos activados por la comunidad y ${n} huertas, jardines y composteras vecinales`;}
 /* ---------- abejas en los jardines de polinizadores de los ecotonos (solo propuesta; se detienen en pausa) ---------- */
 const BEE={m:null,L:[]};
 function beeUpdate(T){if(!BEE.m){INT.forEach(o=>{if(o.garden&&!o.out)for(let k=0;k<16;k++)BEE.L.push({o,a:Math.random()*6.28,r:.3+Math.random()*.9,h:3+Math.random()*4,w:.6+Math.random()*1.2,p:Math.random()*6.28});});
@@ -1489,8 +1542,8 @@ function applyState(force){
   INT.forEach(o=>{const f=prog(o,S.t);o.f=f;
     if(o.G.userData.grow)o.G.userData.grow(1);o.G.visible=S.scn==='pro'&&!o.out&&!MPOFF.has(o.id);
     if(o.ring)o.ring.visible=false;});
-  CI.forEach(o=>{const f=prog(o,S.t);o.f=f;const on=S.adopt&&S.scn==='pro';o.G.visible=on;if(o.G.userData.grow)o.G.userData.grow(1);o.ring.visible=false;});
-  D.cands.forEach(c=>c.pin.classList.toggle('on',S.adopt));
+  CI.forEach(o=>{const f=prog(o,S.t);o.f=f;const on=S.scn==='pro'&&(S.adopt||(o.em||0)>0);o.G.visible=on;if(S.adopt)o.G.scale.setScalar(1);if(o.G.userData.grow)o.G.userData.grow(1);o.ring.visible=false;});
+  D.cands.forEach(c=>c.pin.classList.toggle('on',S.adopt||(c.o.em||0)>0));EM.key='';
   proGroup.visible=true;actGroup.visible=S.scn==='act';
   const e=emis(S.t)/130;mounds.forEach(m=>{m.visible=false;m.scale.y=Math.max(.2,m.scale.x*.55*(0.6+0.4*clamp(S.t/12)));});
   applyMarket(force);paint(force);
@@ -1962,7 +2015,7 @@ function showSUS(){const d=at('pro',20),d0=at('pro',0),a=at('act',20),vd=varDiff
    <div class="gb"><button id="goRep">Ver informe final</button><button class="pri" id="goVar">Probar otras variables</button><button id="goKeep">Cerrar</button></div>`;
   $('#go').classList.add('ok');$('#go').hidden=false;$('#goVar').onclick=()=>{$('#go').hidden=true;const b=[...document.querySelectorAll('.tabs button')].find(b=>/Variables/.test(b.textContent));if(b)b.click();};$('#goKeep').onclick=()=>{$('#go').hidden=true;};$('#goKeep').focus();}
 {const k=$('#liveK'),b=$('#liveB');try{const sv=localStorage.getItem('ttKey');if(sv)k.value=sv;}catch(e){}b.addEventListener('click',()=>{if(LIVE.on){liveStop();b.textContent='Activar';}else{liveStart(k.value);b.textContent='Detener';}});}
-{const c=$('#tgC');if(c)c.addEventListener('change',()=>{SPX.on=c.checked;});}{const n=$('#tgN'),a=$('#tgA');if(n)n.addEventListener('change',()=>{ENV.on.n=n.checked;});if(a)a.addEventListener('change',()=>{ENV.on.a=a.checked;});}
+{const e=$('#tgE');if(e)e.addEventListener('change',()=>{EM.on=e.checked;});}{const c=$('#tgC');if(c)c.addEventListener('change',()=>{SPX.on=c.checked;});}{const n=$('#tgN'),a=$('#tgA');if(n)n.addEventListener('change',()=>{ENV.on.n=n.checked;});if(a)a.addEventListener('change',()=>{ENV.on.a=a.checked;});}
 goCompute();
 function enter(scn){$('#intro').hidden=true;document.body.classList.remove('intro');setScn(scn);setT(0);const a=cv.clientWidth/cv.clientHeight;flyTo(500,900,Math.min(9000,Math.max(2400,3300/a)));}
 $('#goAct').addEventListener('click',()=>enter('act'));$('#goPro').addEventListener('click',()=>enter('pro'));
@@ -1980,12 +2033,12 @@ function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)ca
   if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
   if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
   if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
-  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();emUpdate();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
 /* arranque */
 resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={SPX,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
