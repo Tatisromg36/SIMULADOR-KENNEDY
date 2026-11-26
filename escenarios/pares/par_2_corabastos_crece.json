@@ -35,7 +35,8 @@
    "inv": 100,
    "spec": 100,
    "soc": 100,
-   "imm": 100
+   "imm": 100,
+   "liq": 30
   },
   "resultado": "Sostenible: cohabitabilidad 58, 37 tinguas, especulación 64, PM2.5 29,0"
  }
