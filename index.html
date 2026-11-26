@@ -98,6 +98,9 @@ h3{margin:2px 0 0;font:700 11px/1 var(--ui);letter-spacing:.12em;text-transform:
 .lirow{display:flex;align-items:center;gap:6px}.lirow .li{flex:1;min-width:0}.lirow.off .li{opacity:.45}
 .tog{position:relative;flex:0 0 34px;height:20px;cursor:pointer}.tog input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.tog span{position:absolute;inset:0;border-radius:10px;background:rgba(255,255,255,.15);transition:background .15s}.tog span::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}.tog input:checked+span{background:var(--mint)}.tog input:checked+span::after{transform:translateX(14px)}.tog input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
 .mpfx{border:1px solid var(--line);border-radius:6px;padding:10px;margin:8px 0 10px;background:rgba(255,255,255,.03)}.mpfx-h{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center;margin-bottom:4px}.mpfx-h button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:3px;padding:4px 8px;font-size:11px;cursor:pointer;margin-left:4px}
+.chain{margin:4px 0 0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}.chain li::marker{color:var(--mint);font-weight:700}
+.fidx{display:grid;gap:4px;margin-top:8px}.fidx button{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);border-radius:3px;padding:7px 9px;font-size:12.5px;cursor:pointer}.fidx button:hover{border-color:var(--mint)}.fidx i{width:10px;height:10px;border-radius:50%;flex:0 0 10px}.fidx em{font-style:normal;color:var(--ink2);margin-left:auto;font-size:11px}
+.fbtn{border:1px solid var(--mint);background:transparent;color:var(--mint);border-radius:3px;padding:7px 12px;font-weight:700;cursor:pointer}.lnk{background:none;border:0;color:var(--ink2);padding:0;cursor:pointer;font-size:12px}
 .rep .lead{font-weight:700;font-size:13px;margin:2px 0 8px}.rep .lead.bad{color:var(--pink)}.rep .lead.ok{color:var(--mint)}
 .rep h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);margin:10px 0 4px}
 .rl{list-style:none;margin:0;padding:0;display:grid;gap:7px}.rl li{font-size:12px;line-height:1.4;padding-left:10px;border-left:3px solid var(--line)}.rl li.bad{border-color:var(--pink)}.rl li.ok{border-color:var(--mint)}
@@ -1730,10 +1733,69 @@ const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabast
  centro:'Centro de investigación, transformación y acopio: laboratorio y planta para valorizar biomasa y monitorear el humedal.',
  vivienda:'Vivienda nueva en la zona Bavaria, mezclada con huertas y un parque inundable. La propiedad colectiva frena la especulación.',
  renov:'Zona de renovación para la cohabitabilidad: techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.'};
+/* ---------- fichas de los espacios propuestos: programa, macromodelos, dinámicas que cambia y efecto medido ---------- */
+const PROG={plaza:'Nave de mercado con bio-factoría (compostaje y biodigestión), cúpula de acopio, muelles de carga y huertas de proximidad.',
+ ecotono:'Borde de juncos y árboles entre ciudad y humedal, plaza de encuentro con bancas curvas de madera y jardín de polinizadores en retícula de jardineras.',
+ custodia:'Círculo de reunión: muro anular de concreto con arcos y banda de madera; alrededor, pradera inundable con cauce y piedras de paso.',
+ habitat:'Círculo de reunión con pradera inundable, refugios, nidos y charcas para especies focales.',
+ saberes:'Círculo de reunión con pradera inundable para formación en compostaje, huertas y observación de fauna.',
+ parque:'Laguna y pradera inundable que retiene la lluvia, cauce con piedras de paso, arbolado y un círculo de reunión.',
+ puente:'Puente verde curvo sobre un túnel, con taludes vegetados y senderos para fauna y personas.',
+ corredor:'Franja arbolada continua con sendero peatonal que une humedales.',
+ ecocirc:'Naves de compostaje, reparación y comercio local.',
+ centro:'Laboratorio, planta de transformación, bodega de acopio, biodigestores, pilas de compost, invernaderos y huertas experimentales.',
+ vivienda:'Bloques de vivienda cooperativa con fachadas de madera y piedra, humedales de lluvia con pasarelas, equipamientos y la plaza satélite.',
+ renov:'Techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.',
+ liq:'Fotobiorreactores de 600 L con microalgas y banca, junto a las avenidas y las puertas de carga de Corabastos.',
+ zanja:'Separadores verdes en el centro de las avenidas, con franja de agua para la lluvia y un árbol cada 48 m.'};
+const MACRO={plaza:['Cohabitabilidad multiespecie','Ciudad biofílica'],ecotono:['Animal Aided Design','Ciudad biofílica','Ciudad esponja'],custodia:['Cohabitabilidad multiespecie','Ciudad esponja'],
+ habitat:['Animal Aided Design','Ciudad esponja'],saberes:['Cohabitabilidad multiespecie','Ciudad esponja'],parque:['Ciudad esponja','Ciudad biofílica'],puente:['Animal Aided Design'],
+ corredor:['Animal Aided Design','Ciudad biofílica'],ecocirc:['Cohabitabilidad multiespecie'],centro:['Cohabitabilidad multiespecie','Ciudad biofílica'],
+ vivienda:['Cohabitabilidad multiespecie','Ciudad esponja'],renov:['Ciudad biofílica','Cohabitabilidad multiespecie'],liq:['Ciudad biofílica'],zanja:['Ciudad esponja']};
+const CHAIN={plaza:['Residuo de Corabastos → se valoriza en origen ↑','Residuo sin tratar y comida para palomas ↓','Presión sanitaria ↓ → tingua y colibríes ↑','Abono → huertas → alimento local ↑'],
+ ecotono:['Borde vegetal entre ciudad y humedal ↑','Ruido en el borde del humedal ↓ → tingua ↑','Flores → colibríes y polinizadores ↑','Verde nuevo → valoriza el suelo (especulación ↑)'],
+ custodia:['Comunidad organizada → capital social ↑','Custodia del suelo → especulación y desplazamiento ↓','Pradera inundable → retiene la lluvia'],
+ habitat:['Refugios y charcas → hábitat de fauna ↑','Conectividad ↑','Comunidad que cuida → capital social ↑'],
+ saberes:['Formación en compostaje y huertas → capital social ↑','Separación en la fuente → residuo domiciliario ↓'],
+ parque:['Lluvia → escorrentía retenida ↑','Hábitat de humedal ↑ → tingua ↑','Verde → aire y ruido ↓, especulación ↑'],
+ puente:['Cruce seguro sobre la vía → conectividad ↑','Fauna sin atropellos → colibríes y tingua ↑'],
+ corredor:['Arbolado continuo → conectividad ↑','Colibríes y polinizadores ↑','Sombra y aire ↓ PM2.5'],
+ ecocirc:['Compostaje y reparación local → residuo valorizado ↑','Empleo y comercio local → capital social ↑'],
+ centro:['Más capacidad de transformación → residuo valorizado ↑','Monitoreo del humedal → datos para calibrar el modelo'],
+ vivienda:['Vivienda cooperativa → desplazamiento ↓','Propiedad colectiva → especulación ↓','Humedales de lluvia → escorrentía ↓'],
+ renov:['Techos verdes → cobertura verde ↑','Parques de bolsillo → conectividad ↑','Vecinos se quedan → capital social ↑'],
+ liq:['Microalgas → PM2.5 alrededor de cada tanque ↓','Efecto en el promedio del área: casi nulo'],
+ zanja:['Lluvia → se infiltra en el separador ↑','Inundaciones ↓','Cobertura verde ↑']};
+const PSEUDO={liq:{id:'liq',type:'liq',name:'Árboles líquidos · avenidas y puertas'},zanja:{id:'zanja',type:'zanja',name:'Zanjas de infiltración · separadores de vía'}};
+const FXR=[['Cohabitabilidad','cohab',1,0,''],['Tinguas','tin',1,0,''],['Colibríes','hum',1,0,''],['Residuo valorizado','val',1,0,' %'],['Residuo sin tratar','untreated',-1,0,' t/día'],
+ ['Presión sanitaria','dis',-1,0,' %'],['Conectividad','conn',1,0,''],['Cobertura verde','verde',1,1,' %'],['Alimento local','food',1,0,''],['Especulación','spec',-1,0,''],['Capital social','soc',1,0,''],['PM2.5','pm',-1,2,' µg/m³'],['Ruido en el humedal','noiseW',-1,1,' dB']];
+const FXC=new Map();
+const FCOL={plaza:'#3f55d8',ecotono:'#58c79b',custodia:'#b0306a',habitat:'#e0495c',saberes:'#8a4fd6',parque:'#5fb8e0',puente:'#7cc576',corredor:'#5fbf63',ecocirc:'#ff8a1c',centro:'#3f8fd8',vivienda:'#f39a3d',renov:'#c9e27a',liq:'#3dffa0',zanja:'#5fae4a'};
+function spaceEffect(id){const key=id+'|'+JSON.stringify(VARS.pro)+'|'+[...MPOFF].sort().join();if(FXC.has(key))return FXC.get(key);
+  const was=MPOFF.has(id),snap=()=>{const a=at('pro',20);return{cohab:a.cohab,tin:a.N.tingua,hum:a.N.hum,val:a.val*100,untreated:a.untreated,dis:a.dis*100,conn:a.conn,verde:a.verde,food:a.food,spec:a.spec,soc:a.soc,pm:a.pm,noiseW:a.noiseW,go:GOP?GOP.t:null};};
+  MPOFF.delete(id);buildSeries();goCompute();const on=snap();MPOFF.add(id);buildSeries();goCompute();const off=snap();
+  if(!was)MPOFF.delete(id);buildSeries();goCompute();const r={on,off};FXC.set(key,r);return r;}
+function fichaSpace(it){const t=it.type,isOff=MPOFF.has(it.id),pro=S.scn==='pro';
+  let h=`<h2>${it.name}</h2><div class="st"><span class="chip">${pro?(isOff?'Apagado':'Encendido'):'Solo en propuesta'}</span>${(MACRO[t]||[]).map(m=>`<span class="chip">${m}</span>`).join('')}</div>`;
+  h+=`<p>${DESC[t]||PROG[t]}</p>${DESC[t]&&PROG[t]?`<h3>Qué tiene</h3><p>${PROG[t]}</p>`:''}`;
+  if(cap(it))h+=`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`;
+  h+=`<h3>Dinámicas que cambia</h3><ol class="chain">${(CHAIN[t]||[]).map(x=>`<li>${x}</li>`).join('')}</ol>`;
+  if(!pro){return h+`<p class="note">Cambia a Propuesta para medir cuánto cambia el territorio con este espacio.</p>`;}
+  const {on,off}=spaceEffect(it.id),f=(v,d)=>(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toString().replace('.',','),y=v=>'año '+f(v,1);
+  const rows=FXR.map(([l,k,dir,d,u])=>({l,k,dir,d,u,a:on[k],b:off[k],dd:on[k]-off[k]})).filter(r=>Math.abs(r.dd)>=(r.d?Math.pow(10,-r.d):.5)).sort((p,q)=>Math.abs(q.dd/(Math.abs(q.b)+1))-Math.abs(p.dd/(Math.abs(p.b)+1)));
+  h+=`<h3>Cuánto cambia (año 20)</h3><p class="note">Propuesta con este espacio frente a la misma propuesta sin él, con las mismas variables.${on.go===off.go?'':` Sin él, la propuesta ${off.go!==null?'llega a game over en el '+y(off.go):'es sostenible'}; con él, ${on.go!==null?'game over en el '+y(on.go):'sostenible'}.`}</p>`;
+  h+=rows.length?`<div class="cmp"><span class="h">Indicador</span><span class="h">Sin él</span><span class="h">Con él</span>${rows.map(r=>`<span>${r.l}</span><b>${f(r.b,r.d)}${r.u}</b><b class="${(r.dd*r.dir)>0?'ok':'bad'}">${f(r.a,r.d)}${r.u}</b>`).join('')}</div>`:`<p class="note">Su efecto en los indicadores del área es casi nulo; su valor es local.</p>`;
+  h+=`<p style="margin-top:10px"><button class="fbtn" data-ftog="${it.id}">${isOff?'Encender este espacio':'Apagar este espacio'}</button></p>`;
+  if(PSEUDO[it.id])h+='';else h+=`<p class="note">Ubicación tomada del plano del masterplan, de forma aproximada.</p>`;return h;}
+function fichaWire(fi){$$('[data-fsel]',fi).forEach(b=>b.addEventListener('click',()=>select(b.dataset.fsel||null,!!b.dataset.fsel)));
+  $$('[data-ftog]',fi).forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.ftog;MPOFF.has(id)?MPOFF.delete(id):MPOFF.add(id);mpChanged();select(id,false,true);}));}
+function fichaIndex(){const L=INT.filter(o=>!o.out).concat([PSEUDO.liq,PSEUDO.zanja]);
+  return `<h2>Espacios propuestos</h2><p class="note">Elige un espacio para ver qué tiene, qué dinámicas cambia y cuánto cambia el territorio con él y sin él.</p><div class="fidx">${L.map(o=>`<button data-fsel="${o.id}"><i style="background:${FCOL[o.type]||'#58e0a0'}"></i>${o.name}${MPOFF.has(o.id)?' <em>apagado</em>':''}</button>`).join('')}</div>`;}
 function select(id,fly,quiet){
   S.sel=id;Object.values(pinMap).forEach(p=>p.classList.toggle('sel',p.dataset.id===id));
   const it=id&&findItem(id),co=$('#callout'),fi=$('#ficha');
-  if(!it){co.style.display='none';fi.innerHTML='<p class="empty">Toca un punto del mapa o una intervención de la lista para ver su ficha.</p>';return;}
+  if(!it&&PSEUDO[id]){co.style.display='none';fi.innerHTML=`<p class="note"><button class="lnk" data-fsel="">← Todos los espacios</button></p>`+fichaSpace(PSEUDO[id]);fichaWire(fi);if(!quiet){setTab('fi');$('#panel').classList.remove('min');}return;}
+  if(!it){co.style.display='none';fi.innerHTML=fichaIndex();fichaWire(fi);return;}
   const isC=!!it.key,isK=it.type==='crit';
   let h='';
   if(isK){co.className='';co.innerHTML=`<b>${it.name}</b><span>${it.sub}</span>`;
@@ -1743,8 +1805,8 @@ function select(id,fly,quiet){
     h=`<h2>${it.what}</h2><div class="st"><span class="chip">Candidato</span><span class="chip">Necesidad ${Math.round(it.score*100)}%</span></div><p>${why}</p><h3>Mejora</h3><div class="fx">${Object.keys(WT[it.o.type]||{}).map(k=>`<span>${KNAME[k]}</span>`).join('')}</div><p class="note">Propuesta derivada del indicador de ${it.ind.toLowerCase()} sobre la capa de edificios. No está en el plano del masterplan. Actívala en la pestaña Masterplan para sumarla al escenario.</p>`;}
   else{co.className='';const f=prog(it,S.t),fx=Object.keys(WT[it.type]||{}).map(k=>KNAME[k]);
     co.innerHTML=`<b>${it.name.split(' · ')[0]}</b><span>${it.name.includes(' · ')?it.name.split(' · ')[1]:DESC[it.type].split(':')[0]}</span>`;
-    h=`<h2>${it.name}</h2><div class="st"><span class="chip">${yrs(it)}</span><span class="chip">${S.scn==='pro'?'En funcionamiento':'Solo en propuesta'}</span></div><p>${DESC[it.type]}</p><h3>Mejora</h3><div class="fx">${fx.map(x=>`<span>${x}</span>`).join('')}</div>${cap(it)?`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`:''}<p class="note">Ubicación tomada del plano del masterplan, de forma aproximada.</p>`;}
-  fi.innerHTML=h;if(!quiet){setTab('fi');$('#panel').classList.remove('min');}
+    h=`<p class="note"><button class="lnk" data-fsel="">← Todos los espacios</button></p>`+fichaSpace(it);}
+  fi.innerHTML=h;fichaWire(fi);if(!quiet){setTab('fi');$('#panel').classList.remove('min');}
   if(fly)flyTo(it.x,it.y,it.r>0?clamp(it.r*4.2,650,1300):1500);
 }
 function phaseLabel(){const t=S.t,lim=thrSeen(),n=thrCross().filter(h=>h.y<=lim+1e-6).length;return (S.scn==='act'?'Tendencial':(t<5?'Corto plazo':t<12?'Mediano plazo':'Largo plazo'))+(lim>=0?' · '+n+'/'+GO_N+' umbrales':'');}
