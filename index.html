@@ -359,6 +359,7 @@ const cap=o=>(cap0(o))*VAR.capX/100;
 const cap0=o=>o.capv||(o.id==='plaza_cora'?CAP.cora:o.id==='plaza_osorio'?CAP.osorio:o.id==='plaza_bav'?CAP.bav:o.id==='ecocirc'?CAP.eco:o.id==='centro_inv'?CAP.centro:0);
 /* la propuesta existe y funciona completa desde el año 0 */
 const MAT=o=>(Math.max(2,o.e-o.s)+1)/(VAR.exec/100);
+let ZJ_FRAC=0;/* fracción del área cubierta por zanjas de infiltración (se calcula con la red vial) */
 const MPOFF=new Set();/* espacios del masterplan apagados por el usuario */
 const prog=(o,t)=>MPOFF.has(o.id)?0:1;/* sin maduración: cada espacio funciona al 100 % desde el año 0, salvo si se apaga */
 const yrs=o=>'En funcionamiento desde el año 0';
@@ -421,7 +422,7 @@ function drivers(scn,t){
     const EI=car*.925+(trk/.846)*.075*16;o.EI=EI;o.pm=23.3+11.1*EI/2.125-(pr?6*sC:0);
     /* árboles líquidos (fotobiorreactores de microalgas, LIQUID 3): cada uno ≈ 2 árboles de 10 años. Todo el arbolado urbano baja el PM2.5 0,05–0,24 % (Nowak et al. 2013); aquí hay 71.938 árboles */
     o.liqN=pr&&!MPOFF.has('liq')?VAR.liq:0;o.liqD=o.pm*.0024*(2*o.liqN/71938);o.pm-=o.liqD;
-    o.trk=trk; o.verde=100*clamp(.12+(pr?.55*sC+.15*sH:0));                                     // cobertura verde que capta partículas (ciudad esponja)
+    o.trk=trk; o.verde=100*clamp(.12+(pr?.55*sC+.15*sH:0)+(pr&&!MPOFF.has('zanja')?ZJ_FRAC:0));                                     // cobertura verde que capta partículas (ciudad esponja)
     o.noiseW=o.noise-8-(pr?6*clamp(sC+sH):0);                                                   // ruido en el borde del humedal (más lejos de las vías + ecotonos)
     const airF=clamp((o.pm-15)/25);o.soc*=1-.25*airF;                                            // aire contaminado → menos uso del espacio público
     o.salud=pr?clamp((35-o.pm)/20):0; o.sroi+=.6*o.salud; }                                       // menos PM2.5 → ahorro en salud
@@ -654,17 +655,35 @@ B3.plaza=(o)=>{const r=o.r,G=new THREE.Group();
   G.add(M(geo.cyl,gm.cre,r*.1,2,r*.82,r*.16,10,r*.16));G.add(M(geo.dome,gm.dome,r*.1,12,r*.82,r*.16,r*.16,r*.16));
   tree(G,-r*.75,r*.7,13);tree(G,r*.72,-r*.7,11);tree(G,-r*.8,-.2*r,12);
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
-B3.parque=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));G.add(M(blob(),gm.wat,-r*.1,1.2,r*.05,r*.55,1,r*.42,rnd()*6.28));
-  for(let i=0;i<30;i++){const a=rnd()*6.28,d=r*(.6+rnd()*.38);tree(G,Math.cos(a)*d,Math.sin(a)*d,10+rnd()*8);}
+/* ecotono: borde vegetal, plaza de encuentro con bancas curvas de madera y jardín de polinizadores en retícula */
+const FLW=[0xf06aa8,0xb07ae0,0xf6c84a,0xffffff,0xe0495c].map(c=>mat(c)),WOOD=mat(0xb5814f),PAVE=mat(0xd9d0bf),CONC=mat(0xd6d1c8);
+function pollinator(G,x,z,n,cell){for(let a=0;a<n;a++)for(let b=0;b<n;b++){const px=x+(a-(n-1)/2)*cell,pz=z+(b-(n-1)/2)*cell;
+    G.add(M(geo.box,WOOD,px,1.2,pz,cell*.92,1.4,cell*.92));G.add(M(geo.box,gm.lawn,px,2.6,pz,cell*.8,.4,cell*.8));
+    for(let k=0;k<3;k++)G.add(M(geo.ico,FLW[(a*3+b+k)%5],px+(rnd()-.5)*cell*.55,3.6+rnd()*1.5,pz+(rnd()-.5)*cell*.55,1.3,1.3,1.3));
+    if((a+b)%3===0)tree(G,px,pz,2.6+rnd());}}
+function benchArc(G,x,z,R,a0,len){const t=new THREE.Mesh(new THREE.TorusGeometry(R,1.4,4,16,len),WOOD);t.rotation.x=-Math.PI/2;t.rotation.z=a0;t.position.set(x,2.2,z);t.scale.z=.9;G.add(t);}
+B3.parque=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));G.add(M(blob(),gm.wat,-r*.15,1.2,r*.1,r*.45,1,r*.32,rnd()*6.28));
+  floodMeadow(G,r,9);ringWall(G,r*.3,-r*.25,Math.min(r*.18,30),9,0x58c79b);
+  for(let i=0;i<24;i++){const a=rnd()*6.28,d=r*(.62+rnd()*.34);tree(G,Math.cos(a)*d,Math.sin(a)*d,9+rnd()*7);}
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
 B3.ecotono=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.2,r*.92,rnd()*6.28));
-  for(let i=0;i<46;i++){const a=rnd()*6.28,d=r*(.25+rnd()*.7);G.add(M(geo.cone,gm.dome,Math.cos(a)*d,1,Math.sin(a)*d,2.6,16+rnd()*10,2.6));}
-  for(let i=0;i<9;i++){const a=rnd()*6.28,d=r*(.55+rnd()*.4);tree(G,Math.cos(a)*d,Math.sin(a)*d,9+rnd()*5);}
+  for(let i=0;i<36;i++){const a=rnd()*6.28,d=r*(.45+rnd()*.5);G.add(M(geo.cone,gm.dome,Math.cos(a)*d,1,Math.sin(a)*d,2.6,12+rnd()*10,2.6));}
+  for(let i=0;i<8;i++){const a=rnd()*6.28,d=r*(.62+rnd()*.3);tree(G,Math.cos(a)*d,Math.sin(a)*d,9+rnd()*5);}
+  const P=Math.min(r*.32,34),ox=-P*.55;G.add(M(geo.box,PAVE,ox,1.2,0,P*1.1,.8,P*1.1));
+  benchArc(G,ox,0,P*.42,.3,1.2);benchArc(G,ox,0,P*.42,2.4,1.2);benchArc(G,ox,0,P*.42,4.5,.9);G.add(M(geo.box,WOOD,ox,2,0,P*.28,1.6,P*.1));
+  pollinator(G,ox+P*1.05,0,4,P*.25);
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
 B3.custodia=(o)=>circle(o,0xb0306a);B3.habitat=(o)=>circle(o,0xe0495c);B3.saberes=(o)=>circle(o,0x8a4fd6);
-function circle(o,col){const r=o.r,G=new THREE.Group(),m=mat(col);G.add(M(blob(),m,0,0,0,r*.92,2.5,r*.92,rnd()*6.28));
-  G.add(M(geo.box,gm.cre,0,2.5,0,r*.5,12,r*.5));G.add(M(geo.cone,m,0,14.5,0,r*.46,12,r*.46,.78));
-  for(let i=0;i<6;i++){const a=i*1.047;tree(G,Math.cos(a)*r*.75,Math.sin(a)*r*.75,6);}
+/* círculo de reunión: muro anular de concreto con arcos, banda interior de madera; alrededor, pradera inundable con cauce y piedras de paso */
+function ringWall(G,x,z,R,h,col){const n=14,seg=(Math.PI*2)/n;for(let k=0;k<n;k++){if(k%(n/2|0)===0||k%(n/2|0)===4)continue;const a=k*seg+seg/2,L=2*R*Math.sin(seg/2)+.6;
+    G.add(M(geo.box,CONC,x+Math.cos(a)*R,1.2,z+Math.sin(a)*R,L,h,2.4,-a+Math.PI/2));G.add(M(geo.box,WOOD,x+Math.cos(a)*(R-1.6),1.2,z+Math.sin(a)*(R-1.6),L*.9,h*.55,.8,-a+Math.PI/2));}
+  G.add(M(geo.cyl,PAVE,x,1.2,z,R-.5,.7,R-.5));G.add(M(geo.cyl,mat(col),x,1.9,z,R*.22,.3,R*.22));}
+function floodMeadow(G,r,wat){for(let k=0;k<9;k++){const t=k/8,x=(t-.5)*r*1.5,z=Math.sin(t*5)*r*.18+r*.35;G.add(M(geo.box,gm.wat,x,1.2,z,r*.2,.6,wat,Math.cos(t*5)*.6));}
+  for(let k=0;k<9;k++){const t=k/8;G.add(M(geo.cyl,PAVE,r*(.15+t*.5),1.3,-r*(.05+.35*Math.sin(t*3)),2.4,.5,2.4));}
+  for(let k=0;k<26;k++){const a=rnd()*6.28,d=r*(.3+rnd()*.6);G.add(M(geo.ico,FLW[k%5],Math.cos(a)*d,2,Math.sin(a)*d,1.1,1.1,1.1));}}
+function circle(o,col){const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.92,1.2,r*.92,rnd()*6.28));
+  floodMeadow(G,r,5);ringWall(G,-r*.2,-r*.1,Math.min(r*.32,26),9,col);
+  for(let i=0;i<6;i++){const a=i*1.047+.3;tree(G,Math.cos(a)*r*.75,Math.sin(a)*r*.7,6+rnd()*3);}
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;}
 B3.ecocirc=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.gray,0,0,0,r*.92,1.5,r*.92,rnd()*6.28));
   [[-.4,-.3],[.35,-.3],[-.4,.35],[.35,.35]].forEach(([x,z])=>{G.add(M(geo.box,gm.mag,x*r,1.5,z*r,r*.5,16,r*.28));G.add(M(geo.box,gm.org,x*r+r*.3,1.5,z*r,r*.07,7,r*.12));});
@@ -698,10 +717,16 @@ B3.centro=(o)=>{const r=o.r,G=new THREE.Group(),A=.35;const glass=mat(0x9fd8ff,{
   g.add(M(geo.cyl,algae,-r*.15,1.2,-r*.1,5,10,5,0));
   for(let k=0;k<7;k++){const a=k*.9,d=r*(.75+.1*(k%2));tree(g,Math.cos(a)*d,Math.sin(a)*d*.8,8+rnd()*3);}
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
-B3.puente=(o)=>{const r=o.r,G=new THREE.Group();
-  const arc=new THREE.Mesh(new THREE.TorusGeometry(r*.55,7,6,14,Math.PI),gm.dome);arc.position.y=0;arc.rotation.y=.8;G.add(arc);
-  G.add(M(geo.box,gm.lawn,0,0,0,r*1.15,4,16,.8));
-  for(let i=0;i<10;i++){const a=.8+(i%2?0:Math.PI),d=r*.5+rnd()*r*.45;tree(G,Math.cos(a)*d+rnd()*20,-Math.sin(a)*d+rnd()*20,9+rnd()*5);}
+/* paso de fauna: puente verde curvo sobre la vía (túnel de concreto y madera), taludes vegetados y senderos */
+B3.puente=(o)=>{const r=o.r,G=new THREE.Group(),g=new THREE.Group();g.rotation.y=.8;G.add(g);
+  g.add(M(geo.box,mat(0xd7c49a),0,.6,0,18,1,r*1.5));/* sendero que pasa por debajo */
+  const tun=new THREE.Mesh(geo.halfcyl,WOOD);tun.scale.set(11,11,r*.7);tun.position.y=1;g.add(tun);
+  const DK=mat(0x3b8f4a),BR=mat(0x6aa84a);g.add(M(geo.box,DK,0,11,0,r*.5,3,r*.7));/* tablero verde */
+  [-1,1].forEach(sd=>{g.add(M(geo.box,mat(0x2a2320),0,1,sd*r*.355,20,10,1.2));});/* bocas del túnel */
+  [-1,1].forEach(sd=>{g.add(M(geo.box,BR,sd*r*.42,0,0,r*.36,9,r*.66,0));g.add(M(geo.box,mat(0xd7c49a),sd*r*.42,9,0,7,.6,r*.66));});
+  const arc=new THREE.Mesh(new THREE.TorusGeometry(r*.3,2.2,4,18,Math.PI),WOOD);arc.rotation.x=-Math.PI/2;arc.position.y=14.2;g.add(arc);
+  for(let i=0;i<14;i++){const sx=(rnd()-.5)*r*1.1,sz=(rnd()-.5)*r*.6;g.add(M(geo.cone,gm.dome,sx,i<6?14:9,sz,2.2,7+rnd()*5,2.2));}
+  for(let i=0;i<9;i++){const a=rnd()*6.28,d=r*(.6+rnd()*.35);tree(G,Math.cos(a)*d,Math.sin(a)*d,8+rnd()*5);}
   G.userData.grow=f=>{G.scale.set(1,Math.max(f,.001),1);};return G;};
 function corridor(o){const pts=D.lines[o.id],P=samples(pts,52),G=new THREE.Group();
   const rb=ribbon(pts,26,0x5fbf63,14.8);G.add(rb);
@@ -715,10 +740,16 @@ function extr(poly,h,col,y0){const sh=new THREE.Shape(poly.map(p=>new THREE.Vect
 function vivienda(o){const poly=D.viv,G=new THREE.Group();G.userData.abs=true;
   /* volúmenes tomados del masterplan: vivienda (naranja), equipamientos (amarillo), plaza satélite (azul) */
   const base=flat(poly,0x8fbf4a,14.6);G.add(base);const towers=new THREE.Group();const MP=D.mpbav||{};
-  (MP.orange||[]).forEach((q,k)=>towers.add(extr(q,15+(k%3)*6,k%4?0xf39a3d:0xf6bb5d)));
+  (MP.orange||[]).forEach((q,k)=>towers.add(extr(q,15+(k%3)*3,k%2?0xb98552:0xcfc6b5)));/* fachadas de madera y piedra */
   (MP.yellow||[]).forEach((q,k)=>towers.add(extr(q,9+(k%2)*4,0xf8de6b)));
   (MP.blue||[]).forEach(q=>towers.add(extr(q,12,0x4e5f8f)));
-  towers.position.y=14.6;G.add(towers);G.userData.grow=f=>{towers.scale.set(1,Math.max(f,.001),1);base.material.opacity=1;};
+  towers.position.y=14.6;G.add(towers);
+  /* humedales de lluvia con pasarelas de madera entre los bloques */
+  {const vol=[].concat(MP.orange||[],MP.yellow||[],MP.blue||[]),bb=lot(poly),W=[];for(let t=0;t<400&&W.length<5;t++){const x=bb.x0+rnd()*(bb.x1-bb.x0),y=bb.y0+rnd()*(bb.y1-bb.y0);
+      if(!polyIn([x,y],poly)||vol.some(q=>polyIn([x,y],q)||q.some(p=>Math.hypot(p[0]-x,p[1]-y)<45))||W.some(w=>Math.hypot(w[0]-x,w[1]-y)<90))continue;W.push([x,y]);}
+    W.forEach(([x,y],k)=>{const gp=new THREE.Group();gp.position.set(x,15.2,-y);gp.add(M(blob(),gm.wat,0,0,0,24+rnd()*10,.6,16+rnd()*8,rnd()*6.28));
+      gp.add(M(geo.box,WOOD,0,.8,0,60,.8,4,rnd()*3.14));for(let i=0;i<10;i++){const a=rnd()*6.28,d=22+rnd()*10;gp.add(M(geo.cone,gm.dome,Math.cos(a)*d,0,Math.sin(a)*d,2,7+rnd()*5,2));}
+      for(let i=0;i<3;i++){const a=rnd()*6.28;tree(gp,Math.cos(a)*30,Math.sin(a)*30,7+rnd()*4);}G.add(gp);});}G.userData.grow=f=>{towers.scale.set(1,Math.max(f,.001),1);base.material.opacity=1;};
   G.userData.towers=towers;return G;}
 function renov(o){const poly=D.renov[o.id==='reno_mp'?'mariapaz':'tintal'],G=new THREE.Group();G.userData.abs=true;
   /* renovación sin edificios nuevos: techos verdes dispersos sobre lo existente + parques de bolsillo */
@@ -1188,6 +1219,18 @@ function liqInit(){if(LIQ.pts||!RG.E||!RG.E.length)return;const C=D.cora,cand=[]
 function liqUpdate(){liqInit();if(!LIQ.pts)return;const n=S.scn==='pro'&&!MPOFF.has('liq')?Math.min(LIQ.pts.length,Math.round(VARS.pro.liq||0)):0;
   if(n!==LIQ.n){LIQ.n=n;LIQ.tank.count=LIQ.bench.count=LIQ.halo.count=n;LIQ.cell.clear();for(let i=0;i<n;i++){const p=LIQ.pts[i],k=Math.floor(p[0]/60)+','+Math.floor(p[1]/60);if(!LIQ.cell.has(k))LIQ.cell.set(k,[]);LIQ.cell.get(k).push(p);}}}
 const liqNear=(x,y)=>{if(!LIQ.n)return null;const cx=Math.floor(x/60),cy=Math.floor(y/60);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const L=LIQ.cell.get((cx+a)+','+(cy+b));if(L)for(const p of L)if(Math.hypot(p[0]-x,p[1]-y)<45)return p;}return null;};
+/* ---------- zanjas de infiltración: separadores verdes de las avenidas que captan la lluvia (ciudad esponja) ---------- */
+const ZJ={on:null,G:null};
+function zjInit(){if(ZJ.G||!RG.E||!RG.E.length)return;const E=RG.E.filter(e=>e.c===2&&inM((RG.X[e.a]+RG.X[e.b])/2,(RG.Y[e.a]+RG.Y[e.b])/2)&&Math.hypot(RG.X[e.b]-RG.X[e.a],RG.Y[e.b]-RG.Y[e.a])>30);
+  const n=E.length,gr=new THREE.InstancedMesh(geo.box,mat(0x5fae4a),n),wt=new THREE.InstancedMesh(geo.box,mat(0x5fb8e0),n),T=[];
+  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),k3=new THREE.Vector3(),eu=new THREE.Euler();let area=0;
+  E.forEach((e,i)=>{const x0=RG.X[e.a],y0=RG.Y[e.a],x1=RG.X[e.b],y1=RG.Y[e.b],L=Math.hypot(x1-x0,y1-y0),mx=(x0+x1)/2,my=(y0+y1)/2,a=Math.atan2(y1-y0,x1-x0),gy=gh(mx,-my);
+    eu.set(0,a,0);q.setFromEuler(eu);m.compose(v.set(mx,gy+.2,-my),q,k3.set(L*.86,1.1,5));gr.setMatrixAt(i,m);m.compose(v.set(mx,gy+.5,-my),q,k3.set(L*.8,.9,1.4));wt.setMatrixAt(i,m);area+=L*.86*5;
+    for(let d=20;d<L-15;d+=48){const t=d/L;T.push([x0+(x1-x0)*t,y0+(y1-y0)*t]);}});
+  const tr=new THREE.InstancedMesh(geo.ico,gm.grn[1],T.length);T.forEach(([x,y],i)=>{const r=4+((i*7)%4);m.compose(v.set(x,gh(x,-y)+r*1.1,-y),q.identity(),k3.set(r,r*.95,r));tr.setMatrixAt(i,m);});
+  ZJ.G=new THREE.Group();[gr,wt,tr].forEach(o=>{o.frustumCulled=false;ZJ.G.add(o);});sc.add(ZJ.G);
+  let cells=0;for(let c=0;c<MASK.length;c++)if(MASK[c])cells++;ZJ_FRAC=area/(cells*CS*CS);ZJ.len=E.length;scheduleRecompute();}
+function zjUpdate(){zjInit();if(!ZJ.G)return;const on=S.scn==='pro'&&!MPOFF.has('zanja');if(on!==ZJ.on){ZJ.on=on;ZJ.G.visible=on;}}
 /* ---------- ruido (mapa de calor) y aire (partículas azules) a partir del tráfico ---------- */
 const ENV={em:new Float32Array(NX*NY),heat:null,ctx:null,tex:null,last:0,P:null,np:2200,pi:0,life:null,vel:null,on:{n:true,a:true}};
 function envField(){if(ENV.RW)return;const RW=new Float32Array(NX*NY),TK=new Float32Array(NX*NY);
@@ -1220,7 +1263,7 @@ function envUpdate(dt,st,sz){envInit();const em=ENV.em,dec=Math.exp(-dt/6),air=c
     while(n>0){if(Math.random()<n){let r=Math.random()*T,lo=0,hi=cdf.length-1;while(lo<hi){const m=(lo+hi)>>1;if(cdf[m]<r)lo=m+1;else hi=m;}
       const x=g.x0+((lo%NX)+Math.random())*CS,y=g.y0+(Math.floor(lo/NX)+Math.random())*CS,j=ENV.pi=(ENV.pi+1)%ENV.np;
       pos[j*3]=x;pos[j*3+1]=gh(x,-y)+3+Math.random()*6;pos[j*3+2]=-y;ENV.vel[j*3]=1+Math.random()*2;ENV.vel[j*3+1]=1.5+Math.random()*2;ENV.vel[j*3+2]=-.5+Math.random();ENV.life[j]=1;}n-=1;}}
-  liqUpdate();
+  liqUpdate();zjUpdate();
   for(let j=0;j<ENV.np;j++){if(ENV.life[j]<=0){pos[j*3+1]=-9999;continue;}ENV.life[j]-=dt/7;
     if(LIQ.n&&dt>0&&(j&3)===0){const lp=liqNear(pos[j*3],-pos[j*3+2]);if(lp){/* el fotobiorreactor atrae y captura la partícula */const dx=lp[0]-pos[j*3],dz=-lp[1]-pos[j*3+2];pos[j*3]+=dx*Math.min(1,dt*2.5);pos[j*3+2]+=dz*Math.min(1,dt*2.5);ENV.life[j]-=dt*2.2;ENV.vel[j*3+1]*=.9;continue;}}
     pos[j*3]+=ENV.vel[j*3]*dt;pos[j*3+1]+=ENV.vel[j*3+1]*dt;pos[j*3+2]+=ENV.vel[j*3+2]*dt;}
@@ -1643,7 +1686,7 @@ function mpRef(){if(MPREF)return MPREF;const sv=[...MPOFF];MPOFF.clear();buildSe
 function mpChanged(){MK.P=-1;bScn='';S.seenT=undefined;recompute();applyBldScn();renderMP();}
 function mpEffect(){const n=INT.filter(o=>!o.out).length,on=INT.filter(o=>!o.out&&!MPOFF.has(o.id)).length;
   let h=`<div class="mpfx"><div class="mpfx-h"><b>${on} de ${n} espacios encendidos</b><span><button data-all="on">Encender todos</button><button data-all="off">Apagar todos</button></span></div>`+
-    `<div class="lirow${MPOFF.has('liq')?' off':''}" style="margin:6px 0"><label class="tog" title="Encender o apagar los árboles líquidos"><input type="checkbox" data-tog="liq" ${MPOFF.has('liq')?'':'checked'} aria-label="Árboles líquidos"><span></span></label><span class="t" style="font-size:12px">Árboles líquidos · ${VARS.pro.liq} fotobiorreactores en avenidas y puertas<small style="display:block;color:var(--ink2)">Cantidad en la pestaña Variables</small></span></div>`;
+    `<div class="lirow${MPOFF.has('zanja')?' off':''}" style="margin:6px 0"><label class="tog" title="Encender o apagar las zanjas de infiltración"><input type="checkbox" data-tog="zanja" ${MPOFF.has('zanja')?'':'checked'} aria-label="Zanjas de infiltración"><span></span></label><span class="t" style="font-size:12px">Zanjas de infiltración · separadores verdes de las avenidas<small style="display:block;color:var(--ink2)">Captan la lluvia y evitan inundaciones (ciudad esponja)</small></span></div>`+`<div class="lirow${MPOFF.has('liq')?' off':''}" style="margin:6px 0"><label class="tog" title="Encender o apagar los árboles líquidos"><input type="checkbox" data-tog="liq" ${MPOFF.has('liq')?'':'checked'} aria-label="Árboles líquidos"><span></span></label><span class="t" style="font-size:12px">Árboles líquidos · ${VARS.pro.liq} fotobiorreactores en avenidas y puertas<small style="display:block;color:var(--ink2)">Cantidad en la pestaña Variables</small></span></div>`;
   if(MPOFF.size){const r=mpRef(),a=at('pro',20),f0=v=>Math.round(v),f1=v=>(Math.round(v*10)/10).toString().replace('.',','),G=GOP;
     const row=(l,x,y,f,better)=>`<span>${l}</span><b>${f(y)}</b><b class="${Math.abs(x-y)<.5?'':better(x,y)?'ok':'bad'}">${f(x)}</b>`;
     h+=`<p class="note">Año 20, mismas variables. Con lo que apagaste la propuesta ${G?'<b style="color:var(--pink)">llega a game over en el año '+f1(G.t)+'</b>':'sigue sostenible'}.</p><div class="cmp"><span class="h">Indicador</span><span class="h">Todos</span><span class="h">Ahora</span>`+
@@ -1663,7 +1706,7 @@ function renderMP(){
   el.innerHTML=h;
   $$('.li',el).forEach(b=>b.addEventListener('click',()=>select(b.dataset.id,true)));
   $$('[data-tog]',el).forEach(c=>c.addEventListener('change',()=>{c.checked?MPOFF.delete(c.dataset.tog):MPOFF.add(c.dataset.tog);mpChanged();}));
-  $$('[data-all]',el).forEach(b=>b.addEventListener('click',()=>{if(b.dataset.all==='on')MPOFF.clear();else{INT.forEach(o=>MPOFF.add(o.id));MPOFF.add('liq');}mpChanged();}));
+  $$('[data-all]',el).forEach(b=>b.addEventListener('click',()=>{if(b.dataset.all==='on')MPOFF.clear();else{INT.forEach(o=>MPOFF.add(o.id));MPOFF.add('liq');MPOFF.add('zanja');}mpChanged();}));
   const swT=$('#swT');if(swT)swT.addEventListener('change',()=>{TR.on=swT.checked;TR.mesh.visible=TR.on;});const sw=$('#swC');if(sw)sw.addEventListener('change',()=>{S.cands=sw.checked;});
   const sa=$('#swA');if(sa)sa.addEventListener('change',()=>{S.adopt=sa.checked;if(S.adopt&&S.scn!=='pro')setScn('pro');buildSeries();lastKey='';applyState(true);renderInd();renderCmp();});
 }
