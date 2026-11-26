@@ -561,8 +561,8 @@ function applyBldScn(){if(!bmesh||!BM0)return;
   if(!KB){KB=new Uint8Array(B.n);const Z=INT.map(o=>[o.x,o.y,Math.max(o.r||0,140)]);
     for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;for(const [zx,zy,zr] of Z)if(Math.hypot(x-zx,y-zy)<zr){KB[i]=1;break;}}
     MK.items.forEach(it=>{KB[it.i]=1;});}
-  const pro=S.scn==='pro'&&!MPOFF.has('viv_bav'),key=S.scn+(MPOFF.has('viv_bav')?'-':'');if(bScn===key)return;bScn=key;const a=bmesh.instanceMatrix.array;
-  for(let k=0;k<bmesh.count;k++){const i=order[k];if(!INBAV[i])continue;const o=k*16;if(pro)a.fill(0,o,o+16);else for(let j=0;j<16;j++)a[o+j]=BM0[o+j];}
+  const pro=S.scn==='pro'&&!MPOFF.has('viv_bav'),pc=S.scn==='pro',key=S.scn+(MPOFF.has('viv_bav')?'-':'');if(bScn===key)return;bScn=key;const a=bmesh.instanceMatrix.array,IL=MK.inLot,mk=new Set(MK.items.map(it=>it.i));
+  for(let k=0;k<bmesh.count;k++){const i=order[k],lot=IL&&IL[i]&&!mk.has(i);if(!INBAV[i]&&!lot)continue;const o=k*16,hide=lot?pc:pro;if(hide)a.fill(0,o,o+16);else for(let j=0;j<16;j++)a[o+j]=BM0[o+j];}
   bmesh.instanceMatrix.needsUpdate=true;}
 
 /* Corabastos: su huella se reduce y aparece el ecotono */
@@ -579,6 +579,13 @@ function initMarket(){
   {const cellOf=new Map();mcells.forEach((c,j)=>cellOf.set(c,j));MK.gj=new Set();
    list.forEach(it=>{const ix=Math.floor((it.x-g.x0)/CS),iy=Math.floor((it.y-g.y0)/CS),j=cellOf.get(iy*NX+ix);if(j!==undefined)MK.gj.add(j);});}
   MK.items=list;MK.A0=list.reduce((a,it)=>a+it.a,0);
+  {/* lote de Corabastos = envolvente convexa de sus bodegas; en la propuesta se quita todo volumen existente adentro */
+   const P=[];list.forEach(it=>{const c=Math.cos(it.ang),s2=Math.sin(it.ang);[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([u,v])=>P.push([it.x+(u*it.w/2*c-v*it.d/2*s2),it.y+(u*it.w/2*s2+v*it.d/2*c)]));});
+   P.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+   P.forEach(p=>{while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);});
+   for(let i=P.length-1;i>=0;i--){const p=P[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+   MK.hull=lo.slice(0,-1).concat(up.slice(0,-1));MK.inLot=new Uint8Array(B.n);let n=0;
+   for(let i=0;i<B.n;i++)if(polyIn([bx[i]/2,by[i]/2],MK.hull)){MK.inLot[i]=1;n++;}MK.nLot=n;}
   const rem=list.filter(it=>it.tau<5),nR=rem.length;
   MK.patch=new THREE.InstancedMesh(geo.box,lam(0x4fae78),nR);MK.reed=new THREE.InstancedMesh(geo.cone,mat(0x3f9a67),nR*5);MK.tree=new THREE.InstancedMesh(geo.ico,mat(0x2f8a52),Math.ceil(nR/2)+1);
   rem.forEach((it,j)=>{it.j=j;it.rp=[];for(let k=0;k<5;k++)it.rp.push([(rnd()-.5)*it.w*.8,(rnd()-.5)*it.d*.8,9+rnd()*8]);it.tr=j%2===0?[(rnd()-.5)*it.w*.5,(rnd()-.5)*it.d*.5,8+rnd()*5]:null;});
@@ -592,7 +599,7 @@ function applyMarket(force){
   MK.items.forEach(it=>{const e=it.tau>5?0:sm(clamp((P-it.tau)/0.12));it.e=e;removed+=it.a*e;
     const gy=gh(it.x,-it.y);_e.set(0,it.ang,0);_q.setFromEuler(_e);
     const k=posOf[it.i];
-    if(bmesh&&k<bmesh.count){const h=Math.min(it.f,24)*3.3*1.25+2;_m4.compose(_p.set(it.x,gy,-it.y),_q,_s.set(it.w,Math.max(h*(1-e),0.01),it.d));bmesh.setMatrixAt(k,_m4);}
+    if(bmesh&&k<bmesh.count){const h=Math.min(it.f,24)*3.3*1.25+2,gone=S.scn==='pro'?1:e;_m4.compose(_p.set(it.x,gy,-it.y),_q,_s.set(gone>=1?.001:it.w,Math.max(h*(1-gone),0.001),gone>=1?.001:it.d));bmesh.setMatrixAt(k,_m4);}
     if(it.tau<5){
       _m4.compose(_p.set(it.x,gy+.1,-it.y),_q,_s.set(it.w*.98,Math.max(1.6*e,0.001),it.d*.98));MK.patch.setMatrixAt(it.j,_m4);
       const ca=Math.cos(it.ang),sa=Math.sin(it.ang);
@@ -2071,6 +2078,6 @@ resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP(
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={MK,BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
