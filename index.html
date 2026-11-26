@@ -222,7 +222,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 @media (max-width:700px){#thrL{max-width:92vw;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 120px);font-size:11px}}
 #thr{position:fixed;top:max(76px,calc(env(safe-area-inset-top,0px) + 70px));left:50%;transform:translateX(-50%);z-index:25;background:rgba(80,10,40,.94);border:1px solid var(--pink);border-radius:6px;padding:9px 14px;font-size:13px;max-width:min(520px,92vw);text-align:center}
 .rng{position:relative}#goMarks{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
-#goMarks i{position:absolute;top:2px;width:3px;height:14px;margin-left:-1px;background:#ff7a59;border-radius:2px;opacity:.85}#goMarks i.big{background:var(--pink);width:5px;height:20px;top:-1px}
+#goMarks i{position:absolute;top:2px;width:3px;height:14px;margin-left:-1px;background:#ff7a59;border-radius:2px;opacity:.85}#goMarks i.rec{background:#5ef0a0}#thr.good{background:rgba(10,70,45,.94);border-color:#5ef0a0}#thrL span.ok2{color:#8dffbe}#thrL span.ok2 em{color:#8dffbe;opacity:.8}#goMarks i.big{background:var(--pink);width:5px;height:20px;top:-1px}
 .vhd{font:700 15px/1.2 var(--disp);padding:8px 10px;border-radius:5px;margin-bottom:6px;letter-spacing:.02em}.vhd.vp{background:rgba(255,61,150,.18);border-left:4px solid var(--pink)}.vhd.va{background:rgba(234,164,60,.18);border-left:4px solid var(--amber)}#go .gmh{font:700 14px/1.2 var(--ui);text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);margin:16px 0 8px}
 #go .gmm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
 #go .gm{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
@@ -1313,12 +1313,12 @@ const EM_G=new THREE.Color(0xd4ff3a),EM_P=new THREE.Color(0xff3d96);
 const EMIND={ew:o=>o.val,food:o=>o.food/60,conn:o=>o.conn/80,cohab:o=>o.cohab/80,spec:o=>1-o.spec/100};
 function emSeries(){/* por año: participación, funcionamiento y frente acumulado; año de activación de cada candidato */
   const st=[],cand=new Map();let S0=0;const A=new Map();
-  for(let k=0;k<=80;k++){const t=k/4,o=at('pro',t),P=clamp(o.soc/100),Wk=Math.max(0,1-.34*PCROSS.filter(h=>h.y>0&&h.y<=t).length),rate=(.4+P)*Wk;
+  for(let k=0;k<=80;k++){const t=k/4,o=at('pro',t),P=clamp(o.soc/100),Wk=Math.max(0,1-.34*PCROSS.filter(h=>h.y>0&&pActive(h,t)).length),rate=(.4+P)*Wk;
     if(k)S0+=rate*.25;st.push({t,P,W:Wk,S:S0});
     D.cands.forEach(c=>{if(cand.has(c.id))return;const v=(A.get(c.id)||0)+(k?.25*c.score*rate*clamp(EMIND[c.key](o)):0);A.set(c.id,v);if(v>=1+.4*(c.s-6)+(1-c.score))cand.set(c.id,t);});}
   return {st,cand};}
 function emUpdate(){if(!EM.disc)emInit();const pro=S.scn==='pro',on=EM.on&&pro&&!S.adopt,t=S.t,
-    key=(on?1:0)+'|'+t.toFixed(2)+'|'+[...MPOFF].join(',')+'|'+PCROSS.map(h=>h.id+h.y).join()+'|'+VARS.pro.soc+'|'+S.par+'|'+Math.round(Math.log(V.H)*8);
+    key=(on?1:0)+'|'+t.toFixed(2)+'|'+[...MPOFF].join(',')+'|'+PCROSS.map(h=>h.id+h.y+(h.r||'')).join()+'|'+VARS.pro.soc+'|'+S.par+'|'+Math.round(Math.log(V.H)*8);
   if(key===EM.key)return;EM.key=key;
   if(!EM.ser||EM.serK!==key.split('|').slice(2).join('|')){EM.ser=emSeries();EM.serK=key.split('|').slice(2).join('|');}
   const {st,cand}=EM.ser,i=Math.min(80,Math.round(t*4)),cur=st[i],Sat=tt=>st[Math.min(80,Math.max(0,Math.round(tt*4)))].S;
@@ -1993,9 +1993,12 @@ const THR=[
 const THRP=THR.concat([{id:'soc',n:'Colapso del capital social',f:d=>d.soc<=4.5,v:d=>d.soc.toFixed(1).replace('.',',')+' / 100 de capital social',w:'Sin participación los espacios del masterplan no se apropian: nadie los cuida ni los defiende de la venta.'}]);
 const nf=(v,d=1)=>(+v).toFixed(d).replace('.',',');
 const GO_N=3;let GO=null,GOP=null,PCROSS=[],MARKS={act:'',pro:''};
-function scanP(){const y={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;THRP.forEach(h=>{if(y[h.id]===undefined&&h.f(d))y[h.id]=t;if(y[h.id]!==undefined)n++;});if(n>=GO_N&&go===null)go=t;}
-  PCROSS=THRP.filter(h=>y[h.id]!==undefined).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y);
-  GOP=go===null?null:{t:go,crit:THRP.filter(h=>y[h.id]!==undefined&&y[h.id]<=go+1e-6).map(h=>Object.assign({},h,{y:y[h.id]})).sort((a,b)=>a.y-b.y)};
+/* en la propuesta un umbral puede apagarse: si el indicador vuelve a estar del lado sano deja de contar (game over = 3 umbrales activos a la vez) */
+function pActive(h,t){let on=false;(h.ev||[]).forEach(([tt,v])=>{if(tt<=t+1e-6)on=v;});return on;}
+function scanP(){const y={},ev={},st={};let go=null;for(let t=0;t<=20.001;t+=.05){const d=at('pro',Math.min(20,t));let n=0;
+    THRP.forEach(h=>{const on=!!h.f(d);if(on!==!!st[h.id]){st[h.id]=on;(ev[h.id]=ev[h.id]||[]).push([t,on]);if(on&&y[h.id]===undefined)y[h.id]=t;}if(on)n++;});if(n>=GO_N&&go===null)go=t;}
+  PCROSS=THRP.filter(h=>y[h.id]!==undefined).map(h=>{const e=ev[h.id],off=e.find(q=>!q[1]&&q[0]>y[h.id]);return Object.assign({},h,{y:y[h.id],ev:e,r:off?off[0]:undefined});}).sort((a,b)=>a.y-b.y);
+  GOP=go===null?null:{t:go,crit:PCROSS.filter(h=>pActive(h,go))};
   MARKS.pro=THRP.filter(h=>y[h.id]!==undefined).map(h=>`<i style="left:${y[h.id]/20*100}%" title="${h.n}"></i>`).join('')+(GOP?`<i class="big" style="left:${GOP.t/20*100}%" title="Game over"></i>`:'');}
 function goCompute(){scanP();THR.forEach(h=>{h.y=null;});let go=null;
   for(let t=0;t<=20.001;t+=.05){const d=at('act',Math.min(20,t));let n=0;THR.forEach(h=>{if(h.f(d)){if(h.y===null)h.y=t;}if(h.y!==null)n++;});if(n>=GO_N&&go===null)go=t;}
@@ -2007,12 +2010,19 @@ let thrT=0;
 /* los umbrales solo se muestran a medida que la simulación corre: hasta el año más lejano alcanzado con play */
 function thrSeen(){return S.seenT===undefined?-1:Math.min(S.t,S.seenT);}
 function thrCross(){return S.scn==='pro'?PCROSS:THR.filter(h=>h.y!==null);}
-function thrBadge(){const e=$('#thrL');if(!e)return;const lim=thrSeen();e.style.display=lim<0?'none':'';if(lim<0)return;const t=lim,P=S.scn==='pro',L=(P?PCROSS:THR.filter(h=>h.y!==null)).filter(h=>h.y<=t+1e-6).sort((a,b)=>a.y-b.y),n=L.length;
-  const st=n>=GO_N?'gameover':n===2?'colapso':n===1?'alerta':'ok';const k=st+n+L.map(h=>h.id).join()+Math.round(t);if(e.dataset.k===k)return;e.dataset.k=k;e.className='thrl '+st;
-  e.innerHTML=n?`<b>${n>=GO_N?'Game over':n===2?'Colapso localizado':'Alerta'} · ${n}/${GO_N} umbrales</b>`+L.map(h=>`<span>⚠ ${h.n} <em>año ${(Math.round(h.y*10)/10).toString().replace('.',',')}</em></span>`).join(''):'<b>Sin umbrales cruzados</b>';}
-function goTick(prev){if(S.playing)S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,S.t);thrBadge();if(!!S.repK!==repReady())renderCmp();const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;const lim=thrSeen(),L=thrCross().filter(h=>h.y<=lim+1e-6),ms=L.map(h=>`<i style="left:${h.y/20*100}%" title="${h.n}"></i>`).join('')+(G&&lim>=G.t-1e-6?`<i class="big" style="left:${G.t/20*100}%" title="Game over"></i>`:''),k=S.scn+ms.length;if(gm.dataset.s!==k){gm.innerHTML=ms;gm.dataset.s=k;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
+function thrBadge(){const e=$('#thrL');if(!e)return;const lim=thrSeen();e.style.display=lim<0?'none':'';if(lim<0)return;const t=lim,P=S.scn==='pro',L=(P?PCROSS.filter(h=>pActive(h,t)):THR.filter(h=>h.y!==null)).filter(h=>h.y<=t+1e-6).sort((a,b)=>a.y-b.y),n=L.length;
+  const REC=P?PCROSS.filter(h=>h.y<=t+1e-6&&!pActive(h,t)):[],AV=P?THR.filter(h=>h.y!==null&&h.y<=t+1e-6&&!PCROSS.some(q=>q.id===h.id&&q.y<=t+1e-6)):[];
+  const st=n>=GO_N?'gameover':n===2?'colapso':n===1?'alerta':'ok';const k=st+n+L.map(h=>h.id).join()+REC.map(h=>h.id).join()+AV.map(h=>h.id).join()+Math.round(t);if(e.dataset.k===k)return;e.dataset.k=k;e.className='thrl '+st;
+  const yy=v=>(Math.round(v*10)/10).toString().replace('.',',');
+  e.innerHTML=(n?`<b>${n>=GO_N?'Game over':n===2?'Colapso localizado':'Alerta'} · ${n}/${GO_N} umbrales${P?' activos':''}</b>`:`<b>${P&&(REC.length||AV.length)?'Umbrales apagados por la propuesta':'Sin umbrales cruzados'}</b>`)+L.map(h=>`<span>⚠ ${h.n} <em>año ${yy(h.y)}</em></span>`).join('')+
+    REC.map(h=>`<span class="ok2">✓ ${h.n} <em>se apagó en el año ${yy(h.r!==undefined&&h.r<=t?h.r:h.y)}</em></span>`).join('')+AV.map(h=>`<span class="ok2">✓ ${h.n} <em>evitado (en la situación actual se cruza en el año ${yy(h.y)})</em></span>`).join('');}
+function goTick(prev){if(S.playing)S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,S.t);thrBadge();if(!!S.repK!==repReady())renderCmp();const t=S.t,P=S.scn==='pro',G=P?GOP:GO;const gm=$('#goMarks');if(gm){gm.hidden=false;const lim=thrSeen(),L=thrCross().filter(h=>h.y<=lim+1e-6),ms=L.map(h=>`<i style="left:${h.y/20*100}%" title="${h.n}"></i>`+(P&&h.r!==undefined&&h.r<=lim+1e-6?`<i class="rec" style="left:${h.r/20*100}%" title="Se apagó: ${h.n}"></i>`:'')).join('')+(G&&lim>=G.t-1e-6?`<i class="big" style="left:${G.t/20*100}%" title="Game over"></i>`:''),k=S.scn+ms.length;if(gm.dataset.s!==k){gm.innerHTML=ms;gm.dataset.s=k;}}document.body.classList.toggle('collapse',!!(G&&t>=G.t-.001));if(t<(G?G.t:99)-.01)S.goSeen=false;if(t<19.9)S.susSeen=false;
   if(prev<0||t<=prev||!S.playing)return;const hit=h=>h.y!==null&&h.y<=t&&(h.y>prev||(prev<=1e-6&&h.y<=1e-6)),h=P?PCROSS.find(hit):THR.find(hit);
-  if(h&&(!G||h.y<=G.t)){const e=$('#thr');e.textContent='⚠ Umbral crítico: '+h.n;e.hidden=false;clearTimeout(thrT);thrT=setTimeout(()=>{e.hidden=true;},4200);}}
+  const toast=(txt,good)=>{const e=$('#thr');e.textContent=txt;e.classList.toggle('good',!!good);e.hidden=false;clearTimeout(thrT);thrT=setTimeout(()=>{e.hidden=true;},4200);};
+  if(h&&(!G||h.y<=G.t)&&pOn(h,t))toast('⚠ Umbral crítico: '+h.n);
+  else if(P){const rc=PCROSS.find(q=>(q.ev||[]).some(([tt,v])=>!v&&tt>prev&&tt<=t)),av=THR.find(q=>q.y!==null&&q.y>prev&&q.y<=t&&!PCROSS.some(z=>z.id===q.id&&pActive(z,t)));
+    if(rc)toast('✓ Umbral apagado: '+rc.n,true);else if(av)toast('✓ La propuesta evita: '+av.n,true);}}
+function pOn(h,t){return S.scn!=='pro'||pActive(h,t);}
 function macroGO(d,scn,ok){const d0=at(scn||'act',0),N=d.N,N0=d0.N,pc=(a,b)=>Math.round((a/b-1)*100)+' %';
   const M=[
    ['Animal Aided Design','El diseño debe sostener el ciclo de vida de las especies objetivo.',[
@@ -2088,6 +2098,6 @@ resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP(
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={MK,BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={applyPar:id=>applyPar(id),MPOFF,mpChanged:()=>mpChanged(),pActive,THR,thrBadge,MK,BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
