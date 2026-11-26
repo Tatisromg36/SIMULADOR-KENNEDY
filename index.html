@@ -1849,7 +1849,10 @@ function mpEffect(){const n=INT.filter(o=>!o.out).length,on=INT.filter(o=>!o.out
       row('Conectividad',a.conn,r.conn,f0,(x,y)=>x>y)+row('Especulación',a.spec,r.spec,f0,(x,y)=>x<y)+row('Presión sanitaria (%)',a.dis*100,r.dis*100,f0,(x,y)=>x<y)+row('PM2.5 (µg/m³)',a.pm,r.pm,f1,(x,y)=>x<y)+`</div>`;}
   else h+=`<p class="note">Apaga un espacio para ver cómo responde el territorio sin él: desaparece del mapa, se recalculan los indicadores y los umbrales, y aquí se compara con el masterplan completo.</p>`;
   return h+`</div>`;}
-function renderMP(){
+function renderMP(){/* conserva el scroll del panel al redibujar (p. ej. al prender o apagar un espacio) */
+  let n=$('#b-mp'),scE=null;while(n&&n!==document.body){const cs=getComputedStyle(n);if(/(auto|scroll)/.test(cs.overflowY)){scE=n;break;}n=n.parentElement;}
+  const y0=scE?scE.scrollTop:0;renderMP0();if(scE)scE.scrollTop=y0;}
+function renderMP0(){
   const el=$('#b-mp');let h=`<label class="switch"><input type="checkbox" id="swT" ${TR.on?'checked':''}> Mostrar arbolado urbano existente (${D.trees.n.toLocaleString('es-CO')} árboles del inventario)</label><label class="switch"><input type="checkbox" id="swC" ${S.cands?'checked':''}> Mostrar espacios candidatos que surgen de los indicadores</label><label class="switch"><input type="checkbox" id="swA" ${S.adopt?'checked':''}> Sumar los candidatos al escenario y ver cómo cambian los indicadores</label>`;
   if(S.scn==='act')h+=`<p class="note">Estás viendo la situación actual: aquí no hay intervenciones. Cambia a Propuesta para ver el masterplan.</p>`;
   else h+=mpEffect();
@@ -1957,7 +1960,7 @@ function select(id,fly,quiet){
 }
 function phaseLabel(){const t=S.t,lim=thrSeen(),n=thrCross().filter(h=>h.y<=lim+1e-6).length;return (S.scn==='act'?'Tendencial':(t<5?'Corto plazo':t<12?'Mediano plazo':'Largo plazo'))+(lim>=0?' · '+n+'/'+GO_N+' umbrales':'');}
 function setT(t,fromUser){const prevT=S.t;const G=S.scn==='pro'?GOP:GO;if(G&&!S.goSeen&&t>=G.t&&prevT<G.t+1e-6){t=G.t;if(S.playing)S.seenT=Math.max(S.seenT===undefined?-1:S.seenT,G.t);S.playing=false;$('#play').textContent='▶';setTimeout(()=>showGO(S.scn),60);}
-  else if(S.scn==='pro'&&!GOP&&!S.susSeen&&t>=19.999&&prevT<19.999&&S.playing){S.susSeen=true;setTimeout(showSUS,60);}S.t=clamp(t,0,20);goTick(prevT);if(S.playing)checkEvents(prevT,S.t);$('#yr').value=S.t;$('#yv').textContent='Año '+Math.round(S.t);$('#yc').textContent=fmtYear(S.t);$('#phase').textContent=phaseLabel();applyState();const nw=performance.now();if(!S.playing||nw-lastUI>220){lastUI=nw;renderInd();renderRel();if(S.tab==='mp')renderMP();}}
+  else if(S.scn==='pro'&&!GOP&&!S.susSeen&&t>=19.999&&prevT<19.999&&S.playing){S.susSeen=true;setTimeout(showSUS,60);}S.t=clamp(t,0,20);goTick(prevT);if(S.playing)checkEvents(prevT,S.t);$('#yr').value=S.t;$('#yv').textContent='Año '+Math.round(S.t);$('#yc').textContent=fmtYear(S.t);$('#phase').textContent=phaseLabel();applyState();const nw=performance.now();if(!S.playing||nw-lastUI>220){lastUI=nw;renderInd();renderRel();if(S.tab==='mp'&&!S.playing)renderMP();}}
 let lastUI=0;
 function setScn(s){S.scn=s;S.seenT=undefined;Object.assign(VAR,VARS[s]);applyBldScn();S.goSeen=false;goTick(-1);$('#bAct').setAttribute('aria-pressed',s==='act');$('#bPro').setAttribute('aria-pressed',s==='pro');select(null);lgAgents();
   lastKey='';applyState(true);legend();renderInd();renderMP();renderVar();renderRel();$('#phase').textContent=phaseLabel();}
