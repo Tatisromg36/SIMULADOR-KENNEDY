@@ -95,6 +95,9 @@ h3{margin:2px 0 0;font:700 11px/1 var(--ui);letter-spacing:.12em;text-transform:
 .vr{display:grid;gap:3px;font-size:12px}.vr label{display:flex;justify-content:space-between;gap:8px;font-weight:600}.vr output{font-weight:800;color:var(--pink);white-space:nowrap}
 .vr input[type=range]{width:100%;accent-color:#ff3d96;min-height:28px}.vr small{color:var(--ink2);font-size:10.5px;line-height:1.35}
 .presets{display:flex;flex-wrap:wrap;gap:6px}.presets button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:3px;padding:7px 9px;font-weight:700;font-size:12px;min-height:34px}
+.lirow{display:flex;align-items:center;gap:6px}.lirow .li{flex:1;min-width:0}.lirow.off .li{opacity:.45}
+.tog{position:relative;flex:0 0 34px;height:20px;cursor:pointer}.tog input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.tog span{position:absolute;inset:0;border-radius:10px;background:rgba(255,255,255,.15);transition:background .15s}.tog span::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}.tog input:checked+span{background:var(--mint)}.tog input:checked+span::after{transform:translateX(14px)}.tog input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
+.mpfx{border:1px solid var(--line);border-radius:6px;padding:10px;margin:8px 0 10px;background:rgba(255,255,255,.03)}.mpfx-h{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center;margin-bottom:4px}.mpfx-h button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:3px;padding:4px 8px;font-size:11px;cursor:pointer;margin-left:4px}
 .rep .lead{font-weight:700;font-size:13px;margin:2px 0 8px}.rep .lead.bad{color:var(--pink)}.rep .lead.ok{color:var(--mint)}
 .rep h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);margin:10px 0 4px}
 .rl{list-style:none;margin:0;padding:0;display:grid;gap:7px}.rl li{font-size:12px;line-height:1.4;padding-left:10px;border-left:3px solid var(--line)}.rl li.bad{border-color:var(--pink)}.rl li.ok{border-color:var(--mint)}
@@ -356,7 +359,8 @@ const cap=o=>(cap0(o))*VAR.capX/100;
 const cap0=o=>o.capv||(o.id==='plaza_cora'?CAP.cora:o.id==='plaza_osorio'?CAP.osorio:o.id==='plaza_bav'?CAP.bav:o.id==='ecocirc'?CAP.eco:o.id==='centro_inv'?CAP.centro:0);
 /* la propuesta existe y funciona completa desde el año 0 */
 const MAT=o=>(Math.max(2,o.e-o.s)+1)/(VAR.exec/100);
-const prog=(o,t)=>1;/* sin maduración: cada espacio funciona al 100 % desde el año 0 */
+const MPOFF=new Set();/* espacios del masterplan apagados por el usuario */
+const prog=(o,t)=>MPOFF.has(o.id)?0:1;/* sin maduración: cada espacio funciona al 100 % desde el año 0, salvo si se apaga */
 const yrs=o=>'En funcionamiento desde el año 0';
 // influencia estática por intervención e indicador
 function samples(pts,step=50){const out=[];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.max(2,Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])/step));for(let k=0;k<n;k++)out.push([lerp(a[0],b[0],k/n),lerp(a[1],b[1],k/n)]);}out.push(pts[pts.length-1]);return out;}
@@ -443,7 +447,7 @@ function simSpecies(scn,drv){
     const d=drv[y-1];
     const rD=VAR.resD*(scn==='pro'?1-clamp(d.val/0.85):1);d.rD=rD;
     const aF=.6+.4*VAR.arr/12.5,dis=clamp(.75*N.pigeon[y-1]/CAPS.pigeon+.25*clamp((d.untreated+rD)/(d.E+VAR.resD+1e-6)*aF));d.dis=dis;d.aF=aF;     // palomas → enfermedades
-    const qs0= scn==='pro'? clamp(0.55*d.sC+0.25*d.val/0.7+0.20*d.sH) : clamp(0.12-0.006*y);
+    const qsA=clamp(0.12-0.006*y),qs0= scn==='pro'? Math.max(qsA,clamp(0.55*d.sC+0.25*d.val/0.7+0.20*d.sH)) : qsA;   // sin espacios encendidos la propuesta vuelve a la situación actual
     const qs=qs0*(1-.18*dis)*(1-.25*clamp((VAR.arr-12.5)/37.5));   // enfermedades y arrojo que llega al humedal → fauna nativa (−)
     const awf=.5+.5*clamp(d.AH/100/.6);
     const nzf=1-.35*clamp((d.noiseW-50)/20);d.nzf=nzf;                                   // ruido → aves evitan la zona (−)
@@ -551,7 +555,7 @@ function applyBldScn(){if(!bmesh||!BM0)return;
   if(!KB){KB=new Uint8Array(B.n);const Z=INT.map(o=>[o.x,o.y,Math.max(o.r||0,140)]);
     for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;for(const [zx,zy,zr] of Z)if(Math.hypot(x-zx,y-zy)<zr){KB[i]=1;break;}}
     MK.items.forEach(it=>{KB[it.i]=1;});}
-  const pro=S.scn==='pro';if(bScn===S.scn)return;bScn=S.scn;const a=bmesh.instanceMatrix.array;
+  const pro=S.scn==='pro'&&!MPOFF.has('viv_bav'),key=S.scn+(MPOFF.has('viv_bav')?'-':'');if(bScn===key)return;bScn=key;const a=bmesh.instanceMatrix.array;
   for(let k=0;k<bmesh.count;k++){const i=order[k];if(!INBAV[i])continue;const o=k*16;if(pro)a.fill(0,o,o+16);else for(let j=0;j<16;j++)a[o+j]=BM0[o+j];}
   bmesh.instanceMatrix.needsUpdate=true;}
 
@@ -1337,7 +1341,7 @@ function legend(){lgAgents();const need=S.layer!=='estado';$('#lgT').textContent
 /* ---------- aplicar tiempo / escenario ---------- */
 function applyState(force){
   INT.forEach(o=>{const f=prog(o,S.t);o.f=f;
-    if(o.G.userData.grow)o.G.userData.grow(1);o.G.visible=S.scn==='pro'&&!o.out;
+    if(o.G.userData.grow)o.G.userData.grow(1);o.G.visible=S.scn==='pro'&&!o.out&&!MPOFF.has(o.id);
     if(o.ring)o.ring.visible=false;});
   CI.forEach(o=>{const f=prog(o,S.t);o.f=f;const on=S.adopt&&S.scn==='pro';o.G.visible=on;if(o.G.userData.grow)o.G.userData.grow(1);o.ring.visible=false;});
   D.cands.forEach(c=>c.pin.classList.toggle('on',S.adopt));
@@ -1365,7 +1369,7 @@ function proj(x,y,h){v3.set(x,h||20,-y).project(cam);return[(v3.x*.5+.5)*cv.clie
 function updatePins(){
   const w=cv.clientWidth,hh=cv.clientHeight;
   const show=(o,vis,h)=>{const [x,y]=proj(o.x,o.y,h);const ok=vis&&x>-30&&x<w+30&&y>-30&&y<hh+30;o.pin.style.display=ok?'':'none';if(ok)o.pin.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;};
-  INT.forEach(o=>show(o,S.scn==='pro'&&!o.out,(o.r?gh(o.x,-o.y):15)+30));
+  INT.forEach(o=>show(o,S.scn==='pro'&&!o.out&&!MPOFF.has(o.id),(o.r?gh(o.x,-o.y):15)+30));
   D.cands.forEach(c=>show(c,S.scn==='pro'&&S.cands&&V.H<4200&&(S.layer==='estado'||S.layer==='all'||S.layer===c.key||(S.layer==='ew'&&c.key==='ew')),26));
   CRIT.forEach(c=>show(c,S.scn==='act',34));
   {const st=at(S.scn,S.t);wfLabels(st);}
@@ -1506,10 +1510,10 @@ const PARES=[['1','Línea base','Todo en valores base',{}],['2','Corabastos crec
 
 function applyPar(id){const p=PARES.find(q=>q[0]===id);
   VARS.act=Object.assign({},VAR0,p?p[3]:{});VARS.pro=Object.assign({},VAR0,p?p[3]:{});
-  S.par=id||null;S.seenT=undefined;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){tg.hidden=!p;tg.textContent=p?'Escenario '+p[0]+' · '+p[1]:'';}
+  S.par=id||null;S.seenT=undefined;MPREF=null;Object.assign(VAR,VARS[S.scn]);const tg=$('#parTag');if(tg){tg.hidden=!p;tg.textContent=p?'Escenario '+p[0]+' · '+p[1]:'';}
   recompute();renderVar();}
-let rcT=0;function scheduleRecompute(){clearTimeout(rcT);rcT=setTimeout(recompute,90);}
-function recompute(){buildSeries();goCompute();thrBadge();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
+let rcT=0;function scheduleRecompute(){MPREF=null;clearTimeout(rcT);rcT=setTimeout(recompute,90);}
+function recompute(){if(!MPOFF.size)MPREF=null;buildSeries();goCompute();thrBadge();lastKey='';MK.P=-1;applyState(true);renderInd();renderRel();if(S.tab==='mp')renderMP();renderCmp();
   const tg=$('#b-var');if(tg&&!tg.hidden){}}
 /* ---------- diagrama causal dinámico ---------- */
 const RK={sp:['Espacio propuesto','#c2276f'],ex:['Condición existente','#a96a1c'],ag:['Agente / especie / comunidad','#0f8f84'],fl:['Flujo o indicador','#4b4aa8']};
@@ -1587,16 +1591,32 @@ function renderRel(){const el=$('#b-rel'),mod=$('#relModal');
   if(el&&!el.hidden){el.innerHTML=`<p class="note">Así se conectan los espacios propuestos, las condiciones existentes y los agentes. Las barras de cada nodo muestran su valor ${S.scn==='pro'?'en la propuesta':'en la situación actual'} para el año ${Math.round(S.t)}.</p><button id="openRel">Ver en grande</button>${relBody()}`;bindRel(el);$('#openRel').onclick=()=>{mod.hidden=false;renderRel();};}
   if(mod&&!mod.hidden){$('#rmBody').innerHTML=`<h3 style="margin:0 40px 8px 0">Diagrama causal dinámico · ${S.scn==='pro'?'Propuesta':'Situación actual'} · año ${Math.round(S.t)}</h3>${relBody()}`;bindRel(mod);}}
 $('#rmClose').addEventListener('click',()=>{$('#relModal').hidden=true;});
+/* efecto de encender / apagar espacios: compara con el masterplan completo, mismas variables, año 20 */
+let MPREF=null;
+function mpRef(){if(MPREF)return MPREF;const sv=[...MPOFF];MPOFF.clear();buildSeries();const a=at('pro',20);MPREF={cohab:a.cohab,tin:a.N.tingua,val:a.val,spec:a.spec,conn:a.conn,pm:a.pm,dis:a.dis,go:GOP?null:null};sv.forEach(x=>MPOFF.add(x));buildSeries();return MPREF;}
+function mpChanged(){MK.P=-1;bScn='';S.seenT=undefined;recompute();applyBldScn();renderMP();}
+function mpEffect(){const n=INT.filter(o=>!o.out).length,on=INT.filter(o=>!o.out&&!MPOFF.has(o.id)).length;
+  let h=`<div class="mpfx"><div class="mpfx-h"><b>${on} de ${n} espacios encendidos</b><span><button data-all="on">Encender todos</button><button data-all="off">Apagar todos</button></span></div>`;
+  if(MPOFF.size){const r=mpRef(),a=at('pro',20),f0=v=>Math.round(v),f1=v=>(Math.round(v*10)/10).toString().replace('.',','),G=GOP;
+    const row=(l,x,y,f,better)=>`<span>${l}</span><b>${f(y)}</b><b class="${Math.abs(x-y)<.5?'':better(x,y)?'ok':'bad'}">${f(x)}</b>`;
+    h+=`<p class="note">Año 20, mismas variables. Con lo que apagaste la propuesta ${G?'<b style="color:var(--pink)">llega a game over en el año '+f1(G.t)+'</b>':'sigue sostenible'}.</p><div class="cmp"><span class="h">Indicador</span><span class="h">Todos</span><span class="h">Ahora</span>`+
+      row('Cohabitabilidad',a.cohab,r.cohab,f0,(x,y)=>x>y)+row('Tinguas',a.N.tingua,r.tin,f0,(x,y)=>x>y)+row('Residuo valorizado (%)',a.val*100,r.val*100,f0,(x,y)=>x>y)+
+      row('Conectividad',a.conn,r.conn,f0,(x,y)=>x>y)+row('Especulación',a.spec,r.spec,f0,(x,y)=>x<y)+row('Presión sanitaria (%)',a.dis*100,r.dis*100,f0,(x,y)=>x<y)+row('PM2.5 (µg/m³)',a.pm,r.pm,f1,(x,y)=>x<y)+`</div>`;}
+  else h+=`<p class="note">Apaga un espacio para ver cómo responde el territorio sin él: desaparece del mapa, se recalculan los indicadores y los umbrales, y aquí se compara con el masterplan completo.</p>`;
+  return h+`</div>`;}
 function renderMP(){
   const el=$('#b-mp');let h=`<label class="switch"><input type="checkbox" id="swT" ${TR.on?'checked':''}> Mostrar arbolado urbano existente (${D.trees.n.toLocaleString('es-CO')} árboles del inventario)</label><label class="switch"><input type="checkbox" id="swC" ${S.cands?'checked':''}> Mostrar espacios candidatos que surgen de los indicadores</label><label class="switch"><input type="checkbox" id="swA" ${S.adopt?'checked':''}> Sumar los candidatos al escenario y ver cómo cambian los indicadores</label>`;
   if(S.scn==='act')h+=`<p class="note">Estás viendo la situación actual: aquí no hay intervenciones. Cambia a Propuesta para ver el masterplan.</p>`;
+  else h+=mpEffect();
   const ph=[['Corto plazo · años 0 a 6',o=>o.s<4],['Mediano plazo · años 4 a 13',o=>o.s>=4&&o.s<10],['Largo plazo · años 10 a 20',o=>o.s>=10]];
   const num={};INT.forEach((o,i)=>num[o.id]=i+1);
-  ph.forEach(([t,fn])=>{h+=`<h3>${t}</h3>`;INT.filter(fn).forEach(o=>{const f=prog(o,S.t);h+=`<button class="li" data-id="${o.id}"><span class="dot" style="background:${{met:'var(--amber)',eco:'var(--mint)',com:'var(--violet)',viv:'var(--cream)'}[GRP[o.type]]}"></span><span class="t">${num[o.id]}. ${o.name}<small>${yrs(o)}</small></span><span class="pc">${S.scn==='pro'?Math.round(f*100)+'%':'—'}</span></button>`;});});
+  ph.forEach(([t,fn])=>{h+=`<h3>${t}</h3>`;INT.filter(fn).forEach(o=>{const f=prog(o,S.t);h+=`<div class="lirow${MPOFF.has(o.id)?' off':''}">${S.scn==='pro'?`<label class="tog" title="Encender o apagar este espacio"><input type="checkbox" data-tog="${o.id}" ${MPOFF.has(o.id)?'':'checked'} aria-label="${o.name}: ${MPOFF.has(o.id)?'apagado':'encendido'}"><span></span></label>`:''}<button class="li" data-id="${o.id}"><span class="dot" style="background:${{met:'var(--amber)',eco:'var(--mint)',com:'var(--violet)',viv:'var(--cream)'}[GRP[o.type]]}"></span><span class="t">${num[o.id]}. ${o.name}<small>${yrs(o)}</small></span><span class="pc">${S.scn==='pro'?(MPOFF.has(o.id)?'apagado':'activo'):'—'}</span></button></div>`;});});
   h+=`<h3>Espacios que surgen de los indicadores</h3><p class="note">Celdas de 100 m con mayor necesidad y sin intervención del masterplan a menos de unos 450 m.</p>`;
   D.cands.forEach(c=>{h+=`<button class="li" data-id="${c.id}"><span class="dot" style="background:transparent;border:2px dashed #fff"></span><span class="t">${c.what}<small>${c.ind} · necesidad ${Math.round(c.score*100)}%</small></span></button>`;});
   el.innerHTML=h;
   $$('.li',el).forEach(b=>b.addEventListener('click',()=>select(b.dataset.id,true)));
+  $$('[data-tog]',el).forEach(c=>c.addEventListener('change',()=>{c.checked?MPOFF.delete(c.dataset.tog):MPOFF.add(c.dataset.tog);mpChanged();}));
+  $$('[data-all]',el).forEach(b=>b.addEventListener('click',()=>{if(b.dataset.all==='on')MPOFF.clear();else INT.forEach(o=>MPOFF.add(o.id));mpChanged();}));
   const swT=$('#swT');if(swT)swT.addEventListener('change',()=>{TR.on=swT.checked;TR.mesh.visible=TR.on;});const sw=$('#swC');if(sw)sw.addEventListener('change',()=>{S.cands=sw.checked;});
   const sa=$('#swA');if(sa)sa.addEventListener('change',()=>{S.adopt=sa.checked;if(S.adopt&&S.scn!=='pro')setScn('pro');buildSeries();lastKey='';applyState(true);renderInd();renderCmp();});
 }
