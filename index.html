@@ -561,7 +561,7 @@ function applyBldScn(){if(!bmesh||!BM0)return;
   if(!KB){KB=new Uint8Array(B.n);const Z=INT.map(o=>[o.x,o.y,Math.max(o.r||0,140)]);
     for(let i=0;i<B.n;i++){const x=bx[i]/2,y=by[i]/2;for(const [zx,zy,zr] of Z)if(Math.hypot(x-zx,y-zy)<zr){KB[i]=1;break;}}
     MK.items.forEach(it=>{KB[it.i]=1;});}
-  const pro=S.scn==='pro'&&!MPOFF.has('viv_bav'),pc=S.scn==='pro',key=S.scn+(MPOFF.has('viv_bav')?'-':'');if(bScn===key)return;bScn=key;const a=bmesh.instanceMatrix.array,IL=MK.inLot,mk=new Set(MK.items.map(it=>it.i));
+  const pro=S.scn==='pro'&&!MPOFF.has('viv_bav'),pc=S.scn==='pro'&&!MPOFF.has('plaza_cora'),key=S.scn+(MPOFF.has('viv_bav')?'-':'')+(MPOFF.has('plaza_cora')?'c':'');if(bScn===key)return;bScn=key;const a=bmesh.instanceMatrix.array,IL=MK.inLot,mk=new Set(MK.items.map(it=>it.i));
   for(let k=0;k<bmesh.count;k++){const i=order[k],lot=IL&&IL[i]&&!mk.has(i);if(!INBAV[i]&&!lot)continue;const o=k*16,hide=lot?pc:pro;if(hide)a.fill(0,o,o+16);else for(let j=0;j<16;j++)a[o+j]=BM0[o+j];}
   bmesh.instanceMatrix.needsUpdate=true;}
 
@@ -603,7 +603,7 @@ function applyMarket(force){
   MK.items.forEach(it=>{const e=it.tau>5?0:sm(clamp((P-it.tau)/0.12));it.e=e;removed+=it.a*e;
     const gy=gh(it.x,-it.y);_e.set(0,it.ang,0);_q.setFromEuler(_e);
     const k=posOf[it.i];
-    if(bmesh&&k<bmesh.count){const h=Math.min(it.f,24)*3.3*1.25+2,kept=it.tau>5,gone=S.scn==='pro'?(kept?0:1):e;
+    if(bmesh&&k<bmesh.count){const h=Math.min(it.f,24)*3.3*1.25+2,kept=it.tau>5,gone=S.scn==='pro'?(coraOn?(kept?0:1):0):e;
       if(BC0){if(kept&&coraOn)bmesh.setColorAt(k,MK.acopio&&MK.acopio.has(it.i)?ORG:BLU);else bmesh.instanceColor.array.set(BC0.subarray(k*3,k*3+3),k*3);}_m4.compose(_p.set(it.x,gy,-it.y),_q,_s.set(gone>=1?.001:it.w,Math.max(h*(1-gone),0.001),gone>=1?.001:it.d));bmesh.setMatrixAt(k,_m4);}
     if(it.tau<5){
       _m4.compose(_p.set(it.x,gy+.1,-it.y),_q,_s.set(it.w*.98,Math.max(1.6*e,0.001),it.d*.98));MK.patch.setMatrixAt(it.j,_m4);
