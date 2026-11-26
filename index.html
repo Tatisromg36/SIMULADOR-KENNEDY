@@ -1322,6 +1322,37 @@ function emUpdate(){if(!EM.disc)emInit();const pro=S.scn==='pro',on=EM.on&&pro&&
   [EM.disc,EM.box,EM.ring].forEach(m=>m.instanceMatrix.needsUpdate=true);EM.ring.instanceColor.needsUpdate=true;EM.n=n;EM.nc=nc;
   const el=$('#emS');if(el)el.textContent=!EM.on?'':!pro?'Solo en la propuesta.':S.adopt?'Los candidatos están adoptados a mano (Masterplan).':
     `Anillo verde = espacio vecinal; rosado = recién creado. Participación ${Math.round(cur.P*100)} % · propuesta ${cur.W>=1?'funcionando':cur.W>0?'con umbrales cruzados':'colapsada'} → ${nc} de ${CI.length} espacios candidatos activados por la comunidad y ${n} huertas, jardines y composteras vecinales`;}
+/* ---------- biodigestores de las plazas satélite → luz para el espacio público ----------
+   Fruta y verdura: ~100 m³ de biogás por tonelada; con motogenerador (35 % eléctrico) ≈ 200 kWh por tonelada.
+   La mitad de lo que valoriza cada plaza va a biodigestión (la otra mitad a compost).
+   Luminaria LED de espacio público: 80 W × 12 h ≈ 1 kWh por noche. */
+const BIO={L:[],key:'',pole:null,glow:null,dig:null,KWH_T:200,DIG:.5,LAMP:1};
+function bioKwh(o,t){if(S.scn!=='pro'||MPOFF.has(o.id)||o.out)return {t:0,kwh:0,lamps:0};
+  const st=at('pro',t),val=wfBal(st).val,tot=INT.filter(q=>!q.out&&!MPOFF.has(q.id)).reduce((a,q)=>a+cap(q),0)||1,u=Math.min(1,val/tot),tt=cap(o)*u*BIO.DIG,kwh=tt*BIO.KWH_T;
+  return {t:tt,kwh,lamps:Math.floor(kwh/BIO.LAMP)};}
+function bioInit(){const P=INT.filter(o=>o.type==='plaza'&&!o.out);let sd=5;const r=()=>(sd=(sd*16807)%2147483647)/2147483647,onRoad=roadF();
+  P.forEach(o=>{const pts=[];NET.forEach(e=>{const n=e.x.length;for(let i=0;i+1<n;i++){const ax=e.x[i],ay=e.y[i],bx2=e.x[i+1],by2=e.y[i+1],L=Math.hypot(bx2-ax,by2-ay),m=Math.max(1,Math.floor(L/42));
+      for(let q=0;q<m;q++){const x=ax+(bx2-ax)*q/m,y=ay+(by2-ay)*q/m,d=Math.hypot(x-o.x,y-o.y);if(d<70||d>480)continue;const nx=-(by2-ay)/L,ny=(bx2-ax)/L,w=e.c===2?18:e.c===1?11:8,px=x+nx*w,py=y+ny*w;
+        if(inM(px,py)&&!pts.some(p=>Math.hypot(p[0]-px,p[1]-py)<34))pts.push([px,py,d]);}}});
+    pts.sort((a,b)=>a[2]-b[2]);BIO.L.push({o,pts:pts.slice(0,46)});});
+  const n=BIO.L.reduce((a,b)=>a+b.pts.length,0);
+  BIO.pole=new THREE.InstancedMesh(geo.box,lam(0x3a3f4a),n);BIO.glow=new THREE.InstancedMesh(geo.ico,new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95,depthWrite:false,depthTest:false}),n);BIO.glow.renderOrder=47;{const cg=new THREE.CircleGeometry(1,20);cg.rotateX(-Math.PI/2);BIO.pool=new THREE.InstancedMesh(cg,new THREE.MeshBasicMaterial({color:0xffc21a,transparent:true,opacity:.62,depthWrite:false,depthTest:false}),n);BIO.pool.renderOrder=46;}
+  /* biodigestores: domos verdes + gasómetro + motogenerador junto a cada plaza */
+  BIO.dig=new THREE.Group();BIO.L.forEach(b=>{const o=b.o,G=new THREE.Group(),bav=o.id==='plaza_bav',R0=bav?60:o.r*.95;let gx=o.x+R0*.75,gy=o.y-R0*.55;
+      for(let k=0;k<14&&(onRoad(gx,gy)||!inM(gx,gy));k++){const a=k*.9;gx=o.x+Math.cos(a)*R0;gy=o.y+Math.sin(a)*R0;}
+      G.position.set(gx,gh(gx,-gy),-gy);
+      [[-22,0],[0,-6],[22,0]].forEach(([dx,dz])=>{G.add(M(geo.cyl,mat(0x58c79b),dx,0,dz,11,6,11));G.add(M(geo.dome,mat(0x7fe0b0),dx,6,dz,11,9,11));});
+      G.add(M(geo.cyl,mat(0xdfe6ec),0,0,22,9,14,9));G.add(M(geo.dome,mat(0xdfe6ec),0,14,22,9,4,9));G.add(M(geo.box,mat(0xffc93d),-22,0,20,10,7,8));
+      b.dg=G;BIO.dig.add(G);});sc.add(BIO.dig);
+  [BIO.pole,BIO.glow,BIO.pool].forEach(m=>{m.frustumCulled=false;sc.add(m);});}
+function bioUpdate(){if(!BIO.pole)bioInit();const pro=S.scn==='pro',night=CLOCK.h>=18||CLOCK.h<6,px=clamp(2*V.H/cv.clientHeight,.4,12),
+    key=pro+'|'+S.t.toFixed(2)+'|'+night+'|'+[...MPOFF].join(',')+'|'+Math.round(Math.log(V.H)*8)+'|'+S.par;
+  if(key===BIO.key)return;BIO.key=key;let n=0;
+  BIO.L.forEach(b=>{const e=bioKwh(b.o,S.t),on=pro&&e.kwh>0,lit=on?Math.min(b.pts.length,Math.ceil(b.pts.length*clamp(e.lamps/200))):0;b.e=e;b.dg.visible=on;
+    b.pts.forEach((p,i)=>{const gy=gh(p[0],-p[1]),vis=on;_cm.compose(_cp.set(p[0],gy,-p[1]),_cq.identity(),_cs.set(vis?.9:.001,vis?10:.001,vis?.9:.001));BIO.pole.setMatrixAt(n,_cm);
+      const L=vis&&i<lit,g=L?(night?Math.max(3,px*4):1.6):.001;_cm.compose(_cp.set(p[0],gy+10.5,-p[1]),_cq.identity(),_cs.set(g,g,g));BIO.glow.setMatrixAt(n,_cm);
+      const pr=L&&night?Math.max(16,px*6):.001;_cm.compose(_cp.set(p[0],gy+.6,-p[1]),_cq.identity(),_cs.set(pr,1,pr));BIO.pool.setMatrixAt(n++,_cm);});});
+  BIO.glow.material.color.set(night?0xffe08a:0xc9c2a0);BIO.pole.instanceMatrix.needsUpdate=BIO.glow.instanceMatrix.needsUpdate=BIO.pool.instanceMatrix.needsUpdate=true;}
 /* ---------- abejas en los jardines de polinizadores de los ecotonos (solo propuesta; se detienen en pausa) ---------- */
 const BEE={m:null,L:[]};
 function beeUpdate(T){if(!BEE.m){INT.forEach(o=>{if(o.garden&&!o.out)for(let k=0;k<16;k++)BEE.L.push({o,a:Math.random()*6.28,r:.3+Math.random()*.9,h:3+Math.random()*4,w:.6+Math.random()*1.2,p:Math.random()*6.28});});
@@ -1532,7 +1563,7 @@ const AGL=[['pers','Personas','custodios y vecinos','#9b8cff','<circle cx="12" c
 const svgI=(c,p)=>`<svg viewBox="0 0 24 18" width="22" height="17" fill="${c}" aria-hidden="true">${p}</svg>`;
 function lgAgents(){$('#lgA').innerHTML=`<div style="font-weight:700;margin-bottom:4px">Agentes del modelo</div>`+
   `<div class="ag">${svgI('#8d8aa8','<rect x="11" y="1" width="2" height="16"/><rect x="8" y="1" width="8" height="2" fill="#fff0b0"/><circle cx="6" cy="14" r="3.5" fill="#9bd03a"/><circle cx="17" cy="14" r="3" fill="#c9822f"/>')}<span><b>Residuo domiciliario</b><small>bolsas en esquinas y postes; atraen palomas</small></span></div>`+`<div class="ag">${svgI('#d9953a','<rect x="3" y="9" width="8" height="6"/><rect x="9" y="6" width="6" height="9" fill="#8a5a2b"/><circle cx="20" cy="8" r="2.2"/>')}<span><b>Residuo de Corabastos</b><small>pilas en las puertas 5 y 6; fluye al humedal</small></span></div>`+`<div class="ag">${svgI('#58b36f','<circle cx="12" cy="7" r="5.5"/><rect x="11" y="11" width="2" height="6"/>')}<span><b>Arbolado urbano</b><small>inventario real, por altura</small></span></div>`+
-  AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+(S.scn==='pro'?`<div class="ag">${svgI('#ffd23a','<circle cx="12" cy="12" r="5"/><rect x="7" y="11" width="10" height="2" fill="#2a2320"/><ellipse cx="8" cy="7" rx="4" ry="2.5" fill="#fff"/><ellipse cx="16" cy="7" rx="4" ry="2.5" fill="#fff"/>')}<span><b>Abejas</b><small>polinizadoras; viven en los jardines de los ecotonos</small></span></div>`:'')+`<div style="height:8px"></div>`;}
+  AGL.map(([k,n,d,c,p])=>`<div class="ag">${svgI(c,p)}<span><b>${n}</b><small>${d}</small></span></div>`).join('')+(S.scn==='pro'?`<div class="ag">${svgI('#ffd23a','<circle cx="12" cy="12" r="5"/><rect x="7" y="11" width="10" height="2" fill="#2a2320"/><ellipse cx="8" cy="7" rx="4" ry="2.5" fill="#fff"/><ellipse cx="16" cy="7" rx="4" ry="2.5" fill="#fff"/>')}<span><b>Abejas</b><small>polinizadoras; viven en los jardines de los ecotonos</small></span></div>`+`<div class="ag">${svgI('#ffc21a','<rect x="11" y="6" width="2" height="14" fill="#3a3f4a"/><circle cx="12" cy="6" r="4"/><ellipse cx="12" cy="20" rx="9" ry="2.5" opacity=".5"/>')}<span><b>Luminarias con biogás</b><small>alimentadas por los biodigestores de las plazas satélite; se encienden de noche</small></span></div>`:'')+`<div style="height:8px"></div>`;}
 function legend(){lgAgents();const need=S.layer!=='estado';$('#lgT').textContent=S.layer==='estado'?'Estado del suelo por carga de residuo':need?'Necesidad por cubrir · '+(S.layer==='all'?'todos los indicadores':KNAME[S.layer]):'';
   const st=need?'#58c79b,#8fd0a8,#e9b0c8,#ff4fa0,#e0147a':'#58c79b,#9ccd66,#d9b13c,#c2652f,#8a2f2f';
   $('#lgBar').style.background=`linear-gradient(90deg,${st})`;$('#lgL').textContent=need?'Cubierta':'Sano';$('#lgR').textContent=need?'Falta espacio':'Contaminado';}
@@ -1821,7 +1852,7 @@ function renderMP(){
   const swT=$('#swT');if(swT)swT.addEventListener('change',()=>{TR.on=swT.checked;TR.mesh.visible=TR.on;});const sw=$('#swC');if(sw)sw.addEventListener('change',()=>{S.cands=sw.checked;});
   const sa=$('#swA');if(sa)sa.addEventListener('change',()=>{S.adopt=sa.checked;if(S.adopt&&S.scn!=='pro')setScn('pro');buildSeries();lastKey='';applyState(true);renderInd();renderCmp();});
 }
-const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabastos antes de que llegue a la calle, la composta o digiere y devuelve alimento de proximidad.',
+const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabastos antes de que llegue a la calle, la composta o digiere y devuelve alimento de proximidad. Sus biodigestores convierten la fruta y la verdura en biogás, y un motogenerador lo vuelve electricidad para iluminar la plaza y el espacio público alrededor.',
  parque:'Parque inundable: absorbe la escorrentía, filtra con macrófitas y devuelve la franja de amortiguación al humedal (ciudad esponja).',
  ecotono:'Ecotono: la franja de transición entre dos ecosistemas, aquí entre la ciudad y el humedal. La idea es generar conectividad ecosistémica: un borde continuo de juncos, arbustos, árboles y flores por el que se mueven la tingua, los colibríes, las abejas y otros polinizadores entre el humedal y los corredores verdes. Se propone como espacio público con áreas verdes donde personas y fauna comparten el lugar: cohabitabilidad multiespecie.',
  corredor:'Corredor verde: arbolado continuo que une humedales. Ruta de colibríes y polinizadores, y espacio peatonal.',
@@ -1834,7 +1865,7 @@ const DESC={plaza:'Plaza satélite con bio-factoría: recibe biomasa de Corabast
  vivienda:'Vivienda nueva en la zona Bavaria, mezclada con huertas y un parque inundable. La propiedad colectiva frena la especulación.',
  renov:'Zona de renovación para la cohabitabilidad: techos verdes dispersos sobre las viviendas existentes y parques de bolsillo entre manzanas.'};
 /* ---------- fichas de los espacios propuestos: programa, macromodelos, dinámicas que cambia y efecto medido ---------- */
-const PROG={plaza:'Nave de mercado con bio-factoría (compostaje y biodigestión), cúpula de acopio, muelles de carga y huertas de proximidad.',
+const PROG={plaza:'Nave de mercado con bio-factoría: compostaje, biodigestores (domos verdes), gasómetro y motogenerador; cúpula de acopio, muelles de carga, huertas de proximidad y luminarias del espacio público alimentadas con su biogás.',
  ecotono:'Borde de juncos, arbustos y árboles nativos hacia el humedal; plaza de encuentro con bancas curvas de madera; jardín de polinizadores en retícula de jardineras con flores para abejas, mariposas y colibríes; senderos que conectan con los corredores verdes.',
  custodia:'Círculo de reunión: muro anular de concreto con arcos y banda de madera; alrededor, pradera inundable con cauce y piedras de paso.',
  habitat:'Círculo de reunión con pradera inundable, refugios, nidos y charcas para especies focales.',
@@ -1852,7 +1883,7 @@ const MACRO={plaza:['Cohabitabilidad multiespecie','Ciudad biofílica'],ecotono:
  habitat:['Animal Aided Design','Ciudad esponja'],saberes:['Cohabitabilidad multiespecie','Ciudad esponja'],parque:['Ciudad esponja','Ciudad biofílica'],puente:['Animal Aided Design'],
  corredor:['Animal Aided Design','Ciudad biofílica'],ecocirc:['Cohabitabilidad multiespecie'],centro:['Cohabitabilidad multiespecie','Ciudad biofílica'],
  vivienda:['Cohabitabilidad multiespecie','Ciudad esponja'],renov:['Ciudad biofílica','Cohabitabilidad multiespecie'],liq:['Ciudad biofílica'],zanja:['Ciudad esponja']};
-const CHAIN={plaza:['Residuo de Corabastos → se valoriza en origen ↑','Residuo sin tratar y comida para palomas ↓','Presión sanitaria ↓ → tingua y colibríes ↑','Abono → huertas → alimento local ↑'],
+const CHAIN={plaza:['Residuo de Corabastos → se valoriza en origen ↑','Biodigestores → biogás → electricidad → luz en la plaza y en el espacio público ↑ → calles más seguras y usadas de noche','Residuo sin tratar y comida para palomas ↓','Presión sanitaria ↓ → tingua y colibríes ↑','Abono → huertas → alimento local ↑'],
  ecotono:['Borde vegetal continuo entre ciudad y humedal → conectividad ecosistémica ↑','Jardín de polinizadores → abejas, mariposas y colibríes ↑ → polinización de huertas y flora del humedal ↑','Barrera de vegetación → ruido en el borde del humedal ↓ → tingua ↑','Espacio público verde → personas y fauna comparten el lugar (cohabitabilidad multiespecie ↑)','Verde nuevo → valoriza el suelo (especulación ↑): necesita custodia y vivienda cooperativa'],
  custodia:['Comunidad organizada → capital social ↑','Custodia del suelo → especulación y desplazamiento ↓','Pradera inundable → retiene la lluvia'],
  habitat:['Refugios y charcas → hábitat de fauna ↑','Conectividad ↑','Comunidad que cuida → capital social ↑'],
@@ -1879,6 +1910,7 @@ function fichaSpace(it){const t=it.type,isOff=MPOFF.has(it.id),pro=S.scn==='pro'
   let h=`<h2>${it.name}</h2><div class="st"><span class="chip">${pro?(isOff?'Apagado':'Encendido'):'Solo en propuesta'}</span>${(MACRO[t]||[]).map(m=>`<span class="chip">${m}</span>`).join('')}</div>`;
   h+=`<p>${DESC[t]||PROG[t]}</p>${DESC[t]&&PROG[t]?`<h3>Qué tiene</h3><p>${PROG[t]}</p>`:''}`;
   if(cap(it))h+=`<p class="note">Capacidad supuesta: ${cap(it)} t/día de biomasa valorizada.</p>`;
+  if(t==='plaza'){const e=bioKwh(it,S.t);h+=`<h3>Energía del biodigestor (año ${Math.floor(S.t)})</h3>`+(e.kwh>0?`<p><b>${e.t.toFixed(1).replace('.',',')} t/día</b> a biodigestión → ~${Math.round(e.t*100).toLocaleString('es-CO')} m³ de biogás → <b>${Math.round(e.kwh).toLocaleString('es-CO')} kWh/día</b>, que alcanzan para ~${e.lamps.toLocaleString('es-CO')} luminarias LED de 80 W encendidas 12 h. En el mapa se ven las más cercanas; de noche se encienden.</p><p class="note">Supuestos: la mitad de la biomasa a biodigestión; ~100 m³ de biogás y ~200 kWh eléctricos por tonelada de fruta y verdura (motogenerador con 35 % de eficiencia eléctrica); estudios de plazas de mercado de Bogotá (El Restrepo) y Bucaramanga.</p>`:`<p class="note">${pro?'Apagado: sin biodigestión no hay luz.':'Solo en la propuesta.'}</p>`);}
   h+=`<h3>Dinámicas que cambia</h3><ol class="chain">${(CHAIN[t]||[]).map(x=>`<li>${x}</li>`).join('')}</ol>`;
   if(!pro){return h+`<p class="note">Cambia a Propuesta para medir cuánto cambia el territorio con este espacio.</p>`;}
   const {on,off}=spaceEffect(it.id),f=(v,d)=>(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toString().replace('.',','),y=v=>'año '+f(v,1);
@@ -2033,12 +2065,12 @@ function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)ca
   if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
   if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
   if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
-  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();emUpdate();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();emUpdate();bioUpdate();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
 /* arranque */
 resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
