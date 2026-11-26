@@ -742,7 +742,7 @@ function vivienda(o){const poly=D.viv,G=new THREE.Group();G.userData.abs=true;
   const base=flat(poly,0x8fbf4a,14.6);G.add(base);const towers=new THREE.Group();const MP=D.mpbav||{};
   (MP.orange||[]).forEach((q,k)=>towers.add(extr(q,15+(k%3)*3,k%2?0xb98552:0xcfc6b5)));/* fachadas de madera y piedra */
   (MP.yellow||[]).forEach((q,k)=>towers.add(extr(q,9+(k%2)*4,0xf8de6b)));
-  (MP.blue||[]).forEach(q=>towers.add(extr(q,12,0x4e5f8f)));
+  /* el volumen azul (plaza satélite) lo dibuja la plaza Bavaria */
   towers.position.y=14.6;G.add(towers);
   /* humedales de lluvia con pasarelas de madera entre los bloques */
   {const vol=[].concat(MP.orange||[],MP.yellow||[],MP.blue||[]),bb=lot(poly),W=[];for(let t=0;t<400&&W.length<5;t++){const x=bb.x0+rnd()*(bb.x1-bb.x0),y=bb.y0+rnd()*(bb.y1-bb.y0);
@@ -773,9 +773,17 @@ B3.suelo=(o)=>{const r=o.r,G=new THREE.Group();G.add(M(blob(),gm.lawn,0,0,0,r*.9
 const BUILD={corredor:corridor,vivienda:vivienda,renov:renov};
 /* grupos */
 const proGroup=new THREE.Group(), actGroup=new THREE.Group(); sc.add(proGroup,actGroup);
+/* plaza satélite Bavaria: va en el volumen azul del masterplan, dentro del lote de la fábrica (no sobre la vía) */
+function plazaBav(o){const G=new THREE.Group();G.userData.abs=true;const Q=(D.mpbav&&D.mpbav.blue)||[];
+  Q.forEach(q=>{G.add(extr(q,12,0x3f55d8,14.6));G.add(extr(q,1.2,0x5d74f2,26.6));
+    const cx=q.reduce((a,p)=>a+p[0],0)/q.length,cy=q.reduce((a,p)=>a+p[1],0)/q.length;
+    const d=new THREE.Mesh(geo.dome,gm.dome);d.position.set(cx-30,14.6,-(cy-60));d.scale.set(16,12,16);G.add(d);
+    const tg=new THREE.Group();tg.position.y=14.6;G.add(tg);for(let k=0;k<8;k++){const a=k*.8,tx=cx+Math.cos(a)*95,ty=cy+Math.sin(a)*70;if(polyIn([tx,ty],D.viv)&&!polyIn([tx,ty],q))tree(tg,tx,-ty,7+rnd()*4);}});
+  G.userData.grow=f=>{G.scale.set(1,1,1);};return G;}
+{const o=INT.find(q=>q.id==='plaza_bav'),Q=D.mpbav&&D.mpbav.blue;if(o&&Q&&Q.length){const q=Q[0];o.x=q.reduce((a,p)=>a+p[0],0)/q.length;o.y=q.reduce((a,p)=>a+p[1],0)/q.length;}}
 const hits=[];
 INT.forEach(o=>{
-  const G=(BUILD[o.type]||B3[o.type])(o); if(!G.userData.abs){G.position.set(o.x,gh(o.x,-o.y),-o.y);}
+  const G=o.id==='plaza_bav'&&D.mpbav&&D.mpbav.blue&&D.mpbav.blue.length?plazaBav(o):(BUILD[o.type]||B3[o.type])(o); if(!G.userData.abs){G.position.set(o.x,gh(o.x,-o.y),-o.y);}
   o.G=G; proGroup.add(G);o.out=!inM(o.x,o.y);if(o.out)G.visible=false;
   if(o.r>0){o.ring=ring(o.r,0xff3d96,.55);o.ring.position.set(o.x,gh(o.x,-o.y)+.8,-o.y);proGroup.add(o.ring);}
   else if(o.type==='corredor'){const pts=D.lines[o.id];const pos=[];samples(pts,30).forEach(p=>pos.push(p[0],15.5,-p[1]));
