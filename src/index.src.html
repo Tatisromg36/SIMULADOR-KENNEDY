@@ -220,6 +220,7 @@ body.intro #top,body.intro #panel,body.intro #time,body.intro #legend,body.intro
 #thrL b{font-weight:800}#thrL span{color:var(--ink)}#thrL em{font-style:normal;color:var(--ink2);margin-left:3px}
 #thrL.ok{color:var(--mint)}#thrL.alerta{border-color:var(--amber)}#thrL.alerta b{color:var(--amber)}#thrL.colapso{border-color:#ff7a59}#thrL.colapso b{color:#ff7a59}#thrL.gameover{border-color:var(--pink);background:rgba(80,10,40,.94)}#thrL.gameover b{color:var(--pink)}
 @media (max-width:700px){#thrL{max-width:92vw;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 120px);font-size:11px}}
+.thrm{position:absolute;left:0;top:0;z-index:4;pointer-events:auto;border:2px solid #fff;border-radius:999px;background:#d8264a;color:#fff;font:700 14px/1 inherit;min-width:30px;height:30px;padding:0 8px;cursor:pointer;box-shadow:0 0 0 4px rgba(255,61,90,.35),0 4px 14px rgba(0,0,0,.4)}.thrm.good{background:#1f9a63;box-shadow:0 0 0 4px rgba(94,240,160,.35),0 4px 14px rgba(0,0,0,.4)}.thrm.open{height:auto;padding:8px 12px;border-radius:10px;max-width:280px;text-align:left;line-height:1.3;font-size:13px}.thrm small{display:block;font-weight:400;font-size:12px;opacity:.92;margin-top:3px}
 #thr{position:fixed;top:max(76px,calc(env(safe-area-inset-top,0px) + 70px));left:50%;transform:translateX(-50%);z-index:25;background:rgba(80,10,40,.94);border:1px solid var(--pink);border-radius:6px;padding:9px 14px;font-size:13px;max-width:min(520px,92vw);text-align:center}
 .rng{position:relative}#goMarks{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none}
 #goMarks i{position:absolute;top:2px;width:3px;height:14px;margin-left:-1px;background:#ff7a59;border-radius:2px;opacity:.85}figure.fimg{margin:10px 0 12px;background:#fff;border-radius:6px;overflow:hidden}figure.fimg img{display:block;width:100%;height:auto}figure.fimg figcaption{font-size:11.5px;color:#4a4560;padding:6px 10px 8px;background:#f4f2fa}#goMarks i.rec{background:#5ef0a0}#thr.good{background:rgba(10,70,45,.94);border-color:#5ef0a0}#thrL span.ok2{color:#8dffbe}#thrL span.ok2 em{color:#8dffbe;opacity:.8}#goMarks i.big{background:var(--pink);width:5px;height:20px;top:-1px}
@@ -1370,6 +1371,33 @@ function bioUpdate(){if(!BIO.pole)bioInit();const pro=S.scn==='pro',night=CLOCK.
       const L=vis&&i<lit,g=L?(night?Math.max(3,px*4):1.6):.001;_cm.compose(_cp.set(p[0],gy+10.5,-p[1]),_cq.identity(),_cs.set(g,g,g));BIO.glow.setMatrixAt(n,_cm);
       const pr=L&&night?Math.max(16,px*6):.001;_cm.compose(_cp.set(p[0],gy+.6,-p[1]),_cq.identity(),_cs.set(pr,1,pr));BIO.pool.setMatrixAt(n++,_cm);});});
   BIO.glow.material.color.set(night?0xffe08a:0xc9c2a0);BIO.pole.instanceMatrix.needsUpdate=BIO.glow.instanceMatrix.needsUpdate=BIO.pool.instanceMatrix.needsUpdate=true;}
+/* ---------- dónde se cruzan los umbrales: marcas en el mapa (solo lo ya visto en la simulación) ----------
+   Rojo = umbral cruzado ahí; verde (propuesta) = el espacio que lo evita o lo apagó. Clic en la marca para leer qué pasa. */
+function thrPlace(id,good){const P=S.scn==='pro',I=k=>INT.find(o=>o.id===k),gin=GATES.filter(g=>g.kind!=='ped'),gc=gin.length?[gin.reduce((a,g)=>a+g.x,0)/gin.length,gin.reduce((a,g)=>a+g.y,0)/gin.length]:[-269,-69];
+  const w=WET[0].p,wc=[w.reduce((a,q)=>a+q[0],0)/w.length,w.reduce((a,q)=>a+q[1],0)/w.length],src=(CR&&CR.src)||[];
+  const lots=SPX.L.filter(c=>c.lot).sort((a,b)=>a.th-b.th).slice(0,12),lc=lots.length?[lots.reduce((a,c)=>a+c.x,0)/lots.length,lots.reduce((a,c)=>a+c.y,0)/lots.length]:gc;
+  if(good&&P){const m={dis:['plaza_cora',650,'La plaza satélite valoriza el residuo antes de que llegue a la calle'],tin:['ecotono_s',600,'El ecotono devuelve hábitat a las tinguas'],esp:['viv_bav',900,'La vivienda cooperativa mantiene el suelo en manos vecinas'],
+      res:['plaza_cora',650,'Las plazas satélite procesan la biomasa'],aire:['plaza_cora',1400,'Árboles líquidos y menos carga por la ciudad'],soc:['custodia_1',800,'La comunidad custodia el humedal']}[id];
+    if(m){const o=I(m[0]);if(o)return{x:o.x,y:o.y,H:m[1],lab:m[2]};}}
+  const b={aire:{x:gc[0],y:gc[1],H:1500,lab:'Carga y tráfico de Corabastos: aquí se concentra el PM2.5'},dis:{x:(src[1]||{x:-574}).x,y:(src[1]||{y:-20}).y,H:340,lab:'Pilas de residuo en la puerta 6: aquí se juntan las palomas'},
+    tin:{x:wc[0],y:wc[1],H:520,lab:'Humedal La Vaca: el borde sellado y los lixiviados dejan sin hábitat a las tinguas'},esp:{x:lc[0],y:lc[1],H:1300,lab:'Lotes libres que se vuelven torres'},
+    res:{x:(src[0]||{x:7}).x,y:(src[0]||{y:-440}).y,H:450,lab:'Residuo sin tratar acumulándose en la puerta 5'},soc:{x:gc[0],y:gc[1],H:1200,lab:'Sin comunidad organizada, los espacios no se sostienen'}};
+  return b[id]||null;}
+const THRM={L:{},ring:null};
+function thrMarks(){const lim=thrSeen(),P=S.scn==='pro',want=[];
+  if(lim>=0){if(!P)THR.forEach(h=>{if(h.y!==null&&h.y<=lim+1e-6)want.push([h,false,h.y]);});
+    else{PCROSS.forEach(h=>{if(h.y<=lim+1e-6&&pActive(h,lim))want.push([h,false,h.y]);else if(h.y<=lim+1e-6)want.push([h,true,h.r]);});
+      THR.forEach(h=>{if(h.y!==null&&h.y<=lim+1e-6&&!PCROSS.some(q=>q.id===h.id&&q.y<=lim+1e-6))want.push([h,true,h.y]);});}}
+  const keep=new Set();want.forEach(([h,good,y])=>{const k=h.id+(good?'g':'b');keep.add(k);let m=THRM.L[k];
+    if(!m){const f=thrPlace(h.id,good);if(!f)return;const e=document.createElement('button');e.className='thrm'+(good?' good':'');e.type='button';
+      const short=`${good?'✓':'⚠'}`,full=`${good?'✓':'⚠'} ${h.n} · ${2026+Math.floor(y)}<small>${f.lab}</small>`;e.innerHTML=short;e.setAttribute('aria-label',h.n);
+      e.addEventListener('pointerdown',ev=>ev.stopPropagation());e.addEventListener('click',ev=>{ev.stopPropagation();const o=e.classList.toggle('open');e.innerHTML=o?full:short;});
+      pinsEl.appendChild(e);m=THRM.L[k]={e,x:f.x,y:f.y,R:Math.max(60,f.H*.14),good};}});
+  Object.keys(THRM.L).forEach(k=>{if(!keep.has(k)){THRM.L[k].e.remove();delete THRM.L[k];}});
+  if(!THRM.ring){const rg=new THREE.RingGeometry(.8,1,48);rg.rotateX(-Math.PI/2);THRM.ring=new THREE.InstancedMesh(rg,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,depthTest:false,depthWrite:false,side:THREE.DoubleSide}),12);THRM.ring.renderOrder=58;THRM.ring.frustumCulled=false;sc.add(THRM.ring);}
+  const now=performance.now(),c=new THREE.Color();let n=0;Object.values(THRM.L).forEach((m,i)=>{if(n>=12)return;const k=1+.15*Math.sin(now/220+i);_cm.compose(_cp.set(m.x,gh(m.x,-m.y)+2,-m.y),_cq.identity(),_cs.set(m.R*k,1,m.R*k));THRM.ring.setMatrixAt(n,_cm);THRM.ring.setColorAt(n,c.set(m.good?0x5ef0a0:0xff3d5a));n++;});
+  THRM.ring.count=n;THRM.ring.instanceMatrix.needsUpdate=true;if(THRM.ring.instanceColor)THRM.ring.instanceColor.needsUpdate=true;
+  const w=cv.clientWidth,hh=cv.clientHeight;Object.values(THRM.L).forEach(m=>{const [x,y]=proj(m.x,m.y,40);const ok=x>-40&&x<w+40&&y>-40&&y<hh+40;m.e.style.display=ok?'':'none';if(ok)m.e.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;});}
 /* ---------- abejas en los jardines de polinizadores de los ecotonos (solo propuesta; se detienen en pausa) ---------- */
 const BEE={m:null,L:[]};
 function beeUpdate(T){if(!BEE.m){INT.forEach(o=>{if(o.garden&&!o.out)for(let k=0;k<16;k++)BEE.L.push({o,a:Math.random()*6.28,r:.3+Math.random()*.9,h:3+Math.random()*4,w:.6+Math.random()*1.2,p:Math.random()*6.28});});
@@ -2106,7 +2134,7 @@ function frame(now){const dt=Math.min(100,now-last);last=now;if(++offN%15===0)ca
   if(S.playing){setT(S.t+dt/1000*0.8*S.speed);if(S.t>=20){S.playing=false;$('#play').textContent='▶';}}
   if(!$('#intro').hidden&&!REDUCE)V.az+=dt*.00004;
   if(azT!=null){const d=azT-V.az;V.az+=d*Math.min(1,dt*.01);if(Math.abs(d)<.002){V.az=azT;azT=null;}}
-  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();emUpdate();bioUpdate();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
+  const sdt=S.playing?dt:0;SIMT+=sdt;stepFly(now);placeCam();animAgents(SIMT,sdt);beeUpdate(SIMT);spxUpdate();emUpdate();bioUpdate();thrMarks();updatePins();R.render(sc,cam);requestAnimationFrame(frame);}
 /* arranque */
 resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP();
 const FACT=1;
