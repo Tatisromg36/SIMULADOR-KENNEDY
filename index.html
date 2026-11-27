@@ -1391,7 +1391,7 @@ function zjInit(){if(ZJ.G||!RG.E||!RG.E.length)return;const E=RG.E.filter(e=>e.c
   let cells=0;for(let c=0;c<MASK.length;c++)if(MASK[c])cells++;ZJ_FRAC=area/(cells*CS*CS);ZJ.len=E.length;scheduleRecompute();}
 function zjUpdate(){zjInit();if(!ZJ.G)return;const on=S.scn==='pro'&&!MPOFF.has('zanja');if(on!==ZJ.on){ZJ.on=on;ZJ.G.visible=on;}}
 /* ---------- ruido (mapa de calor) y aire (partículas azules) a partir del tráfico ---------- */
-const ENV={em:new Float32Array(NX*NY),heat:null,ctx:null,tex:null,last:0,P:null,np:2200,pi:0,life:null,vel:null,on:{n:true,a:true}};
+const ENV={acc:0,em:new Float32Array(NX*NY),heat:null,ctx:null,tex:null,last:0,P:null,np:2200,pi:0,life:null,vel:null,on:{n:true,a:true}};
 function envField(){if(ENV.RW)return;const RW=new Float32Array(NX*NY),TK=new Float32Array(NX*NY);
   const add=(A,x0,y0,x1,y1,w)=>{const L=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(L/25));for(let k=0;k<n;k++){const x=x0+(x1-x0)*(k+.5)/n,y=y0+(y1-y0)*(k+.5)/n,ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);if(ix>=0&&iy>=0&&ix<NX&&iy<NY)A[iy*NX+ix]+=w*L/n/CS;}};
   [[0,.25],[1,1.4],[2,3]].forEach(([c,w])=>{const R0=D.roads[c];if(!R0||!R0.n)return;const co=i16(R0.xy),ln=u16(R0.len);let o=0;for(let k=0;k<ln.length;k++){const n=ln[k];for(let i=1;i<n;i++)add(RW,co[(o+i-1)*2]/2,co[(o+i-1)*2+1]/2,co[(o+i)*2]/2,co[(o+i)*2+1]/2,w);o+=n;}});
@@ -1411,6 +1411,8 @@ function envInit(){if(ENV.heat)return;envField();const c=document.createElement(
 const NOISE_RAMP=[[0,0,0,0],[.35,.85,.35,.0],[.95,.85,.25,.55],[.98,.45,.15,.75],[.85,.1,.25,.88]];
 function envUpdate(dt,st,sz){envInit();const em=ENV.em,dec=Math.exp(-dt/6),air=clamp(st.pm/30,0,2),pro=S.scn==='pro',trk=clamp(st.E/130)*(1-.8*(pro?clamp(st.val/0.85):0)),carR=pro?.85:1,green=pro?st.sC:0;
   for(let i=0;i<em.length;i++)em[i]*=dec;
+  /* acumulación visible del ruido: al inicio casi nada; crece con los años y mientras corre la simulación (pausado o al mover la línea de tiempo salta al valor del año) */
+  {const tg=clamp(.06+S.t/7);ENV.acc=S.playing?ENV.acc+(tg-ENV.acc)*Math.min(1,dt/3):tg;}
   const pos=ENV.P.geometry.attributes.position.array,col=ENV.P.geometry.attributes.color.array;
   for(const k of ['car','truck']){const W=VH[k];if(!W.cx)continue;const w=k==='truck'?4:1,ep=k==='truck'?16:1;
     for(let i=0;i<W.n;i++){if(!W.on[i])continue;const x=W.cx[i],y=W.cy[i],ix=Math.floor((x-g.x0)/CS),iy=Math.floor((y-g.y0)/CS);
@@ -1428,10 +1430,10 @@ function envUpdate(dt,st,sz){envInit();const em=ENV.em,dec=Math.exp(-dt/6),air=c
     pos[j*3]+=ENV.vel[j*3]*dt;pos[j*3+1]+=ENV.vel[j*3+1]*dt;pos[j*3+2]+=ENV.vel[j*3+2]*dt;}
   ENV.P.geometry.attributes.position.needsUpdate=ENV.P.geometry.attributes.color.needsUpdate=true;ENV.P.visible=ENV.on.a;
   ENV.heat.visible=ENV.on.n;const now=performance.now();if(!ENV.on.n||now-ENV.last<250)return;ENV.last=now;
-  const d=ENV.img.data,off=st.noise-68;
+  const d=ENV.img.data,off=(st.noise-68)*ENV.acc,ac=ENV.acc;
   for(let iy=0;iy<NY;iy++)for(let ix=0;ix<NX;ix++){const c=iy*NX+ix;let v=em[c];
       for(const [a,b,wt] of [[1,0,.5],[-1,0,.5],[0,1,.5],[0,-1,.5],[1,1,.25],[-1,1,.25],[1,-1,.25],[-1,-1,.25]]){const u=ix+a,w=iy+b;if(u>=0&&w>=0&&u<NX&&w<NY)v+=em[w*NX+u]*wt;}
-      v=v*.15+(ENV.RW[c]*carR*VARS[S.scn].cars/420+3*ENV.TK[c]*trk)*(1-.25*green);const dB=47+10*Math.log10(1+60*v)+off*.3,t=MASK[c]?clamp((dB-55)/22):0;
+      v=v*.15*(.35+.65*ac)+(ENV.RW[c]*carR*VARS[S.scn].cars/420+3*ENV.TK[c]*trk)*(1-.25*green)*ac;const dB=47+10*Math.log10(1+60*v)+off*.3,t=MASK[c]?clamp((dB-55)/22):0;
       const k=t*(NOISE_RAMP.length-1),i0=Math.min(NOISE_RAMP.length-2,Math.floor(k)),f=k-i0,A=NOISE_RAMP[i0],B2=NOISE_RAMP[i0+1];
       const p=((NY-1-iy)*NX+ix)*4;d[p]=255*lerp(A[0],B2[0],f);d[p+1]=255*lerp(A[1],B2[1],f);d[p+2]=255*lerp(A[2],B2[2],f);d[p+3]=255*lerp(A[3],B2[3],f);}
   ENV.ctx.putImageData(ENV.img,0,0);ENV.tex.needsUpdate=true;const es=$('#envS');if(es)es.textContent=`Año ${Math.round(S.t)}: ${Math.round(st.noise)} dB(A) · PM2.5 ${Math.round(st.pm)} µg/m³ · ${VCOL.nc||0} autos (${VCOL.jam} en trancón) · ${VCOL.stop} detenidos en semáforo · ${SIG.length} intersecciones semaforizadas (SDM)`;}
@@ -2110,6 +2112,6 @@ resize();initMarket();buildBuildings();setScn('pro');setT(20);legend();renderMP(
 const FACT=1;
 $('#intro').hidden=false;document.body.classList.add('intro');$('#load').hidden=true;
 requestAnimationFrame(frame);
-window.__sim={AVES_OBS,applyPar:id=>applyPar(id),MPOFF,mpChanged:()=>mpChanged(),pActive,THR,thrBadge,MK,BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
+window.__sim={SPX,BINx:()=>BIN,GATESx:()=>GATES,CRx:()=>(typeof CR!=='undefined'?CR:null),wfBal:o=>wfBal(o),AVES_OBS,applyPar:id=>applyPar(id),MPOFF,mpChanged:()=>mpChanged(),pActive,THR,thrBadge,MK,BIO,bioKwh,CLOCK,recompute:()=>recompute(),VARS,PC:()=>PCROSS,EM,emSeries,LIQ,FAx:()=>FA,AVO,WF,wfBal,RG,LIVE,liveApply,SIG,ENV,VCOL,GOP:()=>GOP,showSUS,showGOP,CR,GATES,V,cam,fly:(x,y,h)=>flyTo(x,y,h),BIN,BM,GO:()=>GO,THR,goCompute,showGO,ENT,ttApply,inM,relSelGet:()=>relSel,MASK,g,CS,NX,NY,D,FA,WET,inPoly,VH,NET,NETM,NETC,S,V,setT,setScn,at,SER,select,INT,buildSeries,CI};
 })();
 </script>
